@@ -7,6 +7,11 @@ module Stagehand
         new(identifier)
       end
 
+      def self.containing(record)
+        commit_identifiers = CommitEntry.contained.matching(record).uniq.pluck(:commit_identifier)
+        commit_identifiers.collect {|identifier| find(identifier) }
+      end
+
       def initialize(identifier = nil, &block)
         @identifier = identifier
 
@@ -22,19 +27,49 @@ module Stagehand
       end
 
       def saved
-        entries.where(:operation => ['insert', 'update']).pluck(:record_id, :table_name)
+        entries.save_operations.pluck(:record_id, :table_name)
       end
 
       def destroyed
-        entries.where(:operation => 'delete').pluck(:record_id, :table_name)
+        entries.delete_operations.pluck(:record_id, :table_name)
+      end
+
+      def keys
+        entries.pluck(:record_id, :table_name)
       end
 
       def entries
-        range.where(:operation => ['insert', 'update', 'delete'], :commit_identifier => @identifier).uniq('record_id, table_name')
+        range.content_operations.where(:commit_identifier => @identifier).uniq('record_id, table_name')
       end
 
       def ==(other)
         entries == other.entries
+      end
+
+      def related_commits
+        related_keys # ensure we've processed the related keys first
+        @related_commits
+      end
+
+      def related_keys
+        return @related_keys if @related_keys
+        @related_commits = []
+        @related_keys = []
+        entries_to_spider = keys
+
+        while entries_to_spider.present?
+          current_entry = entries_to_spider.shift
+          next if @related_keys.include?(current_entry)
+
+          @related_keys << current_entry
+          @related_commits.concat self.class.containing(current_entry)
+          entries_to_spider.concat self.class.containing(current_entry).flat_map(&:keys)
+          entries_to_spider.uniq!
+        end
+
+        @related_commits.uniq!
+
+        return @related_keys
       end
 
       private
@@ -49,19 +84,19 @@ module Stagehand
       end
 
       def recall
-        @commit_start = CommitEntry.where(:commit_identifier => @identifier, :operation => :commit_start).first!
-        @commit_end = CommitEntry.where(:commit_identifier => @identifier, :operation => :commit_end).first!
+        @commit_start = CommitEntry.start_operations.where(:commit_identifier => @identifier).first!
+        @commit_end = CommitEntry.end_operations.where(:commit_identifier => @identifier).first!
 
       rescue ActiveRecord::RecordNotFound
         raise Stagehand::CommitNotFound, "No commits matched the identifier: #{@identifier}"
       end
 
       def enable_commit
-        @commit_start = CommitEntry.create(:operation => :commit_start)
+        @commit_start = CommitEntry.start_operations.create
       end
 
       def disable_commit
-        @commit_end = CommitEntry.create(:operation => :commit_end)
+        @commit_end = CommitEntry.end_operations.create
       end
 
       def finalize_commit_entries

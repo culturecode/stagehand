@@ -1,5 +1,5 @@
 RSpec.configure do |config|
-  config.before(:all) do
+  config.before(:suite) do
     # Create tables in the test and production database so we test copying from one to the other
     [:test, :production].each do |connection_name|
       ActiveRecord::Base.establish_connection connection_name

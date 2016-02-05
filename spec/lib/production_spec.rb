@@ -70,8 +70,8 @@ describe Stagehand::Production do
         expect(live_record.class.where(:id => live_record)).not_to exist
       end
 
-      it 'removes the source record from the production database when given an id and class name' do
-        subject.destroy(source_record.id, source_record.class.name)
+      it 'removes the source record from the production database when given an id and table name' do
+        subject.destroy(source_record.id, source_record.class.table_name)
         expect(live_record.class.where(:id => live_record)).not_to exist
       end
     end
