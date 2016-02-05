@@ -18,7 +18,6 @@ module Stagehand
       end
 
       def affected_records
-        #@affected_records ||= spider_associations(@staging_record)
         return affected_entries.collect(&:record).uniq
       end
 
@@ -38,23 +37,6 @@ module Stagehand
       def production_record(staging_record)
         Production.lookup(staging_record).first
       end
-      #
-      # def spider_associations(starting_record)
-      #   records_found = []
-      #   records_to_spider = [starting_record]
-      #
-      #   while records_to_spider.present?
-      #     record = records_to_spider.shift
-      #     next if records_found.include?(record)
-      #
-      #     records_found << record
-      #     record.class.reflections.each do |association_name, reflection|
-      #       records_to_spider.concat Array(record.send(association_name))
-      #     end
-      #   end
-      #
-      #   return records_found
-      # end
     end
   end
 end
