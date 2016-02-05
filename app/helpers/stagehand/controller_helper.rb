@@ -27,7 +27,6 @@ module Stagehand
     # Loads a stagehand commit with log entries from all the given record's commits
     def staging_changes_for(record)
       Staging::Commit.find(commit_identifier_for(record))
-    rescue Stagehand::CommitNotFound
     end
 
     private

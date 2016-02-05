@@ -3,13 +3,21 @@ module Stagehand
     class Commit
       attr_reader :identifier
 
-      def self.find(identifier)
-        new(identifier)
+      def self.containing(record)
+        with_identifier(CommitEntry.contained.matching(record).uniq.pluck(:commit_identifier))
       end
 
-      def self.containing(record)
-        commit_identifiers = CommitEntry.contained.matching(record).uniq.pluck(:commit_identifier)
-        commit_identifiers.collect {|identifier| find(identifier) }
+      def self.with_identifier(identifiers)
+        Array(identifiers).collect {|identifier| find(identifier) }.compact
+      end
+
+      def self.find(identifier)
+        find!(identifier)
+      rescue Stagehand::CommitNotFound
+      end
+
+      def self.find!(identifier)
+        new(identifier)
       end
 
       def initialize(identifier = nil, &block)
@@ -92,11 +100,11 @@ module Stagehand
       end
 
       def enable_commit
-        @commit_start = CommitEntry.start_operations.create
+        @commit_start = CommitEntry.start_operations.create.reload
       end
 
       def disable_commit
-        @commit_end = CommitEntry.end_operations.create
+        @commit_end = CommitEntry.end_operations.create.reload
       end
 
       def finalize_commit_entries

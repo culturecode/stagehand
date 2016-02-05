@@ -13,26 +13,23 @@ module Stagehand
 
         ActiveRecord::Base.connection.tables.each do |table_name|
           next if ['stagehand_commit_entries', 'schema_migrations'].include?(table_name)
-          Stagehand::Schema.create_trigger(table_name, 'insert')
-          Stagehand::Schema.create_trigger(table_name, 'update')
+          Stagehand::Schema.create_trigger(table_name, 'insert', 'NEW')
+          Stagehand::Schema.create_trigger(table_name, 'update', 'NEW')
           Stagehand::Schema.create_trigger(table_name, 'delete', 'OLD')
         end
       end
 
       # Create trigger to initialize commit_identifier using a function
-      ActiveRecord::Base.connection.execute("
-        DROP TRIGGER IF EXISTS stagehand_commit_identifier_trigger;
-        CREATE TRIGGER stagehand_commit_identifier_trigger BEFORE INSERT ON source_records
-        FOR EACH ROW
-        BEGIN
-          NEW.commit_identifier = 'commit_identifier_default';
-        END;
+        ActiveRecord::Base.connection.execute("DROP TRIGGER IF EXISTS stagehand_commit_identifier_trigger;")
+        ActiveRecord::Base.connection.execute("
+        CREATE TRIGGER stagehand_commit_identifier_trigger BEFORE INSERT ON stagehand_commit_entries
+        FOR EACH ROW SET NEW.commit_identifier = CONNECTION_ID();
       ")
     end
 
     private
 
-    def self.create_trigger(table_name, trigger_action, record = 'NEW')
+    def self.create_trigger(table_name, trigger_action, record)
       trigger_name = "stagehand_commit_#{trigger_action}_trigger_#{table_name}"
 
       ActiveRecord::Base.connection.execute("DROP TRIGGER IF EXISTS #{trigger_name};")

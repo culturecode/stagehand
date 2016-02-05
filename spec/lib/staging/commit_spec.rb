@@ -41,8 +41,20 @@ describe Stagehand::Staging::Commit do
       expect(commit_1).to eq(commit_2)
     end
 
+    it 'returns nil if no block is given and no commit entries matched the given identifier' do
+      expect(Stagehand::Staging::Commit.find('test')).to be_nil
+    end
+  end
+
+  describe '::find!' do
+    it 'loads existing commit entries matching the idenfitier if no block is given' do
+      commit_1 = Stagehand::Staging::Commit.new('test') { source_record }
+      commit_2 = Stagehand::Staging::Commit.find!('test')
+      expect(commit_1).to eq(commit_2)
+    end
+
     it 'raises an exception if no block is given and no commit entries matched the given identifier' do
-      expect { Stagehand::Staging::Commit.find('test') }.to raise_exception(Stagehand::CommitNotFound)
+      expect { Stagehand::Staging::Commit.find!('test') }.to raise_exception(Stagehand::CommitNotFound)
     end
   end
 

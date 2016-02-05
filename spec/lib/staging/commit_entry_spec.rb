@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 describe CommitEntry do
-  let(:source_record) { SourceRecord.create }
+  let(:source_record) { SourceRecord.create.reload } # reload ensures timestamps are only as accurate as the database can store
 
   describe '::matching' do
     it 'returns a list of entries that match the given source_record' do

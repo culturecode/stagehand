@@ -83,7 +83,7 @@ describe Stagehand::Staging::Checklist do
   describe '#can_update' do
     it 'returns affected_records from the production database that have been updated in the staging database' do
       Stagehand::Production.save(source_record)
-      Stagehand::Staging::Commit.new { source_record.touch }
+      Stagehand::Staging::Commit.new { source_record.update_attributes(:updated_at => 10.days.from_now) }
 
       expect(subject.can_update).to include(source_record)
     end

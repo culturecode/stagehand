@@ -2,7 +2,9 @@ module Stagehand
   module Production
     mattr_accessor :environment
 
-    class Record < ActiveRecord::Base; end
+    class Record < ActiveRecord::Base
+      self.record_timestamps = false
+    end
 
     def self.save(staging_record)
       production_record = lookup(staging_record).first_or_initialize
