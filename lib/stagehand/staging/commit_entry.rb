@@ -32,11 +32,7 @@ class CommitEntry < ActiveRecord::Base
   end
 
   def record
-    if delete_operation?
-      @record ||= build_production_record
-    else
-      @record ||= record_class.find_by_id(record_id)
-    end
+    @record ||= delete_operation? ? build_production_record : record_class.find_by_id(record_id)
   end
 
   def insert_operation?
@@ -49,6 +45,14 @@ class CommitEntry < ActiveRecord::Base
 
   def delete_operation?
     operation == DELETE_OPERATION
+  end
+
+  def start_operation?
+    operation == START_OPERATION
+  end
+
+  def end_operation?
+    operation == END_OPERATION
   end
 
   private

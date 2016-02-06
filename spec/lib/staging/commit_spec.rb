@@ -32,29 +32,35 @@ describe Stagehand::Staging::Commit do
       commit = Stagehand::Staging::Commit.new { source_record.delete }
       expect(commit).to include(source_record)
     end
+
+    it 'includes all entries from commits with matching identifiers' do
+      commit_1 = Stagehand::Staging::Commit.new('test') { }
+      commit_2 = Stagehand::Staging::Commit.new('test') { source_record }
+
+      expect(Stagehand::Staging::Commit.new('test').entries).to include(*commit_2.entries)
+    end
   end
 
-  describe '::find' do
+  describe '::with_identifier' do
     it 'loads existing commit entries matching the idenfitier if no block is given' do
       commit_1 = Stagehand::Staging::Commit.new('test') { source_record }
-      commit_2 = Stagehand::Staging::Commit.find('test')
-      expect(commit_1).to eq(commit_2)
+      expect(Stagehand::Staging::Commit.with_identifier('test')).to contain_exactly(commit_1)
     end
 
     it 'returns nil if no block is given and no commit entries matched the given identifier' do
-      expect(Stagehand::Staging::Commit.find('test')).to be_nil
+      expect(Stagehand::Staging::Commit.with_identifier('test')).to be_empty
     end
-  end
 
-  describe '::find!' do
-    it 'loads existing commit entries matching the idenfitier if no block is given' do
+    it 'accepts multiple identifiers to find' do
       commit_1 = Stagehand::Staging::Commit.new('test') { source_record }
-      commit_2 = Stagehand::Staging::Commit.find!('test')
-      expect(commit_1).to eq(commit_2)
+      commit_2 = Stagehand::Staging::Commit.new('test2') { source_record }
+      expect(Stagehand::Staging::Commit.with_identifier('test', 'test2')).to contain_exactly(commit_1, commit_2)
     end
 
-    it 'raises an exception if no block is given and no commit entries matched the given identifier' do
-      expect { Stagehand::Staging::Commit.find!('test') }.to raise_exception(Stagehand::CommitNotFound)
+    it 'accepts an array of identifiers to find' do
+      commit_1 = Stagehand::Staging::Commit.new('test') { source_record }
+      commit_2 = Stagehand::Staging::Commit.new('test2') { source_record }
+      expect(Stagehand::Staging::Commit.with_identifier(['test', 'test2'])).to contain_exactly(commit_1, commit_2)
     end
   end
 
@@ -76,23 +82,25 @@ describe Stagehand::Staging::Commit do
     end
   end
 
-  describe '#saved' do
-    subject { Stagehand::Staging::Commit.new { source_record.touch } }
-
-    it 'returns rows that were saved during the commit' do
-      expect(subject.saved).to include([source_record.id, source_record.class.table_name])
+  describe '#entries' do
+    it 'returns insert operations' do
+      commit = Stagehand::Staging::Commit.new { source_record }
+      expect(commit.entries).to include( be_insert_operation )
     end
 
-    it 'does not return duplicate entries if the same record was saved twice' do
-      expect(subject.saved).not_to be_many
+    it 'returns update operations' do
+      commit = Stagehand::Staging::Commit.new { source_record.touch }
+      expect(commit.entries).to include( be_update_operation )
     end
-  end
 
-  describe '#destroyed' do
-    subject { Stagehand::Staging::Commit.new { source_record.delete } }
+    it 'returns delete operations' do
+      commit = Stagehand::Staging::Commit.new { source_record.delete }
+      expect(commit.entries).to include( be_delete_operation )
+    end
 
-    it 'returns rows that were removed during the commit' do
-      expect(subject.destroyed).to include([source_record.id, source_record.class.table_name])
+    it 'does not return start or end operations' do
+      commit = Stagehand::Staging::Commit.new { source_record.touch }
+      expect(commit.entries).not_to include( be_start_operation.or be_end_operation )
     end
   end
 

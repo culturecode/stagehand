@@ -7,17 +7,8 @@ module Stagehand
         with_identifier(CommitEntry.contained.matching(record).uniq.pluck(:commit_identifier))
       end
 
-      def self.with_identifier(identifiers)
-        Array(identifiers).collect {|identifier| find(identifier) }.compact
-      end
-
-      def self.find(identifier)
-        find!(identifier)
-      rescue Stagehand::CommitNotFound
-      end
-
-      def self.find!(identifier)
-        new(identifier)
+      def self.with_identifier(*identifiers)
+        Array(identifiers.flatten).collect {|identifier| find(identifier) }.compact
       end
 
       def initialize(identifier = nil, &block)
@@ -34,20 +25,12 @@ module Stagehand
         entries.where(:record_id => record.id, :table_name => record.class.table_name).exists?
       end
 
-      def saved
-        entries.save_operations.pluck(:record_id, :table_name)
-      end
-
-      def destroyed
-        entries.delete_operations.pluck(:record_id, :table_name)
-      end
-
       def keys
         entries.pluck(:record_id, :table_name)
       end
 
       def entries
-        range.content_operations.where(:commit_identifier => @identifier).uniq('record_id, table_name')
+        range.content_operations.where(:commit_identifier => @identifier)
       end
 
       def ==(other)
@@ -82,6 +65,12 @@ module Stagehand
 
       private
 
+      def self.find(identifier)
+        new(identifier)
+      rescue Stagehand::CommitNotFound
+        nil
+      end
+
       def commit(&block)
         enable_commit
         block.call
@@ -93,7 +82,7 @@ module Stagehand
 
       def recall
         @commit_start = CommitEntry.start_operations.where(:commit_identifier => @identifier).first!
-        @commit_end = CommitEntry.end_operations.where(:commit_identifier => @identifier).first!
+        @commit_end = CommitEntry.end_operations.where(:commit_identifier => @identifier).last!
 
       rescue ActiveRecord::RecordNotFound
         raise Stagehand::CommitNotFound, "No commits matched the identifier: #{@identifier}"
