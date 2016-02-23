@@ -10,7 +10,7 @@ module Stagehand
 
     def commit_identifier_for(record)
       case record
-      when CommitEntry
+      when Stagehand::Staging::CommitEntry
         "#{record.record_id}/#{record.table_name}"
       else
         "#{record.id}/#{record.class.table_name}"

@@ -1,22 +1,25 @@
 require 'rails_helper'
 
-describe CommitEntry do
+describe Stagehand::Staging::CommitEntry do
   let(:source_record) { SourceRecord.create.reload } # reload ensures timestamps are only as accurate as the database can store
+
+  describe '::create' do
+    it 'prefixes entries not created as part of a commit with NO_COMMIT'
+  end
 
   describe '::matching' do
     it 'returns a list of entries that match the given source_record' do
-      existing = CommitEntry.all.to_a
+      existing = Stagehand::Staging::CommitEntry.all.to_a
       source_record.touch
-      expected = CommitEntry.all.to_a - existing
+      expected = Stagehand::Staging::CommitEntry.all.to_a - existing
       SourceRecord.create
 
-      expect(CommitEntry.matching(source_record)).to eq(expected)
+      expect(Stagehand::Staging::CommitEntry.matching(source_record)).to eq(expected)
     end
   end
 
-
   describe '#record' do
-    subject { CommitEntry.matching(source_record).last }
+    subject { Stagehand::Staging::CommitEntry.matching(source_record).last }
 
     context 'on an insert operation entry' do
       it 'returns the record represented by the row that triggered this entry' do
