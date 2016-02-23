@@ -51,7 +51,15 @@ module Stagehand
       end
 
       def keys
-        content_entries.pluck(:record_id, :table_name)
+        content_entries.pluck(:record_id, :table_name).uniq
+      end
+
+      def hash
+        id
+      end
+
+      def eql?(other)
+        self == other
       end
 
       def ==(other)

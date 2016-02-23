@@ -125,4 +125,23 @@ describe Stagehand::Staging::Commit do
       expect(subject.related_commits).not_to include(other_commit)
     end
   end
+
+  describe 'equality' do
+    subject { klass.capture { } }
+    let(:other) { klass.capture { } }
+
+    it 'is not equal to another commit' do
+      expect(subject).not_to eq(other)
+    end
+
+    it 'is equal to another commit if the ids match' do
+      allow(other).to receive(:id).and_return(subject.id)
+      expect(subject).to eq(other)
+    end
+
+    it 'remove duplicates from an array using uniq' do
+      allow(other).to receive(:id).and_return(subject.id)
+      expect([subject, other].uniq).to contain_exactly(subject)
+    end
+  end
 end
