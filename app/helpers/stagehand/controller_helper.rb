@@ -3,7 +3,7 @@ module Stagehand
 
     # Creates a stagehand commit to log database changes associated with the given record
     def commit_staging_changes_for(record, &block)
-      Staging::Commit.new(commit_identifier_for(record), &block)
+      Staging::Commit.capture(commit_identifier_for(record), &block)
     end
 
     private

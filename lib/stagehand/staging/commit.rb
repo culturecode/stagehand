@@ -1,40 +1,61 @@
 module Stagehand
   module Staging
     class Commit
-      attr_reader :identifier
+      attr_accessor :identifier
+
+      def self.all
+        CommitEntry.start_operations.pluck(:id).collect {|id| find(id) }
+      end
+
+      def self.capture(identifier = nil, &block)
+        start_operation = CommitEntry.start_operations.create(:commit_identifier => identifier).reload
+        identifier ||= "commit_#{start_operation.id}"
+        block.call
+      ensure
+        CommitEntry.end_operations.create(:commit_identifier => identifier)
+        commit = find(start_operation.id)
+        commit.entries.update_all(:commit_identifier => identifier)
+        commit.identifier = identifier
+
+        return commit
+      end
 
       def self.containing(record)
         with_identifier(CommitEntry.contained.matching(record).uniq.pluck(:commit_identifier))
       end
 
       def self.with_identifier(*identifiers)
-        Array(identifiers.flatten).collect {|identifier| find(identifier) }.compact
+        start_ids = CommitEntry.start_operations.where(:commit_identifier => identifiers.flatten.uniq).pluck(:id)
+        start_ids.collect {|start_id| find(start_id) }
       end
 
-      def initialize(identifier = nil, &block)
-        @identifier = identifier
+      def self.find(start_id)
+        new(start_id)
+      rescue ActiveRecord::RecordNotFound
+        raise Stagehand::CommitNotFound, "No commit with id #{start_id}"
+      end
 
-        if block_given?
-          commit(&block)
-        else
-          recall
-        end
+      def initialize(start_id)
+        start_operation = CommitEntry.start_operations.find(start_id)
+        @identifier = start_operation.commit_identifier
+        @start_id = start_id
+        @end_id = CommitEntry.end_operations.where(:commit_identifier => @identifier).where('id > ?', start_id).first!.id
+      end
+
+      def id
+        @start_id
       end
 
       def include?(record)
-        entries.where(:record_id => record.id, :table_name => record.class.table_name).exists?
+        content_entries.where(:record_id => record.id, :table_name => record.class.table_name).exists?
       end
 
       def keys
-        entries.pluck(:record_id, :table_name)
-      end
-
-      def entries
-        range.content_operations.where(:commit_identifier => @identifier)
+        content_entries.pluck(:record_id, :table_name)
       end
 
       def ==(other)
-        entries == other.entries
+        id == other.id
       end
 
       def related_commits
@@ -63,49 +84,12 @@ module Stagehand
         return @related_keys
       end
 
-      private
-
-      def self.find(identifier)
-        new(identifier)
-      rescue Stagehand::CommitNotFound
-        nil
+      def content_entries
+        entries.content_operations
       end
 
-      def commit(&block)
-        enable_commit
-        block.call
-        disable_commit
-
-        @identifier ||= "commit_#{@commit_start.id}"
-        finalize_commit_entries
-      end
-
-      def recall
-        @commit_start = CommitEntry.start_operations.where(:commit_identifier => @identifier).first!
-        @commit_end = CommitEntry.end_operations.where(:commit_identifier => @identifier).last!
-
-      rescue ActiveRecord::RecordNotFound
-        raise Stagehand::CommitNotFound, "No commits matched the identifier: #{@identifier}"
-      end
-
-      def enable_commit
-        @commit_start = CommitEntry.start_operations.create.reload
-      end
-
-      def disable_commit
-        @commit_end = CommitEntry.end_operations.create.reload
-      end
-
-      def finalize_commit_entries
-        unfinalized_entries.update_all(:commit_identifier => @identifier)
-      end
-
-      def unfinalized_entries
-        range.where(:commit_identifier => @commit_start.commit_identifier)
-      end
-
-      def range
-        CommitEntry.where(:id => @commit_start.id..@commit_end.id)
+      def entries
+        CommitEntry.where(:id => @start_id..@end_id).where(:commit_identifier => @identifier)
       end
     end
   end

@@ -23,7 +23,7 @@ module Stagehand
 
       def affected_entries
         commits = Commit.containing(@staging_record)
-        entries = commits.flat_map(&:related_commits).flat_map(&:entries)
+        entries = commits.flat_map(&:related_commits).flat_map(&:content_entries)
         entries += CommitEntry.matching(@staging_record)
         return entries.uniq
       end
