@@ -16,6 +16,12 @@ describe Stagehand::Staging::Commit do
       expect(commit).not_to include(source_record)
     end
 
+    it 'does not affect the commit_id of entries for records modified outside of the block' do
+      source_record
+      entry = Stagehand::Staging::CommitEntry.last
+      expect { klass.capture {  } }.not_to change { entry.reload.attributes }
+    end
+
     it 'commits records that were updated' do
       source_record
       commit = klass.capture { source_record.touch }
@@ -38,15 +44,13 @@ describe Stagehand::Staging::Commit do
   describe '::find' do
     it 'returns the commit with the same the given id' do
       commit_1 = klass.capture { }
-      commit_2 = klass.capture { source_record }
-
+      commit_2 = klass.capture { }
       expect(klass.find(commit_2.id)).to eq(commit_2)
     end
 
     it 'accepts multiple ids and returns an array' do
       commit_1 = klass.capture { }
       commit_2 = klass.capture { }
-
       expect(klass.find([commit_1.id, commit_2.id])).to contain_exactly(commit_1, commit_2)
     end
   end
@@ -126,6 +130,31 @@ describe Stagehand::Staging::Commit do
     it 'remove duplicates from an array using uniq' do
       allow(other).to receive(:id).and_return(subject.id)
       expect([subject, other].uniq).to contain_exactly(subject)
+    end
+  end
+
+  describe 'database transaction' do
+    let(:source_record) { SourceRecord.create }
+
+    it 'records entries correctly if the transaction is contained in the capture block' do
+      commit = klass.capture do
+        ActiveRecord::Base.transaction do
+          source_record.touch
+        end
+      end
+
+      expect(commit).to include(source_record)
+    end
+
+    it 'rollback removes entries if the transaction is contained in the capture block' do
+      commit = klass.capture do
+        ActiveRecord::Base.transaction do
+          source_record.touch
+          raise ActiveRecord::Rollback
+        end
+      end
+
+      expect(commit).not_to include(source_record)
     end
   end
 end
