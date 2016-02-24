@@ -21,18 +21,17 @@ module Stagehand
       end
 
       def self.containing(record)
-        with_identifier(CommitEntry.contained.matching(record).uniq.pluck(:commit_identifier))
+        identifiers = CommitEntry.contained.matching(record).pluck(:commit_identifier)
+        find(CommitEntry.start_operations.where(:commit_identifier => identifiers).pluck(:id))
       end
 
-      def self.with_identifier(*identifiers)
-        start_ids = CommitEntry.start_operations.where(:commit_identifier => identifiers.flatten.uniq).pluck(:id)
-        start_ids.collect {|start_id| find(start_id) }
-      end
-
-      def self.find(start_id)
-        new(start_id)
+      def self.find(start_ids)
+        if start_ids.respond_to?(:to_a)
+          start_ids.uniq.collect {|id| find(id) }.compact
+        else
+          new(start_ids)
+        end
       rescue ActiveRecord::RecordNotFound
-        raise Stagehand::CommitNotFound, "No commit with id #{start_id}"
       end
 
       def initialize(start_id)

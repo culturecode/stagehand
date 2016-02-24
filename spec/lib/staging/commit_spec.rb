@@ -42,28 +42,12 @@ describe Stagehand::Staging::Commit do
 
       expect(klass.find(commit_2.id)).to eq(commit_2)
     end
-  end
 
-  describe '::with_identifier' do
-    it 'loads existing commit entries matching the identifier' do
-      commit_1 = klass.capture('test') { source_record }
-      expect(klass.with_identifier('test')).to contain_exactly(commit_1)
-    end
+    it 'accepts multiple ids and returns an array' do
+      commit_1 = klass.capture { }
+      commit_2 = klass.capture { }
 
-    it 'returns an empty array if no commit entries matched the given identifier' do
-      expect(klass.with_identifier('test')).to be_empty
-    end
-
-    it 'accepts multiple identifiers to find' do
-      commit_1 = klass.capture('test') { source_record }
-      commit_2 = klass.capture('test2') { source_record }
-      expect(klass.with_identifier('test', 'test2')).to contain_exactly(commit_1, commit_2)
-    end
-
-    it 'accepts an array of identifiers to find' do
-      commit_1 = klass.capture('test') { source_record }
-      commit_2 = klass.capture('test2') { source_record }
-      expect(klass.with_identifier(['test', 'test2'])).to contain_exactly(commit_1, commit_2)
+      expect(klass.find([commit_1.id, commit_2.id])).to contain_exactly(commit_1, commit_2)
     end
   end
 
