@@ -5,11 +5,12 @@ module Stagehand
         create_table :stagehand_commit_entries, :force => true do |t|
           t.integer :record_id
           t.string :table_name
-          t.string :commit_identifier
+          t.integer :commit_id
+          t.string :session
           t.string :operation, :null => false
         end
 
-        add_index :stagehand_commit_entries, :commit_identifier
+        add_index :stagehand_commit_entries, :session
 
         table_names = ActiveRecord::Base.connection.tables
         table_names -= ['stagehand_commit_entries', 'schema_migrations']
@@ -26,11 +27,11 @@ module Stagehand
         end
       end
 
-      # Create trigger to initialize commit_identifier using a function
-        ActiveRecord::Base.connection.execute("DROP TRIGGER IF EXISTS stagehand_commit_identifier_trigger;")
+      # Create trigger to initialize session using a function
+        ActiveRecord::Base.connection.execute("DROP TRIGGER IF EXISTS stagehand_session_trigger;")
         ActiveRecord::Base.connection.execute("
-        CREATE TRIGGER stagehand_commit_identifier_trigger BEFORE INSERT ON stagehand_commit_entries
-        FOR EACH ROW SET NEW.commit_identifier = CONNECTION_ID();
+        CREATE TRIGGER stagehand_session_trigger BEFORE INSERT ON stagehand_commit_entries
+        FOR EACH ROW SET NEW.session = CONNECTION_ID();
       ")
     end
 

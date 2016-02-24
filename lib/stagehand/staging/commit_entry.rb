@@ -14,7 +14,7 @@ module Stagehand
       scope :content_operations, lambda { where.not(:operation => [START_OPERATION, END_OPERATION]) }
       scope :save_operations,    lambda { where(:operation => [INSERT_OPERATION, UPDATE_OPERATION]) }
       scope :delete_operations,  lambda { where(:operation => DELETE_OPERATION) }
-      scope :contained,          lambda { where.not(:commit_identifier => nil) }
+      scope :contained,          lambda { where.not(:commit_id => nil) }
 
       def self.matching(object)
         case object

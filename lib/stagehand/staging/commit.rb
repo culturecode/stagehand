@@ -1,28 +1,20 @@
 module Stagehand
   module Staging
     class Commit
-      attr_accessor :identifier
-
       def self.all
         CommitEntry.start_operations.pluck(:id).collect {|id| find(id) }
       end
 
-      def self.capture(identifier = nil, &block)
-        start_operation = CommitEntry.start_operations.create(:commit_identifier => identifier).reload
-        identifier ||= "commit_#{start_operation.id}"
+      def self.capture(&block)
+        start_operation = CommitEntry.start_operations.create.reload # Reload to ensure session is set
         block.call
       ensure
-        CommitEntry.end_operations.create(:commit_identifier => identifier)
-        commit = find(start_operation.id)
-        commit.entries.update_all(:commit_identifier => identifier)
-        commit.identifier = identifier
-
-        return commit
+        end_operation = CommitEntry.end_operations.create(:session => start_operation.session)
+        return finalize_commit(start_operation, end_operation)
       end
 
       def self.containing(record)
-        identifiers = CommitEntry.contained.matching(record).pluck(:commit_identifier)
-        find(CommitEntry.start_operations.where(:commit_identifier => identifiers).pluck(:id))
+        find(CommitEntry.contained.matching(record).pluck(:commit_id))
       end
 
       def self.find(start_ids)
@@ -34,11 +26,25 @@ module Stagehand
       rescue ActiveRecord::RecordNotFound
       end
 
+      private
+
+      # Sets the commit_id on all the entries between the start and end op.
+      # Returns the commit object for those entries
+      def self.finalize_commit(start_operation, end_operation)
+        CommitEntry
+          .where(:id => start_operation.id..end_operation.id)
+          .where(:session => start_operation.session)
+          .update_all(:commit_id => start_operation.id, :session => nil)
+
+        return new(start_operation.id)
+      end
+
+      public
+
       def initialize(start_id)
         start_operation = CommitEntry.start_operations.find(start_id)
-        @identifier = start_operation.commit_identifier
         @start_id = start_id
-        @end_id = CommitEntry.end_operations.where(:commit_identifier => @identifier).where('id > ?', start_id).first!.id
+        @end_id = CommitEntry.end_operations.where(:commit_id => start_id).where('id > ?', start_id).first!.id
       end
 
       def id
@@ -96,7 +102,7 @@ module Stagehand
       end
 
       def entries
-        CommitEntry.where(:id => @start_id..@end_id).where(:commit_identifier => @identifier)
+        CommitEntry.where(:id => @start_id..@end_id).where(:commit_id => @start_id)
       end
     end
   end
