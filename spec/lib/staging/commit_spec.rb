@@ -39,6 +39,11 @@ describe Stagehand::Staging::Commit do
       commit = klass.capture { source_record.delete }
       expect(commit).to include(source_record)
     end
+
+    it 'accepts a "subject" record to indicate which record kicked off the changes in the commit' do
+      commit = klass.capture(source_record) { }
+      expect(commit).to include(source_record)
+    end
   end
 
   describe '::find' do

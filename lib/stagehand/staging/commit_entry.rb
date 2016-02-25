@@ -11,7 +11,7 @@ module Stagehand
 
       scope :start_operations,   lambda { where(:operation => START_OPERATION) }
       scope :end_operations,     lambda { where(:operation => END_OPERATION) }
-      scope :content_operations, lambda { where.not(:operation => [START_OPERATION, END_OPERATION]) }
+      scope :content_operations, lambda { where.not(:record_id => nil, :table_name => nil) }
       scope :save_operations,    lambda { where(:operation => [INSERT_OPERATION, UPDATE_OPERATION]) }
       scope :delete_operations,  lambda { where(:operation => DELETE_OPERATION) }
       scope :contained,          lambda { where.not(:commit_id => nil) }

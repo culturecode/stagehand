@@ -5,12 +5,11 @@ module Stagehand
         CommitEntry.start_operations.pluck(:id).collect {|id| find(id) }
       end
 
-      def self.capture(&block)
-        start_operation = CommitEntry.start_operations.create.reload # Reload to ensure session is set
+      def self.capture(subject_record = nil, &block)
+        start_operation = start_commit(subject_record)
         block.call
       ensure
-        end_operation = CommitEntry.end_operations.create(:session => start_operation.session)
-        return finalize_commit(start_operation, end_operation)
+        return end_commit(start_operation)
       end
 
       def self.containing(record)
@@ -28,9 +27,24 @@ module Stagehand
 
       private
 
+      def self.start_commit(subject_record)
+        start_operation = CommitEntry.start_operations.new
+
+        if subject_record
+          start_operation.record_id = subject_record.id
+          start_operation.table_name = subject_record.class.table_name
+        end
+
+        start_operation.save
+
+        return start_operation.reload # Reload to ensure session is set
+      end
+
       # Sets the commit_id on all the entries between the start and end op.
       # Returns the commit object for those entries
-      def self.finalize_commit(start_operation, end_operation)
+      def self.end_commit(start_operation)
+        end_operation = CommitEntry.end_operations.create(:session => start_operation.session)
+
         CommitEntry
           .where(:id => start_operation.id..end_operation.id)
           .where(:session => start_operation.session)
