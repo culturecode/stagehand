@@ -3,8 +3,7 @@ PATH
   specs:
     stagehand (0.0.1)
       mysql2
-      rails (~> 4.2.5.1)
-      rspec-rails (~> 3.0)
+      rails (~> 4.2)
 
 GEM
   remote: https://rubygems.org/
@@ -137,6 +136,7 @@ PLATFORMS
 DEPENDENCIES
   pry
   pry-byebug
+  rspec-rails (~> 3.0)
   stagehand!
 
 BUNDLED WITH

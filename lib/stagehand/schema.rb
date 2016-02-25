@@ -5,9 +5,9 @@ module Stagehand
         create_table :stagehand_commit_entries, :force => true do |t|
           t.integer :record_id
           t.string :table_name
+          t.string :operation, :null => false
           t.integer :commit_id
           t.string :session
-          t.string :operation, :null => false
         end
 
         add_index :stagehand_commit_entries, :session

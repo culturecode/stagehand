@@ -29,11 +29,10 @@ describe Stagehand::Staging::Checklist do
       expect(subject.affected_records).to include(other_other_record)
     end
 
-    it "does not returns records from commits that are disjoint from any commit that can overlaps, or indirectly overlaps the given record" do
+    it "does not return records from commits that are disjoint from any commit that overlaps, or indirectly overlaps the given record" do
       other_record = SourceRecord.create
       other_other_record = SourceRecord.create
       Stagehand::Staging::Commit.capture { source_record.touch }
-      Stagehand::Staging::Commit.capture { source_record.touch; other_record.touch }
       Stagehand::Staging::Commit.capture { other_other_record.touch }
 
       expect(subject.affected_records).not_to include(other_other_record)

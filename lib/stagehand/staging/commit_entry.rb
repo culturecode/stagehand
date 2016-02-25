@@ -17,20 +17,17 @@ module Stagehand
       scope :contained,          lambda { where.not(:commit_id => nil) }
 
       def self.matching(object)
-        case object
-        when self
-          record_id = object.record_id
-          table_name = object.table_name
-        when ActiveRecord::Base
-          record_id = object.id
-          table_name = object.class.table_name
-        when Array
-          record_id, table_name = object
-        else
-          raise "Invalid input"
+        keys = Array.wrap(object).collect {|entry| extract_key(entry) }
+        sql = []
+        interpolates = []
+
+        keys.group_by(&:first).each do |table_name, keys|
+          sql << "(table_name = ? AND record_id IN (?))"
+          interpolates << table_name
+          interpolates << keys.collect(&:last)
         end
 
-        content_operations.where(:record_id => record_id, :table_name => table_name)
+        return content_operations.where(sql.join(' OR '), *interpolates)
       end
 
       def record
@@ -71,6 +68,24 @@ module Stagehand
 
       def record_class
         ActiveRecord::Base.descendants.detect {|klass| klass.table_name == table_name && klass != Stagehand::Production::Record }
+      end
+
+      def self.extract_key(object)
+        case object
+        when CommitEntry
+          record_id = object.record_id
+          table_name = object.table_name
+        when ActiveRecord::Base
+          record_id = object.id
+          table_name = object.class.table_name
+        when nil, []
+          record_id = 0
+          table_name = ''
+        else
+          raise "Invalid input"
+        end
+
+        return [table_name, record_id]
       end
     end
   end

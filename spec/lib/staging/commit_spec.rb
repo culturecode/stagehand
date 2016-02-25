@@ -58,6 +58,15 @@ describe Stagehand::Staging::Commit do
       commit_2 = klass.capture { }
       expect(klass.find([commit_1.id, commit_2.id])).to contain_exactly(commit_1, commit_2)
     end
+
+    it 'ignores a nil commit id' do
+      expect(klass.find(nil)).to be_nil
+    end
+
+    it 'ignores nil commit ids in arrays' do
+      commit_1 = klass.capture { }
+      expect(klass.find([commit_1.id, nil])).to contain_exactly(commit_1)
+    end
   end
 
   describe '::containing' do
@@ -116,6 +125,29 @@ describe Stagehand::Staging::Commit do
     it 'does not include commits that do not contain entries for any of the records present in this commit' do
       other_commit = klass.capture { SourceRecord.create }
       expect(subject.related_commits).not_to include(other_commit)
+    end
+  end
+
+  describe '#related_entries' do
+    subject { klass.capture { source_record.touch } }
+
+    it "includes its own entries" do
+      expect(subject.related_entries).to contain_exactly(*subject.content_entries)
+    end
+
+    it 'returns a entries from other commits for records present in this commit' do
+      other_commit = klass.capture { source_record.touch }
+      expect(subject.related_entries).to include(*other_commit.content_entries)
+    end
+
+    it 'returns a entries from other commits related to this commit, but that do not appear in this commit' do
+      other_commit = klass.capture { source_record.touch; SourceRecord.create }
+      expect(subject.related_entries).to include(*other_commit.content_entries)
+    end
+
+    it 'does not include entries for records not present in this commit, or any related commit' do
+      other_commit = klass.capture { SourceRecord.create }
+      expect(subject.related_entries).not_to include(*other_commit.content_entries)
     end
   end
 

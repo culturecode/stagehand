@@ -17,8 +17,8 @@ module Stagehand
       end
 
       def self.find(start_ids)
-        if start_ids.respond_to?(:to_a)
-          start_ids.uniq.collect {|id| find(id) }.compact
+        if start_ids.respond_to?(:each)
+          start_ids.to_a.uniq.collect {|id| find(id) }.compact
         else
           new(start_ids)
         end
@@ -69,10 +69,6 @@ module Stagehand
         content_entries.where(:record_id => record.id, :table_name => record.class.table_name).exists?
       end
 
-      def keys
-        content_entries.pluck(:record_id, :table_name).uniq
-      end
-
       def hash
         id
       end
@@ -86,29 +82,22 @@ module Stagehand
       end
 
       def related_commits
-        related_keys # ensure we've processed the related keys first
-        @related_commits
+        @related_commits ||= self.class.find(related_entries.collect(&:commit_id))
       end
 
-      def related_keys
-        return @related_keys if @related_keys
-        @related_commits = []
-        @related_keys = []
-        entries_to_spider = keys
+      def related_entries
+        return @related_entries if @related_entries
+        @related_entries = []
 
+        entries_to_spider = content_entries
         while entries_to_spider.present?
-          current_entry = entries_to_spider.shift
-          next if @related_keys.include?(current_entry)
-
-          @related_keys << current_entry
-          @related_commits.concat self.class.containing(current_entry)
-          entries_to_spider.concat self.class.containing(current_entry).flat_map(&:keys)
-          entries_to_spider.uniq!
+          matching_entries = CommitEntry.matching(entries_to_spider)
+          matching_commit_entries = CommitEntry.content_operations.where(:commit_id => matching_entries.collect(&:commit_id))
+          entries_to_spider = matching_commit_entries - @related_entries
+          @related_entries.concat(entries_to_spider)
         end
 
-        @related_commits.uniq!
-
-        return @related_keys
+        return @related_entries
       end
 
       def content_entries
