@@ -59,6 +59,11 @@ describe Stagehand::Staging::CommitEntry do
       it 'raises a read_only exception when saving' do
         expect { subject.record.save }.to raise_exception(ActiveRecord::ReadOnlyRecord)
       end
+
+      it 'raises an exception if the record class could not be determined from the table_name' do
+        entry = klass.create(:record_id => 1, :table_name => 'fake_table', :operation => :insert)
+        expect { entry.record }.to raise_exception(Stagehand::IndeterminateRecordClass)
+      end
     end
   end
 end

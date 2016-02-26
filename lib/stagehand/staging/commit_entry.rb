@@ -72,7 +72,7 @@ module Stagehand
       end
 
       def record_class
-        ActiveRecord::Base.descendants.detect {|klass| klass.table_name == table_name && klass != Stagehand::Production::Record }
+        ActiveRecord::Base.descendants.detect {|klass| klass.table_name == table_name && klass != Stagehand::Production::Record } || raise(IndeterminateRecordClass)
       end
 
       def self.extract_key(object)
@@ -91,4 +91,7 @@ module Stagehand
       end
     end
   end
+
+  # EXCEPTIONS
+  class IndeterminateRecordClass < StandardError; end
 end
