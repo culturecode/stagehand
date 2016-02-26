@@ -17,19 +17,37 @@ module Stagehand
         affected_entries.select(&:update_operation?).collect(&:record).select {|record| record.attributes != production_record(record).attributes }
       end
 
+      # Returns a list of records that exist in commits where the staging_record is not in the start operation
+      def requires_confirmation
+        return @requires_confirmation if @requires_confirmation
+
+        @requires_confirmation = []
+        affected_entries.group_by(&:commit_id).each do |commit_id, entries|
+          next unless commit_id
+          start_operation = entries.detect {|entry| entry.id == commit_id }
+          @requires_confirmation.concat entries.collect(&:record) if !start_operation || (start_operation.record != @staging_record)
+        end
+
+        @requires_confirmation.uniq!
+
+        return @requires_confirmation
+      end
+
       def affected_records
-        return affected_entries.collect(&:record).uniq
+        @affected_records ||= affected_entries.collect(&:record).uniq
       end
 
       def affected_entries
-        entries = []
-        entries += CommitEntry.uncontained.matching(@staging_record)
+        return @affected_entries if @affected_entries
+
+        @affected_entries = []
+        @affected_entries += CommitEntry.uncontained.matching(@staging_record)
         if commit = first_commit_containing_record(@staging_record)
-          entries += commit.content_entries
-          entries += commit.related_entries
+          @affected_entries += commit.content_entries
+          @affected_entries += commit.related_entries
         end
 
-        return entries
+        return @affected_entries
       end
 
       private

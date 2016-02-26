@@ -95,6 +95,38 @@ describe Stagehand::Staging::Checklist do
     end
   end
 
+  describe '#requires_confirmation' do
+    it 'returns affected_records that appear in commits where the staging_record is not in the start_operation' do
+      Stagehand::Staging::Commit.capture { source_record.touch }
+      expect(subject.requires_confirmation).to include(source_record)
+    end
+
+    it 'does not return affected_records that only appear in commits where the staging_record is in the start_operation' do
+      Stagehand::Staging::Commit.capture(source_record) { source_record.touch }
+      expect(subject.requires_confirmation).not_to include(source_record)
+    end
+
+    it 'returns affected_records that appear in commits where the staging_record is not in the start_operation and other where it is' do
+      Stagehand::Staging::Commit.capture(source_record) { source_record.touch }
+      Stagehand::Staging::Commit.capture { source_record.touch }
+
+      expect(subject.requires_confirmation).to include(source_record)
+    end
+
+    it 'does not return affected_records that only appear in outside of commits' do
+      source_record
+      expect(subject.requires_confirmation).not_to include(source_record)
+    end
+
+    it 'does not return duplicate records' do
+      Stagehand::Staging::Commit.capture { source_record.touch }
+      Stagehand::Staging::Commit.capture { source_record.touch }
+      records = subject.requires_confirmation
+
+      expect { records.uniq! }.not_to change { records.count }
+    end
+  end
+
   # # self => hm:t => unpublished
   # it 'publishes an unpublished record related with a hm:t association'
   #
