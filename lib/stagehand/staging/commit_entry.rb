@@ -60,6 +60,10 @@ module Stagehand
         operation == END_OPERATION
       end
 
+      def key
+        self.class.extract_key(self)
+      end
+
       private
 
       def build_production_record
