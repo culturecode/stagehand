@@ -22,7 +22,7 @@ module Stagehand
         else
           new(start_ids)
         end
-      rescue ActiveRecord::RecordNotFound
+      rescue CommitNotFound
       end
 
       private
@@ -56,9 +56,11 @@ module Stagehand
       public
 
       def initialize(start_id)
-        start_operation = CommitEntry.start_operations.find(start_id)
-        @start_id = start_id
-        @end_id = CommitEntry.end_operations.where(:commit_id => start_id).where('id > ?', start_id).first!.id
+        @start_id, @end_id = CommitEntry.control_operations
+          .where(:commit_id => start_id)
+          .where('id >= ?', start_id).limit(2).pluck(:id)
+
+        raise CommitNotFound unless @start_id && @end_id
       end
 
       def id
