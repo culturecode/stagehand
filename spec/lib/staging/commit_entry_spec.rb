@@ -5,10 +5,6 @@ describe Stagehand::Staging::CommitEntry do
   let(:source_record) { SourceRecord.create.reload } # reload ensures timestamps are only as accurate as the database can store
   subject { source_record; Stagehand::Staging::CommitEntry.last }
 
-  describe '::create' do
-    it 'prefixes entries not created as part of a commit with NO_COMMIT'
-  end
-
   describe '::matching' do
     it 'returns a list of entries that match the given source_record' do
       expect(Stagehand::Staging::CommitEntry.matching(source_record)).to contain_exactly(subject)
