@@ -24,8 +24,14 @@ describe Stagehand::Staging::CommitEntry do
       expect(Stagehand::Staging::CommitEntry.matching([source_record])).to contain_exactly(subject)
     end
 
-    it 'can accept an empty array' do
+    it 'returns an empty array if given an empty array' do
+      source_record
       expect(Stagehand::Staging::CommitEntry.matching([])).to be_empty
+    end
+
+    it 'returns an empty array if given a nil' do
+      source_record
+      expect(Stagehand::Staging::CommitEntry.matching(nil)).to be_empty
     end
   end
 

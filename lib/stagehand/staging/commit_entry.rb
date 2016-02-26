@@ -28,7 +28,7 @@ module Stagehand
           interpolates << keys.collect(&:last)
         end
 
-        return content_operations.where(sql.join(' OR '), *interpolates)
+        return keys.present? ? content_operations.where(sql.join(' OR '), *interpolates) : none
       end
 
       def record
@@ -79,9 +79,6 @@ module Stagehand
         when ActiveRecord::Base
           record_id = object.id
           table_name = object.class.table_name
-        when nil, []
-          record_id = 0
-          table_name = ''
         else
           raise "Invalid input"
         end
