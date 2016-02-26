@@ -22,10 +22,14 @@ module Stagehand
       end
 
       def affected_entries
-        commits = Commit.containing(@staging_record)
-        entries = commits.flat_map(&:related_commits).flat_map(&:content_entries)
-        entries += CommitEntry.matching(@staging_record)
-        return entries.uniq
+        entries = []
+        entries += CommitEntry.uncontained.matching(@staging_record)
+        if commit = first_commit_containing_record(@staging_record)
+          entries += commit.content_entries
+          entries += commit.related_entries
+        end
+
+        return entries
       end
 
       private
@@ -36,6 +40,10 @@ module Stagehand
 
       def production_record(staging_record)
         Production.lookup(staging_record).first
+      end
+
+      def first_commit_containing_record(staging_record)
+        Commit.find(CommitEntry.contained.matching(staging_record).limit(1).pluck(:commit_id).first)
       end
     end
   end
