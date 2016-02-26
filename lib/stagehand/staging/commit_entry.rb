@@ -32,7 +32,11 @@ module Stagehand
       end
 
       def record
-        @record ||= delete_operation? ? build_production_record : record_class.find_by_id(record_id)
+        @record ||= delete_operation? ? build_production_record : record_class.find_by_id(record_id) if content_operation?
+      end
+
+      def content_operation?
+        record_id? && table_name?
       end
 
       def insert_operation?
