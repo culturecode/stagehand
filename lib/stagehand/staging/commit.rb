@@ -99,6 +99,8 @@ module Stagehand
           @related_entries.concat(entries_to_spider)
         end
 
+        @related_entries -= entries
+
         return @related_entries
       end
 

@@ -131,8 +131,8 @@ describe Stagehand::Staging::Commit do
   describe '#related_entries' do
     subject { klass.capture { source_record.touch } }
 
-    it "includes its own entries" do
-      expect(subject.related_entries).to contain_exactly(*subject.content_entries)
+    it "does not include its own entries" do
+      expect(subject.related_entries).not_to include(*subject.content_entries)
     end
 
     it 'returns a entries from other commits for records present in this commit' do
