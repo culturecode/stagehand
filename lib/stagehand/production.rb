@@ -42,8 +42,12 @@ module Stagehand
     end
 
     def self.connect_to_production_database
+      raise ProductionEnvironmentNotSet unless environment
       Record.establish_connection(environment) unless @connection_established
       @connection_established = true
     end
   end
+
+  # EXCEPTIONS
+  class ProductionEnvironmentNotSet < StandardError; end
 end

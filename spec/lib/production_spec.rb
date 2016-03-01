@@ -1,9 +1,14 @@
 require 'rails_helper'
 
 describe Stagehand::Production do
-  before { Stagehand::Production.environment = :production }
-
   let(:source_record) { SourceRecord.create }
+
+  describe '::lookup' do
+    it 'raises an exception if the production environment is not set' do
+      Stagehand::Production.environment = nil
+      expect { subject.lookup(source_record) }.to raise_exception(Stagehand::ProductionEnvironmentNotSet)
+    end
+  end
 
   shared_examples_for 'a saved record' do
     it 'returns the new record' do
