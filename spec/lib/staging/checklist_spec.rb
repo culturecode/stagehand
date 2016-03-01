@@ -49,49 +49,71 @@ describe Stagehand::Staging::Checklist do
     end
   end
 
-  describe '#will_create' do
+  describe '#confirm_create' do
     let(:other_record) { SourceRecord.create }
 
-    it 'returns affected_records from the staging database that do not exist in the production database' do
-      Stagehand::Staging::Commit.capture { source_record.touch; other_record.touch }
-      expect(subject.will_create).to include(other_record)
+    it 'returns affected_records that have create operation entries that are part of a commit' do
+      Stagehand::Staging::Commit.capture { source_record }
+      expect(subject.confirm_create).to include(source_record)
     end
 
-    it 'does not return affected_records from the staging database that exist in the production database' do
-      Stagehand::Production.save(other_record)
-      Stagehand::Staging::Commit.capture { source_record.touch; other_record.touch }
-      expect(subject.will_create).not_to include(other_record)
-    end
-
-    it 'does not return records from delete operation entries' do
-      Stagehand::Production.save(other_record)
-      Stagehand::Staging::Commit.capture { source_record.delete }
-      expect(subject.will_create).not_to include(source_record)
-    end
-  end
-
-  describe '#will_delete' do
-    it 'returns affected_records from the production database that do not exist in the staging database' do
-      Stagehand::Production.save(source_record)
-      Stagehand::Staging::Commit.capture { source_record.delete }
-
-      expect(subject.will_delete).to include(source_record)
-    end
-  end
-
-  describe '#can_update' do
-    it 'returns affected_records from the production database that have been updated in the staging database' do
-      Stagehand::Production.save(source_record)
-      Stagehand::Staging::Commit.capture { source_record.update_attributes(:updated_at => 10.days.from_now) }
-
-      expect(subject.can_update).to include(source_record)
-    end
-
-    it 'does not return records that do not differ between the staging database and production database' do
+    it 'returns affected_records that have create and update operation entries that are part of a commit' do
       Stagehand::Staging::Commit.capture { source_record.touch }
-      Stagehand::Production.save(source_record)
+      expect(subject.confirm_create).to include(source_record)
+    end
 
-      expect(subject.can_update).not_to include(source_record)
+    it 'does not return affected_records that have delete, create and update operation entries that are part of a commit' do
+      Stagehand::Staging::Commit.capture { source_record.touch; source_record.destroy }
+      expect(subject.confirm_create).not_to include(source_record)
+    end
+
+    it 'does not return affected_records that have create operation entries that are part of a commit, and delete entries not part of a commit' do
+      Stagehand::Staging::Commit.capture { source_record }
+      source_record.destroy
+      expect(subject.confirm_create).not_to include(source_record)
+    end
+
+    it 'does not return affected_records that have create operation entries that are not part of a commit' do
+      expect(subject.confirm_create).not_to include(source_record)
+    end
+  end
+
+  describe '#confirm_delete' do
+    before { Stagehand::Production.save(source_record) }
+
+    it 'returns affected_records that have delete operation entries that are part of a commit' do
+      Stagehand::Staging::Commit.capture { source_record.destroy }
+      expect(subject.confirm_delete).to include(source_record)
+    end
+
+    it 'returns affected_records that have delete, create and update operation entries' do
+      Stagehand::Staging::Commit.capture { source_record.touch; source_record.destroy }
+      expect(subject.confirm_delete).to include(source_record)
+    end
+
+    it 'does not include nil entries if delete operation entries include records that do not exist on production' do
+      Stagehand::Production.destroy(source_record)
+      Stagehand::Staging::Commit.capture { source_record.destroy }
+      expect(subject.confirm_delete).not_to include(source_record)
+    end
+  end
+
+  describe '#confirm_update' do
+    it 'returns affected_records that have update operation entries that are part of a commit' do
+      source_record
+      Stagehand::Staging::Commit.capture { source_record.touch }
+      expect(subject.confirm_update).to include(source_record)
+    end
+
+    it 'does not return affected_records that have update and create operation entries' do
+      Stagehand::Staging::Commit.capture { source_record.touch }
+      expect(subject.confirm_update).not_to include(source_record)
+    end
+
+    it 'does not return affected_records that have update and delete operation entries' do
+      source_record
+      Stagehand::Staging::Commit.capture { source_record.touch; source_record.destroy }
+      expect(subject.confirm_update).not_to include(source_record)
     end
   end
 
@@ -124,6 +146,31 @@ describe Stagehand::Staging::Checklist do
       records = subject.requires_confirmation
 
       expect { records.uniq! }.not_to change { records.count }
+    end
+
+    it 'returns records that pass the condition in the block provided to the constructor' do
+      other_record = SourceRecord.create
+      Stagehand::Staging::Commit.capture { other_record.touch; source_record.touch }
+      subject = Stagehand::Staging::Checklist.new(source_record) do |record|
+        record.id == source_record.id
+      end
+
+      expect(subject.requires_confirmation).to include(source_record)
+    end
+
+    it 'does not return records that do not pass the condition in the block provided to the constructor' do
+      other_record = SourceRecord.create
+      Stagehand::Staging::Commit.capture { other_record.touch; source_record.touch }
+      subject = Stagehand::Staging::Checklist.new(source_record) do |record|
+        record.id != source_record.id
+      end
+
+      expect(subject.requires_confirmation).not_to include(source_record)
+    end
+
+    it 'does not include records that only appear in the start_operation' do
+      Stagehand::Staging::Commit.capture(source_record) { SourceRecord.create }
+      expect(subject.requires_confirmation).not_to include(source_record)
     end
   end
 
