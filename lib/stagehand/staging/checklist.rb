@@ -9,20 +9,20 @@ module Stagehand
       end
 
       def confirm_create
-        @confirm_create ||= compact_entries(requires_confirmation_entries).select(&:insert_operation?).collect(&:record)
+        @confirm_create ||= grouped_required_confirmation_entries[:insert].collect(&:record)
       end
 
       def confirm_delete
-        @confirm_delete ||= compact_entries(requires_confirmation_entries).select(&:delete_operation?).collect(&:record).compact
+        @confirm_delete ||= grouped_required_confirmation_entries[:delete].collect(&:record).compact
       end
 
       def confirm_update
-        @confirm_update ||= compact_entries(requires_confirmation_entries).select(&:update_operation?).collect(&:record)
+        @confirm_update ||= grouped_required_confirmation_entries[:update].collect(&:record)
       end
 
       # Returns a list of records that exist in commits where the staging_record is not in the start operation
       def requires_confirmation
-        @requires_confirmation ||= requires_confirmation_entries.collect(&:record).uniq
+        @requires_confirmation ||= grouped_required_confirmation_entries.values.flatten.collect(&:record).compact
       end
 
       def affected_records
@@ -44,7 +44,7 @@ module Stagehand
       end
 
       # Returns entries that appear in commits where the starting_operation record is not this list's staging_record
-      def requires_confirmation_entries
+      def grouped_required_confirmation_entries
         return @requires_confirmation_entries if @requires_confirmation_entries
 
         @requires_confirmation_entries = []
@@ -54,7 +54,9 @@ module Stagehand
           @requires_confirmation_entries.concat(entries) if !start_operation || (start_operation.record != @staging_record)
         end
 
-        @requires_confirmation_entries.select! {|entry| @confirmation_filter.call(entry.record) } if @confirmation_filter
+        @requires_confirmation_entries = filter_entries(@requires_confirmation_entries)
+        @requires_confirmation_entries = compact_entries(@requires_confirmation_entries)
+        @requires_confirmation_entries = group_entries(@requires_confirmation_entries)
 
         return @requires_confirmation_entries
       end
@@ -72,24 +74,27 @@ module Stagehand
         return @affected_entries
       end
 
+      def filter_entries(entries)
+        @confirmation_filter ? entries.select {|entry| @confirmation_filter.call(entry.record) } : entries
+      end
+
       # Returns a list of entries that only includes a single entry for each record.
       # The type of entry chosen prioritizes creates over updates, and deletes over creates.
       def compact_entries(entries)
-        return @compacted_entries if @compacted_entries
+        compact_entries = group_entries(entries)
+        compact_entries = compact_entries[:delete] + compact_entries[:insert] + compact_entries[:update]
+        compact_entries.uniq!(&:key)
 
-        @compacted_entries = entries.sort_by do |entry|
-          if entry.delete_operation? then 0
-          elsif entry.insert_operation? then 1
-          elsif entry.update_operation? then 2
-          else 3
-          end
-        end
-
-        @compacted_entries.uniq!(&:key)
-
-        return @compacted_entries
+        return compact_entries
       end
 
+      # Groups entries by their operation
+      def group_entries(entries)
+        group_entries = Hash.new {|h,k| h[k] = [] }
+        group_entries.merge! entries.group_by(&:operation).symbolize_keys!
+
+        return group_entries
+      end
     end
   end
 end
