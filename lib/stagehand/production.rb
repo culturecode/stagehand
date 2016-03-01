@@ -12,7 +12,7 @@ module Stagehand
       production_record
     end
 
-    def self.destroy(staging_record, table_name = nil)
+    def self.delete(staging_record, table_name = nil)
       lookup(staging_record, table_name).delete_all
     end
 

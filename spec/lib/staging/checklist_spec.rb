@@ -92,7 +92,7 @@ describe Stagehand::Staging::Checklist do
     end
 
     it 'does not include nil entries if delete operation entries include records that do not exist on production' do
-      Stagehand::Production.destroy(source_record)
+      Stagehand::Production.delete(source_record)
       Stagehand::Staging::Commit.capture { source_record.destroy }
       expect(subject.confirm_delete).not_to include(source_record)
     end
