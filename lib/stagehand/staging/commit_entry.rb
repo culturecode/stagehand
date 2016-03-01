@@ -77,7 +77,11 @@ module Stagehand
       end
 
       def record_class
-        ActiveRecord::Base.descendants.detect {|klass| klass.table_name == table_name && klass != Stagehand::Production::Record } || raise(IndeterminateRecordClass)
+        klass = ActiveRecord::Base.descendants.detect {|klass| klass.table_name == table_name && klass != Stagehand::Production::Record }
+        klass ||= table_name.classify.constantize # Try loading the class if it isn't loaded yet
+
+      rescue NameError
+        raise(IndeterminateRecordClass, "Can't determine class from table name: #{table_name}")
       end
 
       def self.extract_key(object)
