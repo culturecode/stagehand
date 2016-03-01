@@ -8,6 +8,19 @@ module Stagehand
         @confirmation_filter = confirmation_filter
       end
 
+      # Copies all the affected records from the staging database to the production database
+      def synchronize
+        ActiveRecord::Base.transaction do
+          compact_entries(affected_entries).each do |entry|
+            if entry.delete_operation?
+              Stagehand::Production.delete(entry.record_id, entry.table_name)
+            else
+              Stagehand::Production.save(entry)
+            end
+          end
+        end
+      end
+
       def confirm_create
         @confirm_create ||= grouped_required_confirmation_entries[:insert].collect(&:record)
       end

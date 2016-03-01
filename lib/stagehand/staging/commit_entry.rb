@@ -19,7 +19,7 @@ module Stagehand
       scope :contained,          lambda { where.not(:commit_id => nil) }
 
       def self.matching(object)
-        keys = Array.wrap(object).collect {|entry| extract_key(entry) }
+        keys = Array.wrap(object).collect {|entry| Stagehand.extract_key(entry) }
         sql = []
         interpolates = []
 
@@ -61,7 +61,7 @@ module Stagehand
       end
 
       def key
-        self.class.extract_key(self)
+        Stagehand.extract_key(self)
       end
 
       private
@@ -82,21 +82,6 @@ module Stagehand
 
       rescue NameError
         raise(IndeterminateRecordClass, "Can't determine class from table name: #{table_name}")
-      end
-
-      def self.extract_key(object)
-        case object
-        when CommitEntry
-          record_id = object.record_id
-          table_name = object.table_name
-        when ActiveRecord::Base
-          record_id = object.id
-          table_name = object.class.table_name
-        else
-          raise "Invalid input"
-        end
-
-        return [table_name, record_id]
       end
     end
   end

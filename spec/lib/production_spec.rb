@@ -1,9 +1,33 @@
 require 'rails_helper'
 
 describe Stagehand::Production do
+  subject { Stagehand::Production }
   let(:source_record) { SourceRecord.create }
 
+  describe '::status' do
+    it 'returns :new if the record does not exist in the production database' do
+      expect(subject.status(source_record)).to eq(:new)
+    end
+
+    it 'returns :modified if the record exists in the production database, but its attributes are different' do
+      Stagehand::Production.save(source_record)
+      source_record.update_attribute(:updated_at, 10.days.from_now)
+      expect(subject.status(source_record)).to eq(:modified)
+    end
+
+    it 'returns :not_modified if the record exists in the production database and its attributes are the same' do
+      Stagehand::Production.save(source_record)
+      expect(subject.status(source_record)).to eq(:not_modified)
+    end
+  end
+
   describe '::lookup' do
+    it 'returns a scope'
+    it 'includes records that match the table name and id of the given staging record'
+    it 'does not include records that match the table name but not the id of the given staging record'
+    it 'does not include records that match the id but not the table name of the given staging record'
+    it 'only returns records from the production environment'
+
     it 'raises an exception if the production environment is not set' do
       Stagehand::Production.environment = nil
       expect { subject.lookup(source_record) }.to raise_exception(Stagehand::ProductionEnvironmentNotSet)
@@ -33,6 +57,7 @@ describe Stagehand::Production do
 
     it 'makes an exact copy of the attributes' do
       source_record.update_attributes(:name => 'test')
+      source_record.reload # reload ensures timestamps are only as accurate as the database can store
       expect(subject.save(source_record).attributes).to eq(source_record.attributes)
     end
 

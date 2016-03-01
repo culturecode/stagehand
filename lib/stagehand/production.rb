@@ -6,9 +6,20 @@ module Stagehand
       self.record_timestamps = false
     end
 
+    # Outputs a symbol representing the status of the staging record as it exists in the production database
+    def self.status(staging_record)
+      if !exists?(staging_record)
+        :new
+      elsif modified?(staging_record)
+        :modified
+      else
+        :not_modified
+      end
+    end
+
     def self.save(staging_record)
       production_record = lookup(staging_record).first_or_initialize
-      production_record.update_attributes(staging_record.attributes)
+      production_record.update_attributes(staging_record_attributes(staging_record))
       production_record
     end
 
@@ -24,23 +35,15 @@ module Stagehand
     # Returns true if the staging_record does not exist on production
     # Returns false if the staging record is identical to the production record
     def self.modified?(staging_record)
-      production_attributes = Record.connection.select_one(lookup(staging_record))
-      staging_attributes = staging_record.class.connection.select_one(staging_record.class.where(:id => staging_record.id))
-
-      return production_attributes != staging_attributes
+      production_record_attributes(staging_record) != staging_record_attributes(staging_record)
     end
 
     # Returns a scope that limits results any occurrences of the specified record.
     # Record can be specified by passing a staging record, or an id and table_name.
     def self.lookup(staging_record, table_name = nil)
-      case staging_record
-      when ActiveRecord::Base
-        prepare_to_modify(staging_record.class.table_name)
-      else
-        prepare_to_modify(table_name)
-      end
-
-      return Record.where(:id => staging_record)
+      table_name, id = Stagehand.extract_key(staging_record, table_name)
+      prepare_to_modify(table_name)
+      return Record.where(:id => id)
     end
 
     private
@@ -55,6 +58,15 @@ module Stagehand
       raise ProductionEnvironmentNotSet unless environment
       Record.establish_connection(environment) unless @connection_established
       @connection_established = true
+    end
+
+    def self.production_record_attributes(staging_record)
+      Record.connection.select_one(lookup(staging_record))
+    end
+
+    def self.staging_record_attributes(staging_record, table_name = nil)
+      table_name, id = Stagehand.extract_key(staging_record, table_name)
+      Stagehand::Staging::CommitEntry.connection.select_one("SELECT * FROM #{table_name} WHERE id = #{id}")
     end
   end
 

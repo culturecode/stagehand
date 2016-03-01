@@ -174,6 +174,25 @@ describe Stagehand::Staging::Checklist do
     end
   end
 
+  describe '#synchronize' do
+    it 'copies new records to the production database' do
+      expect { subject.synchronize }.to change { Stagehand::Production.status(source_record) }.to(:not_modified)
+    end
+
+    it 'updates existing records in the production database' do
+      Stagehand::Production.save(source_record)
+      source_record.update_attribute(:updated_at, 10.days.from_now)
+
+      expect { subject.synchronize }.to change { Stagehand::Production.status(source_record) }.to(:not_modified)
+    end
+
+    it 'deletes deleted records in the production database' do
+      Stagehand::Production.save(source_record)
+      source_record.destroy
+      expect { subject.synchronize }.to change { Stagehand::Production.status(source_record) }.to(:new)
+    end
+  end
+
   # # self => hm:t => unpublished
   # it 'publishes an unpublished record related with a hm:t association'
   #
