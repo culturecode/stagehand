@@ -20,6 +20,16 @@ module Stagehand
       lookup(staging_record, table_name).exists?
     end
 
+    # Returns true if the staging record's attributes are different from the production record's attributes
+    # Returns true if the staging_record does not exist on production
+    # Returns false if the staging record is identical to the production record
+    def self.modified?(staging_record)
+      production_attributes = Record.connection.select_one(lookup(staging_record))
+      staging_attributes = staging_record.class.connection.select_one(staging_record.class.where(:id => staging_record.id))
+
+      return production_attributes != staging_attributes
+    end
+
     # Returns a scope that limits results any occurrences of the specified record.
     # Record can be specified by passing a staging record, or an id and table_name.
     def self.lookup(staging_record, table_name = nil)

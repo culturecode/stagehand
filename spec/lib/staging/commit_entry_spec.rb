@@ -2,7 +2,7 @@ require 'rails_helper'
 
 describe Stagehand::Staging::CommitEntry do
   let(:klass) { Stagehand::Staging::CommitEntry }
-  let(:source_record) { SourceRecord.create.reload } # reload ensures timestamps are only as accurate as the database can store
+  let(:source_record) { SourceRecord.create }
   subject { source_record; Stagehand::Staging::CommitEntry.last }
 
   describe '::matching' do
@@ -41,6 +41,7 @@ describe Stagehand::Staging::CommitEntry do
     context 'on a delete operation entry' do
       before do
         Stagehand::Production.save(source_record)
+        source_record.reload # reload ensures timestamps are only as accurate as the database can store
         source_record.delete
       end
 
