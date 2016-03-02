@@ -84,7 +84,7 @@ module Stagehand
       end
 
       def related_commits
-        @related_commits ||= self.class.find(related_entries.collect(&:commit_id))
+        @related_commits ||= self.class.find(related_entries.collect(&:commit_id).uniq)
       end
 
       def related_entries
@@ -94,7 +94,7 @@ module Stagehand
         entries_to_spider = content_entries
         while entries_to_spider.present?
           matching_entries = CommitEntry.matching(entries_to_spider)
-          matching_commit_entries = CommitEntry.content_operations.where(:commit_id => matching_entries.collect(&:commit_id))
+          matching_commit_entries = CommitEntry.content_operations.where(:commit_id => matching_entries.collect(&:commit_id).uniq)
           entries_to_spider = matching_commit_entries - @related_entries
           @related_entries.concat(entries_to_spider)
         end
