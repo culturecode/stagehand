@@ -26,24 +26,24 @@ module Stagehand
       end
 
       def confirm_create
-        cache :confirm_create, grouped_required_confirmation_entries[:insert].collect(&:record)
+        cache(:confirm_create) { grouped_required_confirmation_entries[:insert].collect(&:record) }
       end
 
       def confirm_delete
-        cache :confirm_delete, grouped_required_confirmation_entries[:delete].collect(&:record).compact
+        cache(:confirm_delete) { grouped_required_confirmation_entries[:delete].collect(&:record).compact }
       end
 
       def confirm_update
-        cache :confirm_update, grouped_required_confirmation_entries[:update].collect(&:record)
+        cache(:confirm_update) { grouped_required_confirmation_entries[:update].collect(&:record) }
       end
 
       # Returns a list of records that exist in commits where the staging_record is not in the start operation
       def requires_confirmation
-        cache :requires_confirmation, grouped_required_confirmation_entries.values.flatten.collect(&:record).compact
+        cache(:requires_confirmation) { grouped_required_confirmation_entries.values.flatten.collect(&:record).compact }
       end
 
       def affected_records
-        cache :affected_records, affected_entries.collect(&:record).uniq
+        cache(:affected_records) { affected_entries.collect(&:record).uniq }
       end
 
       private
@@ -105,13 +105,11 @@ module Stagehand
         return group_entries
       end
 
-      def cache(key, value = nil, &block)
+      def cache(key, &block)
         if @cache.key?(key)
           @cache[key]
-        elsif block_given?
-          @cache[key] = block.call
         else
-          @cache[key] = value
+          @cache[key] = block.call
         end
       end
 
