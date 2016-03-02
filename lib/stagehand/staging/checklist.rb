@@ -48,15 +48,17 @@ module Stagehand
 
       private
 
-      # Returns entries that appear in commits where the starting_operation record is not this list's staging_record
       def grouped_required_confirmation_entries
         cache(:grouped_required_confirmation_entries) do
-          entries = []
-          affected_entries.group_by(&:commit_id).each do |commit_id, commit_entries|
-            next unless commit_id
-            start_operation = commit_entries.detect {|entry| entry.id == commit_id }
-            entries.concat(commit_entries) if !start_operation || (start_operation.record != @staging_record)
-          end
+          staging_record_start_operation_ids = affected_entries.select(&:start_operation?)
+                                                               .select {|entry| entry.matches?(@staging_record) }
+                                                               .collect(&:id)
+
+          # Don't need to confirm entries that were part of a commits kicked off by the staging record
+          entries = affected_entries.reject {|entry| staging_record_start_operation_ids.include?(entry.commit_id) }
+
+          # Don't need to confirm entries that were not part of a commit
+          entries = entries.select(&:commit_id)
 
           entries = compact_entries(entries)
           entries = preload_records(entries)

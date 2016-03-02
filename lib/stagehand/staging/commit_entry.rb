@@ -70,6 +70,10 @@ module Stagehand
         operation == END_OPERATION
       end
 
+      def matches?(other)
+        key == Stagehand.extract_key(other)
+      end
+
       def key
         Stagehand.extract_key(self)
       end
