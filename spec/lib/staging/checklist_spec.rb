@@ -210,13 +210,4 @@ describe Stagehand::Staging::Checklist do
       expect(subject.synchronize).to eq(0)
     end
   end
-
-  # # self => hm:t => unpublished
-  # it 'publishes an unpublished record related with a hm:t association'
-  #
-  # # self => [changed, unchanged, changed]
-  # it 'republishes hm association records whose attributes have changed'
-  #
-  # # self => [join, deleted, join] => [record, record]
-  # it 'deletes associated hm:t join records if they no longer exist in staging'
 end
