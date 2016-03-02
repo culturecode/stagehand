@@ -191,6 +191,24 @@ describe Stagehand::Staging::Checklist do
       source_record.destroy
       expect { subject.synchronize }.to change { Stagehand::Production.status(source_record) }.to(:new)
     end
+
+    it 'returns the number of records synchronized' do
+      Stagehand::Production.save(source_record)
+      expect(subject.synchronize).to eq(1)
+    end
+
+    it 'synchronizing a checklist twice should have no effect the second time' do
+      Stagehand::Production.save(source_record)
+      subject.synchronize
+      expect(subject.synchronize).to eq(0)
+    end
+
+    it 'synchronizing a checklist with a delete twice should have no effect the second time' do
+      Stagehand::Production.save(source_record)
+      source_record.destroy
+      subject.synchronize
+      expect(subject.synchronize).to eq(0)
+    end
   end
 
   # # self => hm:t => unpublished

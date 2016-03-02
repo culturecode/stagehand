@@ -6,40 +6,49 @@ module Stagehand
       def initialize(staging_record, &confirmation_filter)
         @staging_record = staging_record
         @confirmation_filter = confirmation_filter
+        @cache = {}
       end
 
       # Copies all the affected records from the staging database to the production database
       def synchronize
         ActiveRecord::Base.transaction do
-          compact_entries(affected_entries).each do |entry|
+          entries = compact_entries(affected_entries)
+          entries.each do |entry|
             if entry.delete_operation?
               Stagehand::Production.delete(entry.record_id, entry.table_name)
             else
               Stagehand::Production.save(entry)
             end
           end
+
+          CommitEntry.where(:id => affected_entries.collect(&:id)).delete_all
+
+          return entries.count
         end
+
+      ensure
+        clear_cache
       end
 
       def confirm_create
-        @confirm_create ||= grouped_required_confirmation_entries[:insert].collect(&:record)
+        cache :confirm_create, grouped_required_confirmation_entries[:insert].collect(&:record)
       end
 
       def confirm_delete
-        @confirm_delete ||= grouped_required_confirmation_entries[:delete].collect(&:record).compact
+        cache :confirm_delete, grouped_required_confirmation_entries[:delete].collect(&:record).compact
       end
 
       def confirm_update
-        @confirm_update ||= grouped_required_confirmation_entries[:update].collect(&:record)
+        cache :confirm_update, grouped_required_confirmation_entries[:update].collect(&:record)
       end
 
       # Returns a list of records that exist in commits where the staging_record is not in the start operation
       def requires_confirmation
-        @requires_confirmation ||= grouped_required_confirmation_entries.values.flatten.collect(&:record).compact
+        cache :requires_confirmation, grouped_required_confirmation_entries.values.flatten.collect(&:record).compact
       end
 
       def affected_records
-        @affected_records ||= affected_entries.collect(&:record).uniq
+        cache :affected_records, affected_entries.collect(&:record).uniq
       end
 
       private
@@ -58,33 +67,33 @@ module Stagehand
 
       # Returns entries that appear in commits where the starting_operation record is not this list's staging_record
       def grouped_required_confirmation_entries
-        return @requires_confirmation_entries if @requires_confirmation_entries
+        cache(:grouped_required_confirmation_entries) do
+          entries = []
+          affected_entries.group_by(&:commit_id).each do |commit_id, commit_entries|
+            next unless commit_id
+            start_operation = commit_entries.detect {|entry| entry.id == commit_id }
+            entries.concat(commit_entries) if !start_operation || (start_operation.record != @staging_record)
+          end
 
-        @requires_confirmation_entries = []
-        affected_entries.group_by(&:commit_id).each do |commit_id, entries|
-          next unless commit_id
-          start_operation = entries.detect {|entry| entry.id == commit_id }
-          @requires_confirmation_entries.concat(entries) if !start_operation || (start_operation.record != @staging_record)
+          entries = filter_entries(entries)
+          entries = compact_entries(entries)
+          entries = group_entries(entries)
+
+          entries
         end
-
-        @requires_confirmation_entries = filter_entries(@requires_confirmation_entries)
-        @requires_confirmation_entries = compact_entries(@requires_confirmation_entries)
-        @requires_confirmation_entries = group_entries(@requires_confirmation_entries)
-
-        return @requires_confirmation_entries
       end
 
       def affected_entries
-        return @affected_entries if @affected_entries
+        cache(:affected_entries) do
+          entries = []
+          entries += CommitEntry.uncontained.matching(@staging_record)
+          if commit = first_commit_containing_record(@staging_record)
+            entries += commit.content_entries
+            entries += commit.related_entries
+          end
 
-        @affected_entries = []
-        @affected_entries += CommitEntry.uncontained.matching(@staging_record)
-        if commit = first_commit_containing_record(@staging_record)
-          @affected_entries += commit.content_entries
-          @affected_entries += commit.related_entries
+          entries
         end
-
-        return @affected_entries
       end
 
       def filter_entries(entries)
@@ -107,6 +116,20 @@ module Stagehand
         group_entries.merge! entries.group_by(&:operation).symbolize_keys!
 
         return group_entries
+      end
+
+      def cache(key, value = nil, &block)
+        if @cache.key?(key)
+          @cache[key]
+        elsif block_given?
+          @cache[key] = block.call
+        else
+          @cache[key] = value
+        end
+      end
+
+      def clear_cache
+        @cache.clear
       end
     end
   end
