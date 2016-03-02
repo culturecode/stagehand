@@ -11,21 +11,16 @@ module Stagehand
 
       # Copies all the affected records from the staging database to the production database
       def synchronize
+        entries = compact_entries(affected_entries)
+
         ActiveRecord::Base.transaction do
-          entries = compact_entries(affected_entries)
           entries.each do |entry|
-            if entry.delete_operation?
-              Stagehand::Production.delete(entry.record_id, entry.table_name)
-            else
-              Stagehand::Production.save(entry)
-            end
+            entry.delete_operation? ? Stagehand::Production.delete(entry) : Stagehand::Production.save(entry)
           end
-
           CommitEntry.where(:id => affected_entries.collect(&:id)).delete_all
-
-          return entries.count
         end
 
+        return entries.count
       ensure
         clear_cache
       end
