@@ -22,11 +22,21 @@ describe Stagehand::Production do
   end
 
   describe '::lookup' do
-    it 'returns a scope'
-    it 'includes records that match the table name and id of the given staging record'
-    it 'does not include records that match the table name but not the id of the given staging record'
-    it 'does not include records that match the id but not the table name of the given staging record'
-    it 'only returns records from the production environment'
+    it 'returns an ActiveRecord::Relation' do
+      expect(subject.lookup(source_record)).to be_a(ActiveRecord::Relation)
+    end
+
+    it 'includes only production records that match the given staging record' do
+      production_record_1 = subject.save(SourceRecord.create)
+      production_record_2 = subject.save(source_record)
+      production_record_3 = subject.save(SourceRecord.create)
+
+      expect(subject.lookup(source_record)).to contain_exactly(production_record_2)
+    end
+
+    it 'does not return records that have not been saved to the production database' do
+      expect(subject.lookup(source_record)).to be_empty
+    end
 
     it 'raises an exception if the production environment is not set' do
       Stagehand::Production.environment = nil
