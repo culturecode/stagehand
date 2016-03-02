@@ -48,10 +48,6 @@ module Stagehand
 
       private
 
-      def first_commit_containing_record(staging_record)
-        Commit.find(CommitEntry.contained.matching(staging_record).limit(1).pluck(:commit_id).first)
-      end
-
       # Returns entries that appear in commits where the starting_operation record is not this list's staging_record
       def grouped_required_confirmation_entries
         cache(:grouped_required_confirmation_entries) do
@@ -81,6 +77,10 @@ module Stagehand
 
           entries
         end
+      end
+
+      def first_commit_containing_record(staging_record)
+        Commit.find(CommitEntry.contained.matching(staging_record).limit(1).pluck(:commit_id).first)
       end
 
       def filter_entries(entries)
