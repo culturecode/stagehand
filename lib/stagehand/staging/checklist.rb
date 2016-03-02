@@ -48,14 +48,6 @@ module Stagehand
 
       private
 
-      def record_exists_in_production?(staging_record)
-        Production.exists?(staging_record)
-      end
-
-      def production_record(staging_record)
-        Production.lookup(staging_record).first
-      end
-
       def first_commit_containing_record(staging_record)
         Commit.find(CommitEntry.contained.matching(staging_record).limit(1).pluck(:commit_id).first)
       end
