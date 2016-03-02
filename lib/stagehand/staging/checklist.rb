@@ -58,11 +58,10 @@ module Stagehand
             entries.concat(commit_entries) if !start_operation || (start_operation.record != @staging_record)
           end
 
-          entries = filter_entries(entries)
           entries = compact_entries(entries)
+          entries = preload_records(entries)
+          entries = filter_entries(entries)
           entries = group_entries(entries)
-
-          entries
         end
       end
 
@@ -103,6 +102,19 @@ module Stagehand
         group_entries.merge! entries.group_by(&:operation).symbolize_keys!
 
         return group_entries
+      end
+
+      def preload_records(entries)
+        entries.group_by(&:table_name).each do |table_name, group_entries|
+          klass = CommitEntry.infer_class(table_name)
+          records = klass.where(:id => group_entries.collect(&:record_id))
+          records_by_id = records.collect {|r| [r.id, r] }.to_h
+          group_entries.each do |entry|
+            entry.record = records_by_id[entry.record_id]
+          end
+        end
+
+        return entries
       end
 
       def cache(key, &block)

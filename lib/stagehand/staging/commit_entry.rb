@@ -1,6 +1,8 @@
 module Stagehand
   module Staging
     class CommitEntry < ActiveRecord::Base
+      attr_writer :record
+
       self.table_name = 'stagehand_commit_entries'
 
       START_OPERATION = 'commit_start'
@@ -30,6 +32,14 @@ module Stagehand
         end
 
         return keys.present? ? content_operations.where(sql.join(' OR '), *interpolates) : none
+      end
+
+      def self.infer_class(table_name)
+        klass = ActiveRecord::Base.descendants.detect {|klass| klass.table_name == table_name && klass != Stagehand::Production::Record }
+        klass ||= table_name.classify.constantize # Try loading the class if it isn't loaded yet
+
+      rescue NameError
+        raise(IndeterminateRecordClass, "Can't determine class from table name: #{table_name}")
       end
 
       def record
@@ -77,11 +87,7 @@ module Stagehand
       end
 
       def record_class
-        klass = ActiveRecord::Base.descendants.detect {|klass| klass.table_name == table_name && klass != Stagehand::Production::Record }
-        klass ||= table_name.classify.constantize # Try loading the class if it isn't loaded yet
-
-      rescue NameError
-        raise(IndeterminateRecordClass, "Can't determine class from table name: #{table_name}")
+        self.class.infer_class(table_name)
       end
     end
   end
