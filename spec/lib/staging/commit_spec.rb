@@ -149,6 +149,12 @@ describe Stagehand::Staging::Commit do
       other_commit = klass.capture { SourceRecord.create }
       expect(subject.related_entries).not_to include(*other_commit.content_entries)
     end
+
+    it 'does not return entries that are not part of a commit' do
+      source_record.touch
+      commit_entry = Stagehand::Staging::CommitEntry.last
+      expect(subject.related_entries).not_to include(commit_entry)
+    end
   end
 
   describe 'equality' do
