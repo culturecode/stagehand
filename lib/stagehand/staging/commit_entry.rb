@@ -21,7 +21,7 @@ module Stagehand
       scope :contained,          lambda { where.not(:commit_id => nil) }
 
       def self.matching(object)
-        keys = Array.wrap(object).collect {|entry| Stagehand.extract_key(entry) }
+        keys = Array.wrap(object).collect {|entry| Stagehand::Key.generate(entry) }
         sql = []
         interpolates = []
 
@@ -71,11 +71,11 @@ module Stagehand
       end
 
       def matches?(other)
-        key == Stagehand.extract_key(other)
+        key == Stagehand::Key.generate(other)
       end
 
       def key
-        Stagehand.extract_key(self)
+        Stagehand::Key.generate(self)
       end
 
       private
