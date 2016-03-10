@@ -1,11 +1,6 @@
 require 'rails_helper'
 
 describe 'Stagehand::Staging::Controller', :type => :controller do
-  # Transactions hide changes from other connections. Disable transactional fixtures so it's easier to detect changes
-  # across connections. In practice, this won't be an issue because connections will be modified at the beginning of
-  # the controller action.
-  self.use_transactional_fixtures = false
-
   let(:staging) { Stagehand::Staging.connection_name }
   let(:production) { Stagehand::Production.connection_name }
   before { ActiveRecord::Base.establish_connection(production) }
@@ -80,16 +75,35 @@ describe 'Stagehand::Staging::Controller', :type => :controller do
     end
   end
 
+  # CONTEXT SETUP
+
+  # Transactions hide changes from other connections. Disable transactional fixtures so it's easier to detect changes
+  # across connections. In practice, this won't be an issue because connections will be modified at the beginning of
+  # the controller action.
+  before(:context) do
+    self.use_transactional_fixtures = false
+  end
+
+  after(:context) do
+    self.use_transactional_fixtures = true
+  end
+
 
   # HELPERS
 
-  class StagingSourceRecord < ActiveRecord::Base
-    establish_connection(:staging)
-    self.table_name = 'source_records'
+  class Probe < ActiveRecord::Base; end
+
+  class StagingSourceRecord
+    def self.count
+      Probe.establish_connection(:staging)
+      Probe.connection.select_value("SELECT count(id) FROM source_records").to_i
+    end
   end
 
-  class ProductionSourceRecord < ActiveRecord::Base
-    establish_connection(:production)
-    self.table_name = 'source_records'
+  class ProductionSourceRecord
+    def self.count
+      Probe.establish_connection(:production)
+      Probe.connection.select_value("SELECT count(id) FROM source_records").to_i
+    end
   end
 end
