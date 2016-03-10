@@ -1,10 +1,10 @@
 RSpec.configure do |config|
   config.before(:suite) do
-    Stagehand::Staging.environment = :staging
-    Stagehand::Production.environment = :production
+    Stagehand::Staging.connection_name = :staging
+    Stagehand::Production.connection_name = :production
 
     # Create tables in the test and production database so we test copying from one to the other
-    [Stagehand::Staging.environment, Stagehand::Production.environment].each do |connection_name|
+    [Stagehand::Staging.connection_name, Stagehand::Production.connection_name].each do |connection_name|
       ActiveRecord::Base.establish_connection connection_name
 
       ActiveRecord::Schema.define do
@@ -15,7 +15,7 @@ RSpec.configure do |config|
       end
     end
 
-    ActiveRecord::Base.establish_connection(Stagehand::Staging.environment)
+    ActiveRecord::Base.establish_connection(Stagehand::Staging.connection_name)
 
     # Create the model
     class SourceRecord < ActiveRecord::Base; end
@@ -24,9 +24,9 @@ RSpec.configure do |config|
     Stagehand::Schema.add_stagehand!
   end
 
-  # Ensure changes to the environment are reset
+  # Ensure changes to the connection_name are reset
   config.before do
-    Stagehand::Staging.environment = :staging
-    Stagehand::Production.environment = :production
+    Stagehand::Staging.connection_name = :staging
+    Stagehand::Production.connection_name = :production
   end
 end

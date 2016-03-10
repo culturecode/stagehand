@@ -4,17 +4,17 @@ describe Stagehand::Production do
   subject { Stagehand::Production }
   let(:source_record) { SourceRecord.create }
 
-  describe '::environment=' do
-    it 'sets the environment variable for this module' do
-      subject.environment = 'test'
-      expect(subject.environment).to eq('test')
+  describe '::connection_name=' do
+    it 'sets the connection_name variable for this module' do
+      subject.connection_name = 'test'
+      expect(subject.connection_name).to eq('test')
     end
   end
 
-  describe '::environment' do
-    it 'raises an exception if the production environment is not set' do
-      subject.environment = nil
-      expect { subject.environment }.to raise_exception(Stagehand::ProductionEnvironmentNotSet)
+  describe '::connection_name' do
+    it 'raises an exception if the production connection_name is not set' do
+      subject.connection_name = nil
+      expect { subject.connection_name }.to raise_exception(Stagehand::ProductionConnectionNameNotSet)
     end
   end
 

@@ -4,13 +4,13 @@ require 'stagehand/staging/checklist'
 
 module Stagehand
   module Staging
-    mattr_writer :environment
+    mattr_writer :connection_name
 
-    def self.environment
-      @@environment || raise(StagingEnvironmentNotSet)
+    def self.connection_name
+      @@connection_name || raise(StagingConnectionNameNotSet)
     end
   end
 
   # EXCEPTIONS
-  class StagingEnvironmentNotSet < StandardError; end
+  class StagingConnectionNameNotSet < StandardError; end
 end

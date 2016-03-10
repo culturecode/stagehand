@@ -1,6 +1,6 @@
 module Stagehand
   module Production
-    mattr_writer :environment
+    mattr_writer :connection_name
 
     class Record < ActiveRecord::Base
       self.record_timestamps = false
@@ -46,8 +46,8 @@ module Stagehand
       return Record.where(:id => id)
     end
 
-    def self.environment
-      @@environment || raise(ProductionEnvironmentNotSet)
+    def self.connection_name
+      @@connection_name || raise(ProductionConnectionNameNotSet)
     end
 
     private
@@ -59,7 +59,7 @@ module Stagehand
     end
 
     def self.connect_to_production_database
-      Record.establish_connection(environment) unless @connection_established
+      Record.establish_connection(connection_name) unless @connection_established
       @connection_established = true
     end
 
@@ -74,5 +74,5 @@ module Stagehand
   end
 
   # EXCEPTIONS
-  class ProductionEnvironmentNotSet < StandardError; end
+  class ProductionConnectionNameNotSet < StandardError; end
 end
