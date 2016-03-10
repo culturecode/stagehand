@@ -4,6 +4,20 @@ describe Stagehand::Production do
   subject { Stagehand::Production }
   let(:source_record) { SourceRecord.create }
 
+  describe '::environment=' do
+    it 'sets the environment variable for this module' do
+      subject.environment = 'test'
+      expect(subject.environment).to eq('test')
+    end
+  end
+
+  describe '::environment' do
+    it 'raises an exception if the production environment is not set' do
+      subject.environment = nil
+      expect { subject.environment }.to raise_exception(Stagehand::ProductionEnvironmentNotSet)
+    end
+  end
+
   describe '::status' do
     it 'returns :new if the record does not exist in the production database' do
       expect(subject.status(source_record)).to eq(:new)
@@ -36,11 +50,6 @@ describe Stagehand::Production do
 
     it 'does not return records that have not been saved to the production database' do
       expect(subject.lookup(source_record)).to be_empty
-    end
-
-    it 'raises an exception if the production environment is not set' do
-      Stagehand::Production.environment = nil
-      expect { subject.lookup(source_record) }.to raise_exception(Stagehand::ProductionEnvironmentNotSet)
     end
   end
 
