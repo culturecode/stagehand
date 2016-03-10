@@ -9,10 +9,29 @@ module Stagehand
       table_name = staging_record.class.table_name
     else
       id = staging_record
+      end
+
+      raise 'Invalid input' unless table_name && id
+
+      return [table_name, id]
     end
 
-    raise 'Invalid input' unless table_name && id
+  module ControllerExtensions
+    def use_staging_database(&block)
+      connect_to_database(Stagehand::Staging.connection_name, Stagehand::Production.connection_name, &block)
+    end
 
-    return [table_name, id]
+    def use_production_database(&block)
+      connect_to_database(Stagehand::Production.connection_name, Stagehand::Staging.connection_name, &block)
+    end
+
+    private
+
+    def connect_to_database(target_connection_name, original_connection_name)
+      ActiveRecord::Base.establish_connection(target_connection_name)
+      yield
+    ensure
+      ActiveRecord::Base.establish_connection(original_connection_name)
+    end
   end
 end

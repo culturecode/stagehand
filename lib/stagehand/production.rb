@@ -54,11 +54,11 @@ module Stagehand
 
     def self.prepare_to_modify(table_name)
       raise "Can't prepare to modify production records without knowning the table_name" unless table_name.present?
-      connect_to_production_database
+      use_production_database
       Record.table_name = table_name
     end
 
-    def self.connect_to_production_database
+    def self.use_production_database
       Record.establish_connection(connection_name) unless @connection_established
       @connection_established = true
     end
