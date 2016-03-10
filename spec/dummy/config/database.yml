@@ -9,6 +9,10 @@ default: &default
   encoding: utf8
   reconnect: false
 
+test:
+  <<: *default
+  database: stagehand_staging
+
 staging:
   <<: *default
   database: stagehand_staging
