@@ -44,6 +44,15 @@ describe Stagehand::Staging::Commit do
       commit = klass.capture(source_record) { }
       expect(commit).to include(source_record)
     end
+
+    it 'does not swallow exceptions from the given block' do
+      expect{ klass.capture { raise('test') } }.to raise_exception('test')
+    end
+
+    it 'ends the commit when the block raises an exception' do
+      expect{ begin klass.capture { raise }; rescue; end }
+        .to change { Stagehand::Staging::CommitEntry.end_operations.count }.by(1)
+    end
   end
 
   describe '::find' do

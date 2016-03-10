@@ -8,8 +8,10 @@ module Stagehand
       def self.capture(subject_record = nil, &block)
         start_operation = start_commit(subject_record)
         block.call
-      ensure
         return end_commit(start_operation)
+      rescue => e
+        end_commit(start_operation)
+        raise(e)
       end
 
       def self.containing(record)
