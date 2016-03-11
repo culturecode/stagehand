@@ -3,7 +3,7 @@ require 'rails_helper'
 describe 'Stagehand::Staging::Controller', :type => :controller do
   let(:staging) { Stagehand::Staging.connection_name }
   let(:production) { Stagehand::Production.connection_name }
-  before { ActiveRecord::Base.establish_connection(production) }
+  around {|example| Stagehand::Database.connect_to_database(production) { example.run } }
 
   context 'when included' do
     controller do
@@ -38,12 +38,12 @@ describe 'Stagehand::Staging::Controller', :type => :controller do
       expect { SourceRecord.create }.not_to change { StagingSourceRecord.count }
     end
 
-    it 'resets the connection to the production database after the action' do
+    it 'resets the connection to the previous database after the action' do
       expect do
         SourceRecord.create
         get :index
         SourceRecord.create
-      end.to change { ProductionSourceRecord.count }.by(2)
+      end.to change { SourceRecord.count }.by(2)
     end
 
     it 'does not affect the connection of models that have specifically called establish_connection' do

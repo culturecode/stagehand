@@ -20,20 +20,35 @@ module Stagehand
 
   module ControllerExtensions
     def use_staging_database(&block)
-      connect_to_database(Stagehand::Staging.connection_name, Stagehand::Production.connection_name, &block)
+      Stagehand::Database.connect_to_database(Stagehand::Staging.connection_name, &block)
     end
 
     def use_production_database(&block)
-      connect_to_database(Stagehand::Production.connection_name, Stagehand::Staging.connection_name, &block)
+      Stagehand::Database.connect_to_database(Stagehand::Production.connection_name, &block)
+    end
+  end
+
+  module Database
+    @@connection_name_stack = [Rails.env.to_sym]
+
+    def self.connect_to_database(target_connection_name)
+      changed = current_connection_name != target_connection_name.to_sym
+
+      @@connection_name_stack.push(target_connection_name.to_sym)
+      Rails.logger.debug "Connecting to #{current_connection_name}"
+      ActiveRecord::Base.establish_connection(current_connection_name) if changed
+
+      yield
+    ensure
+      @@connection_name_stack.pop
+      Rails.logger.debug "Restoring connection to #{current_connection_name}"
+      ActiveRecord::Base.establish_connection(current_connection_name) if changed
     end
 
     private
 
-    def connect_to_database(target_connection_name, original_connection_name)
-      ActiveRecord::Base.establish_connection(target_connection_name)
-      yield
-    ensure
-      ActiveRecord::Base.establish_connection(original_connection_name)
+    def self.current_connection_name
+      @@connection_name_stack.last
     end
   end
 end
