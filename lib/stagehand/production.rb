@@ -1,3 +1,5 @@
+require 'stagehand/production/controller'
+
 module Stagehand
   module Production
     mattr_writer :connection_name
