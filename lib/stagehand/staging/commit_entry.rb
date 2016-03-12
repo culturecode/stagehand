@@ -75,7 +75,7 @@ module Stagehand
       end
 
       def key
-        Stagehand::Key.generate(self)
+        @key ||= Stagehand::Key.generate(self)
       end
 
       private
