@@ -10,6 +10,7 @@ RSpec.configure do |config|
       ActiveRecord::Schema.define do
         create_table :source_records, :force => true do |t|
           t.string :name
+          t.string :type
           t.timestamps :null => true
         end
       end
@@ -19,6 +20,7 @@ RSpec.configure do |config|
 
     # Create the model
     class SourceRecord < ActiveRecord::Base; end
+    class STISourceRecord < SourceRecord; end
 
     # Add stagehand
     Stagehand::Schema.add_stagehand!

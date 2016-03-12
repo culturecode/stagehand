@@ -89,6 +89,16 @@ describe Stagehand::Production do
       source_record.update_attributes(:created_at => 1.day.ago, :updated_at => 0.5.days.ago)
       expect(subject.save(source_record)).to have_attributes(source_record.attributes.slice(:created_at, :updated_at))
     end
+
+    it 'does not attempt to save a record that no longer exists in the staging database' do
+      source_record.destroy
+      expect { subject.save(source_record) }.not_to change { Stagehand::Production::Record.count }
+    end
+
+    it 'returns a production record when saving an STI record' do
+      source_record.becomes!(STISourceRecord)
+      expect(subject.save(source_record)).to be_a(Stagehand::Production::Record)
+    end
   end
 
   context 'when the record does not yet exist in the production database' do

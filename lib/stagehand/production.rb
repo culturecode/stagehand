@@ -20,9 +20,17 @@ module Stagehand
     end
 
     def self.save(staging_record)
-      production_record = lookup(staging_record).first_or_initialize
-      production_record.update_attributes(staging_record_attributes(staging_record))
-      production_record
+      attributes = staging_record_attributes(staging_record)
+
+      return unless attributes.present?
+
+      is_new = lookup(staging_record).update_all(attributes).zero?
+
+      # Ensure we always return a record, even when updating instead of creating
+      Record.new.tap do |record|
+        record.assign_attributes(attributes)
+        record.save if is_new
+      end
     end
 
     def self.delete(staging_record, table_name = nil)
