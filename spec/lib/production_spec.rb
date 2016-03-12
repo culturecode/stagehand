@@ -63,7 +63,7 @@ describe Stagehand::Production do
     end
 
     it 'persists the record' do
-      expect(subject.save(source_record)).to be_persisted
+      expect(subject.save(source_record).reload).to be_persisted
     end
 
     it 'uses the same id as the source record' do
