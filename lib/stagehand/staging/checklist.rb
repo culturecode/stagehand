@@ -9,22 +9,6 @@ module Stagehand
         @cache = {}
       end
 
-      # Copies all the affected records from the staging database to the production database
-      def synchronize
-        entries = compact_entries(affected_entries)
-
-        ActiveRecord::Base.transaction do
-          entries.each do |entry|
-            entry.delete_operation? ? Stagehand::Production.delete(entry) : Stagehand::Production.save(entry)
-          end
-          CommitEntry.where(:id => affected_entries.collect(&:id)).delete_all
-        end
-
-        return entries.count
-      ensure
-        clear_cache
-      end
-
       def confirm_create
         cache(:confirm_create) { grouped_required_confirmation_entries[:insert].collect(&:record) }
       end
@@ -40,6 +24,10 @@ module Stagehand
       # Returns a list of records that exist in commits where the staging_record is not in the start operation
       def requires_confirmation
         cache(:requires_confirmation) { grouped_required_confirmation_entries.values.flatten.collect(&:record).compact }
+      end
+
+      def compacted_entries
+        cache(:compacted_entries) { compact_entries(affected_entries) }
       end
 
       def affected_records

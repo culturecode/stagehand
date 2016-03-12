@@ -173,41 +173,4 @@ describe Stagehand::Staging::Checklist do
       expect(subject.requires_confirmation).not_to include(source_record)
     end
   end
-
-  describe '#synchronize' do
-    it 'copies new records to the production database' do
-      expect { subject.synchronize }.to change { Stagehand::Production.status(source_record) }.to(:not_modified)
-    end
-
-    it 'updates existing records in the production database' do
-      Stagehand::Production.save(source_record)
-      source_record.update_attribute(:updated_at, 10.days.from_now)
-
-      expect { subject.synchronize }.to change { Stagehand::Production.status(source_record) }.to(:not_modified)
-    end
-
-    it 'deletes deleted records in the production database' do
-      Stagehand::Production.save(source_record)
-      source_record.destroy
-      expect { subject.synchronize }.to change { Stagehand::Production.status(source_record) }.to(:new)
-    end
-
-    it 'returns the number of records synchronized' do
-      Stagehand::Production.save(source_record)
-      expect(subject.synchronize).to eq(1)
-    end
-
-    it 'synchronizing a checklist twice should have no effect the second time' do
-      Stagehand::Production.save(source_record)
-      subject.synchronize
-      expect(subject.synchronize).to eq(0)
-    end
-
-    it 'synchronizing a checklist with a delete twice should have no effect the second time' do
-      Stagehand::Production.save(source_record)
-      source_record.destroy
-      subject.synchronize
-      expect(subject.synchronize).to eq(0)
-    end
-  end
 end

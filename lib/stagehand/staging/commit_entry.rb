@@ -19,6 +19,12 @@ module Stagehand
       scope :delete_operations,  lambda { where(:operation => DELETE_OPERATION) }
       scope :uncontained,        lambda { where(:commit_id => nil) }
       scope :contained,          lambda { where.not(:commit_id => nil) }
+      scope :group_by_key,       lambda { content_operations.group('record_id, table_name') }
+      scope :key_uncontained,    lambda { # entries whose key is not part of any commit
+        joins("JOIN (#{distinct.group_by_key.having('count(commit_id) = 0').to_sql}) AS #{connection.quote_table_name 'keys'}
+               ON keys.record_id = #{table_name}.record_id AND keys.table_name = #{table_name}.table_name") }
+
+
 
       def self.matching(object)
         keys = Array.wrap(object).collect {|entry| Stagehand::Key.generate(entry) }
