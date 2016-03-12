@@ -1,9 +1,10 @@
 module Stagehand
   module Staging
     module Synchronizer
-      def self.auto_sync(delay = nil)
+      def self.auto_sync(delay = 5.seconds)
         loop do
-          sync_entries(CommitEntry.key_uncontained.order('id DESC').limit(1000))
+          count = sync_entries(CommitEntry.auto_syncable.limit(1000))
+          puts "Synced #{count} entries"
           sleep(delay) if delay
         end
       end
