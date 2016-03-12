@@ -10,7 +10,8 @@ module Stagehand
           t.string :session
         end
 
-        add_index :stagehand_commit_entries, :session
+        add_index :stagehand_commit_entries, :commit_id
+        add_index :stagehand_commit_entries, :operation
 
         table_names = ActiveRecord::Base.connection.tables
         table_names -= ['stagehand_commit_entries', 'schema_migrations']
