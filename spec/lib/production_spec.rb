@@ -66,10 +66,6 @@ describe Stagehand::Production do
       expect(subject.save(source_record)).to be_persisted
     end
 
-    it 'does not the record' do
-      expect(subject.save(source_record)).to be_persisted
-    end
-
     it 'uses the same id as the source record' do
       expect(subject.save(source_record).id).to eq(source_record.id)
     end
