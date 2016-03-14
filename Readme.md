@@ -18,10 +18,6 @@ Key features:
 - Allows published content to be edited without those changes immediately being seen by visitors
 - Can selectively update content without needing to sync the entire database with production
 
-## Installation
-
-Add it to your Gemfile
-
 ## Setup
 1. Add **Stagehand** to your Gemfile:
 
