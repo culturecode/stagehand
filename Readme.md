@@ -23,7 +23,6 @@ Key features:
 
   ```ruby
   gem 'stagehand'
-  bundle install
   ```
 
 2. Make a copy of your existing database, this will serve as the Production database, while your current database will
