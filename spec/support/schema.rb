@@ -1,10 +1,7 @@
 RSpec.configure do |config|
   config.before(:suite) do
-    Stagehand::Staging.connection_name = :staging
-    Stagehand::Production.connection_name = :production
-
     # Create tables in the test and production database so we test copying from one to the other
-    [Stagehand::Staging.connection_name, Stagehand::Production.connection_name].each do |connection_name|
+    [Stagehand.configuration.staging_connection_name, Stagehand.configuration.production_connection_name].each do |connection_name|
       ActiveRecord::Base.establish_connection connection_name
 
       ActiveRecord::Schema.define do
@@ -16,7 +13,7 @@ RSpec.configure do |config|
       end
     end
 
-    ActiveRecord::Base.establish_connection(Stagehand::Staging.connection_name)
+    ActiveRecord::Base.establish_connection(Stagehand.configuration.staging_connection_name)
 
     # Create the model
     class SourceRecord < ActiveRecord::Base; end
@@ -27,8 +24,13 @@ RSpec.configure do |config|
   end
 
   # Ensure changes to the connection_name are reset
+  staging = Rails.configuration.x.stagehand.staging_connection_name
+  production = Rails.configuration.x.stagehand.production_connection_name
+  ghost_mode = Rails.configuration.x.stagehand.ghost_mode
+
   config.before do
-    Stagehand::Staging.connection_name = :staging
-    Stagehand::Production.connection_name = :production
+    Rails.configuration.x.stagehand.staging_connection_name = staging
+    Rails.configuration.x.stagehand.production_connection_name = production
+    Rails.configuration.x.stagehand.ghost_mode = ghost_mode
   end
 end

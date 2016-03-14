@@ -1,8 +1,8 @@
 require 'rails_helper'
 
 describe Stagehand::Database do
-  let(:staging) { Stagehand::Staging.connection_name }
-  let(:production) { Stagehand::Production.connection_name }
+  let(:staging) { Stagehand.configuration.staging_connection_name }
+  let(:production) { Stagehand.configuration.production_connection_name }
 
   describe '::connect_to_database' do
     it 'restores the database connection specified in the Rails environment after the given block' do

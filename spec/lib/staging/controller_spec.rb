@@ -1,8 +1,8 @@
 require 'rails_helper'
 
 describe 'Stagehand::Staging::Controller', :type => :controller do
-  let(:staging) { Stagehand::Staging.connection_name }
-  let(:production) { Stagehand::Production.connection_name }
+  let(:staging) { Stagehand.configuration.staging_connection_name }
+  let(:production) { Stagehand.configuration.production_connection_name }
   around {|example| Stagehand::Database.connect_to_database(production) { example.run } }
 
   context 'when included' do
@@ -73,7 +73,20 @@ describe 'Stagehand::Staging::Controller', :type => :controller do
     it 'enables the database connection behaviour before subsequent around filters are run' do
       expect { get :index, :subsequent_callback => true }.to change { StagingSourceRecord.count }.by(2)
     end
+
+    context 'in ghost mode' do
+      before { Rails.configuration.x.stagehand.ghost_mode = true }
+
+      it 'disables connection swapping' do
+        expect do
+          SourceRecord.create
+          get :index
+          SourceRecord.create
+        end.to change { SourceRecord.count }.by(3)
+      end
+    end
   end
+
 
   # CONTEXT SETUP
 

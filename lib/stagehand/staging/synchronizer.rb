@@ -2,8 +2,10 @@ module Stagehand
   module Staging
     module Synchronizer
       def self.auto_sync(delay = 5.seconds)
+        scope = Configuration.ghost_mode ? CommitEntry.limit(1000) : CommitEntry.auto_syncable.limit(1000)
+
         loop do
-          count = sync_entries(CommitEntry.auto_syncable.limit(1000))
+          count = sync_entries(scope.reload)
           puts "Synced #{count} entries"
           sleep(delay) if delay
         end

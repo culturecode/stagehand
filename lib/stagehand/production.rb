@@ -2,10 +2,9 @@ require 'stagehand/production/controller'
 
 module Stagehand
   module Production
-    mattr_writer :connection_name
-
     class Record < ActiveRecord::Base
       self.record_timestamps = false
+      establish_connection(Stagehand.configuration.production_connection_name)
     end
 
     # Outputs a symbol representing the status of the staging record as it exists in the production database
@@ -56,21 +55,11 @@ module Stagehand
       return Record.where(:id => id)
     end
 
-    def self.connection_name
-      @@connection_name || raise(ProductionConnectionNameNotSet)
-    end
-
     private
 
     def self.prepare_to_modify(table_name)
       raise "Can't prepare to modify production records without knowning the table_name" unless table_name.present?
-      use_production_database
       Record.table_name = table_name
-    end
-
-    def self.use_production_database
-      Record.establish_connection(connection_name) unless @connection_established
-      @connection_established = true
     end
 
     def self.production_record_attributes(staging_record)
@@ -82,7 +71,4 @@ module Stagehand
       Stagehand::Staging::CommitEntry.connection.select_one("SELECT * FROM #{table_name} WHERE id = #{id}")
     end
   end
-
-  # EXCEPTIONS
-  class ProductionConnectionNameNotSet < StandardError; end
 end

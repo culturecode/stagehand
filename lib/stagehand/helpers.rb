@@ -20,11 +20,11 @@ module Stagehand
 
   module ControllerExtensions
     def use_staging_database(&block)
-      Stagehand::Database.connect_to_database(Stagehand::Staging.connection_name, &block)
+      Database.connect_to_database(Configuration.staging_connection_name, &block)
     end
 
     def use_production_database(&block)
-      Stagehand::Database.connect_to_database(Stagehand::Production.connection_name, &block)
+      Database.connect_to_database(Configuration.production_connection_name, &block)
     end
   end
 
@@ -32,7 +32,7 @@ module Stagehand
     @@connection_name_stack = [Rails.env.to_sym]
 
     def self.connect_to_database(target_connection_name)
-      changed = current_connection_name != target_connection_name.to_sym
+      changed = !(Configuration.ghost_mode || current_connection_name == target_connection_name.to_sym)
 
       @@connection_name_stack.push(target_connection_name.to_sym)
       Rails.logger.debug "Connecting to #{current_connection_name}"
