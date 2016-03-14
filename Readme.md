@@ -1,5 +1,8 @@
-## Introduction
-Stagehand is a gem that makes it easy to have a staging database where content editors can modify highly relational
+## Stagehand
+
+By [Culture Code](http://culturecode.ca/).
+
+**Stagehand** is a gem that makes it easy to have a staging database where content editors can modify highly relational
 data, and then publish those changes to a production database. It aims to solve the problem of being able to publish
 specific content, while the latest changes to other content are still being worked on.
 
@@ -15,12 +18,23 @@ Key features:
 - Allows published content to be edited without those changes immediately being seen by visitors
 - Can selectively update content without needing to sync the entire database with production
 
+## Installation
+
+Add it to your Gemfile
+
 ## Setup
-1. Make a copy of your existing database, this will serve as the Production database, while your current database will
+1. Add **Stagehand** to your Gemfile:
+
+  ```ruby
+  gem 'stagehand'
+  bundle install
+  ```
+
+2. Make a copy of your existing database, this will serve as the Production database, while your current database will
 be used as the Staging database.
 
-2. Add stagehand to your Staging database by using the Stagehand::Schema.add_stagehand! method. Tables not needed to
-serve pages up to visitors to the site can be ignored. This is useful if certain tables are only necessary in the
+3. Add stagehand to your Staging database by using the `Stagehand::Schema.add_stagehand!` method. Tables not needed to
+serve pages to site viewers can be ignored. This is useful if certain tables are only necessary in the
 staging environment.
 
   ```ruby
@@ -28,12 +42,11 @@ staging environment.
     Stagehand::Schema.add_stagehand! :except => [:users, :admin_messages, :other_tables, :not_needed_by_visitors]
   ```
 
-  These tables will not be monitored for changes, so their contents will not be copied to the production database.
   Monitoring is achieved using database triggers. Three triggers (INSERT, UPDATE, DELETE) are added to each monitored
   table and are used to create log entries that are used to track changes to content in the staging area.
 
-3. Modify the environment configuration file to specify which database to use as for staging and which to use for
-production. The connection name should match whatever names you've used in database.yml.
+4. Modify the environment configuration file to specify which database to use for staging and which to use for
+production. The connection name should match whatever names you've used in `database.yml`.
 
   ```yaml
   # In your database.yml
@@ -50,11 +63,9 @@ production. The connection name should match whatever names you've used in datab
   # In your production.rb, development.rb, etc...
   config.x.stagehand.staging_connection_name = :staging
   config.x.stagehand.production_connection_name = :production
-
   ```
 
-4. Add the following to set which controllers serve up the database from the production site, and which controllers use
-the staging server.
+5. Include the `Stagehand::Production::Controller` and `Stagehand::Staging::Controller` modules to set which controllers use the production and staging databases, respectively.
 
   ```ruby
   class ApplicationController < ActionController::Base
@@ -65,24 +76,9 @@ the staging server.
     include Stagehand::Staging::Controller  # This controller and all subclasses will connect to the staging database
   end
   ```
-
-5. If there are writes to the database that are triggered in a "Production" controller, be sure to direct them to the
-staging database if necessary. This can be achieved in multiple ways.
-
-6. Set up automated synchronization of records that don't require user confirmation. The Synchronizer polls the database
-to check for changes.
-
-  ```bash
-  # Syncing can be handled at the command line using a rake task
-  rake stagehand:auto_sync
-  rake stagehand:auto_sync[10] # Override default polling delay of 5 seconds
-  ```
-
-  ```ruby
-    # Syncing can also be handled in ruby
-    Synchronizer.auto_sync(5.seconds) # Optional delay can be customized. Set to falsey value for no delay.
-  ```
-
+  
+  If there are writes to the database that are triggered in a "Production" controller, be sure to direct them to the staging database if   necessary. This can be achieved in multiple ways.
+  
   ```ruby
   # Block form
   Stagehand::Database.connect_to_database(:staging) do
@@ -96,6 +92,20 @@ to check for changes.
 
   # Can be reverted to default by using
   MyModel.remove_connection
+  ```
+
+6. Set up automated synchronization of records that don't require user confirmation. The Synchronizer polls the database
+to check for changes.
+
+  ```bash
+  # Syncing can be handled at the command line using a rake task
+  rake stagehand:auto_sync
+  rake stagehand:auto_sync[10] # Override default polling delay of 5 seconds
+  ```
+
+  ```ruby
+    # Syncing can also be handled in ruby
+    Synchronizer.auto_sync(5.seconds) # Optional delay can be customized. Set to falsey value for no delay.
   ```
 
 ## Ghost Mode
