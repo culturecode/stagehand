@@ -22,7 +22,7 @@ Key features:
 1. Add **Stagehand** to your Gemfile:
 
   ```ruby
-  gem 'stagehand'
+  gem 'stagehand', :github => 'culturecode/stagehand'
   ```
 
 2. Make a copy of your existing database, this will serve as the Production database, while your current database will
