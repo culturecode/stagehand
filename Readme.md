@@ -40,6 +40,13 @@ staging environment.
   Monitoring is achieved using database triggers. Three triggers (INSERT, UPDATE, DELETE) are added to each monitored
   table and are used to create log entries that are used to track changes to content in the staging area.
 
+  You can add stagehand to new tables in subsequent migrations as follows:
+
+  ```ruby
+  # In a migration
+  Stagehand::Schema.add_stagehand! :only => [:some, :new, :tables]
+  ```
+
 4. Modify the environment configuration file to specify which database to use for staging and which to use for
 production. The connection name should match whatever names you've used in `database.yml`.
 
@@ -71,9 +78,9 @@ production. The connection name should match whatever names you've used in `data
     include Stagehand::Staging::Controller  # This controller and all subclasses will connect to the staging database
   end
   ```
-  
+
   If there are writes to the database that are triggered in a "Production" controller, be sure to direct them to the staging database if   necessary. This can be achieved in multiple ways.
-  
+
   ```ruby
   # Block form
   Stagehand::Database.connect_to_database(:staging) do
@@ -123,6 +130,26 @@ You can enable ghost mode in the environment
 # In your production.rb, development.rb, etc...
 config.x.stagehand.ghost_mode = true
 ```
+
+## Removing Stagehand
+To stop monitoring a table for changes:
+
+```ruby
+# In a migration
+Stagehand::Schema.remove_stagehand! :only => [:some_table, :other_table]
+```
+
+If you need to completely remove Stagehand from your app:
+
+1. Remove the database triggers and log table:
+
+  ```ruby
+  # In a migration
+  Stagehand::Schema.remove_stagehand!
+  ```
+
+2. Remove the Stagehand includes from your controllers, and the configuration options from your environment files.
+
 
 ## Possible Caveats to double check when development is complete
 - Transactions blocks don't expect multiple connections to be operating within them, so if a transaction fails while
