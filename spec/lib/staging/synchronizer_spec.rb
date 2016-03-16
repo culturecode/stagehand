@@ -3,7 +3,7 @@ require 'rails_helper'
 describe Stagehand::Staging::Synchronizer do
   let(:source_record) { SourceRecord.create }
 
-  describe '#sync_record' do
+  describe '::sync_record' do
     it 'copies new records to the production database' do
       expect { subject.sync_record(source_record) }.to change { Stagehand::Production.status(source_record) }.to(:not_modified)
     end
