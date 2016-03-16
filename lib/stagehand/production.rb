@@ -4,7 +4,6 @@ module Stagehand
   module Production
     class Record < ActiveRecord::Base
       self.record_timestamps = false
-      establish_connection(Stagehand.configuration.production_connection_name)
     end
 
     # Outputs a symbol representing the status of the staging record as it exists in the production database
@@ -59,6 +58,7 @@ module Stagehand
 
     def self.prepare_to_modify(table_name)
       raise "Can't prepare to modify production records without knowning the table_name" unless table_name.present?
+      Record.establish_connection(Configuration.production_connection_name) and @connection_established = true unless @connection_established
       Record.table_name = table_name
     end
 
