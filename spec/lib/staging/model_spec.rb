@@ -18,6 +18,5 @@ describe Stagehand::Staging::Model do
         expect { klass.include(subject) }.not_to change { klass.connection.current_database }
       end
     end
-
   end
 end
