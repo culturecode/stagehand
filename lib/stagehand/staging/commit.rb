@@ -111,7 +111,7 @@ module Stagehand
       end
 
       def entries
-        CommitEntry.where(:id => @start_id..@end_id).where(:commit_id => @start_id)
+        CommitEntry.where(:id => @start_id..@end_id).where(:commit_id => id)
       end
     end
   end
