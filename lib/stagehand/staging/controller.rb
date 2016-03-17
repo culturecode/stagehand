@@ -4,10 +4,14 @@ module Stagehand
       extend ActiveSupport::Concern
 
       included do
-        include Stagehand::ControllerExtensions
-
         skip_action_callback :use_production_database
         prepend_around_action :use_staging_database
+      end
+
+      private
+
+      def use_staging_database(&block)
+        Database.with_connection(Configuration.staging_connection_name, &block)
       end
     end
   end

@@ -20,16 +20,6 @@ module Stagehand
     end
   end
 
-  module ControllerExtensions
-    def use_staging_database(&block)
-      Database.with_connection(Configuration.staging_connection_name, &block)
-    end
-
-    def use_production_database(&block)
-      Database.with_connection(Configuration.production_connection_name, &block)
-    end
-  end
-
   module Database
     extend self
 
