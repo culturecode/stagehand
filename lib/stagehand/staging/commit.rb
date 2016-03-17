@@ -50,7 +50,7 @@ module Stagehand
         CommitEntry
           .where(:id => start_operation.id..end_operation.id)
           .where(:session => start_operation.session)
-          .update_all(:commit_id => start_operation.id, :session => nil)
+          .update_all(:commit_id => start_operation.id)
 
         return new(start_operation.id)
       end
