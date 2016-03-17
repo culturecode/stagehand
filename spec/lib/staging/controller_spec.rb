@@ -3,7 +3,7 @@ require 'rails_helper'
 describe 'Stagehand::Staging::Controller', :type => :controller do
   let(:staging) { Stagehand.configuration.staging_connection_name }
   let(:production) { Stagehand.configuration.production_connection_name }
-  around {|example| Stagehand::Database.connect_to_database(production) { example.run } }
+  around {|example| Stagehand::Database.with_connection(production) { example.run } }
 
   context 'when included' do
     controller do

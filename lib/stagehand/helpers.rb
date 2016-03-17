@@ -20,32 +20,40 @@ module Stagehand
 
   module ControllerExtensions
     def use_staging_database(&block)
-      Database.connect_to_database(Configuration.staging_connection_name, &block)
+      Database.with_connection(Configuration.staging_connection_name, &block)
     end
 
     def use_production_database(&block)
-      Database.connect_to_database(Configuration.production_connection_name, &block)
+      Database.with_connection(Configuration.production_connection_name, &block)
     end
   end
 
   module Database
     @@connection_name_stack = [Rails.env.to_sym]
 
-    def self.connect_to_database(target_connection_name)
-      changed = !(Configuration.ghost_mode || current_connection_name == target_connection_name.to_sym)
+    def self.with_connection(connection_name)
+      different = !Configuration.ghost_mode && current_connection_name != connection_name.to_sym
 
-      @@connection_name_stack.push(target_connection_name.to_sym)
+      @@connection_name_stack.push(connection_name.to_sym)
       Rails.logger.debug "Connecting to #{current_connection_name}"
-      ActiveRecord::Base.establish_connection(current_connection_name) if changed
+      connect_to(current_connection_name) if different
 
       yield
     ensure
       @@connection_name_stack.pop
       Rails.logger.debug "Restoring connection to #{current_connection_name}"
-      ActiveRecord::Base.establish_connection(current_connection_name) if changed
+      connect_to(current_connection_name) if different
+    end
+
+    def self.set_connection_for_model(model, connection_name)
+      connect_to(connection_name, model) unless Configuration.ghost_mode
     end
 
     private
+
+    def self.connect_to(connection_name, model = ActiveRecord::Base)
+      model.establish_connection(connection_name)
+    end
 
     def self.current_connection_name
       @@connection_name_stack.last

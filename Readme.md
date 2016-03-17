@@ -79,21 +79,12 @@ production. The connection name should match whatever names you've used in `data
   end
   ```
 
-  If there are writes to the database that are triggered in a "Production" controller, be sure to direct them to the staging database if   necessary. This can be achieved in multiple ways.
+  If there are writes to the database that are triggered in a "Production" controller, be sure to direct them to the staging database if   necessary.
 
   ```ruby
-  # Block form
-  Stagehand::Database.connect_to_database(:staging) do
-    # Some operation that should use the data in the staging database
-    # All queries inside the block take place on staging
-    # Block Form can be nested
+  class MyModel
+    include Stagehand::Staging::Model # Connects to staging database even when used within a production controller
   end
-
-  # Model form
-  MyModel.establish_connection(:staging) # Overrides connection even when used within the block form
-
-  # Can be reverted to default by using
-  MyModel.remove_connection
   ```
 
 6. Set up automated synchronization of records that don't require user confirmation. The Synchronizer polls the database
