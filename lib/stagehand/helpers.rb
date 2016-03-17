@@ -1,6 +1,8 @@
 module Stagehand
   module Key
-    def self.generate(staging_record, table_name = nil)
+    extend self
+
+    def generate(staging_record, table_name = nil)
       case staging_record
       when Staging::CommitEntry
         id = staging_record.record_id
@@ -29,9 +31,11 @@ module Stagehand
   end
 
   module Database
+    extend self
+
     @@connection_name_stack = [Rails.env.to_sym]
 
-    def self.with_connection(connection_name)
+    def with_connection(connection_name)
       different = !Configuration.ghost_mode && current_connection_name != connection_name.to_sym
 
       @@connection_name_stack.push(connection_name.to_sym)
@@ -45,17 +49,17 @@ module Stagehand
       connect_to(current_connection_name) if different
     end
 
-    def self.set_connection_for_model(model, connection_name)
+    def set_connection_for_model(model, connection_name)
       connect_to(connection_name, model) unless Configuration.ghost_mode
     end
 
     private
 
-    def self.connect_to(connection_name, model = ActiveRecord::Base)
+    def connect_to(connection_name, model = ActiveRecord::Base)
       model.establish_connection(connection_name)
     end
 
-    def self.current_connection_name
+    def current_connection_name
       @@connection_name_stack.last
     end
   end

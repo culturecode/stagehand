@@ -1,18 +1,22 @@
 module Stagehand
-  def self.configuration
+  extend self
+
+  def configuration
     Configuration
   end
 
   module Configuration
-    def self.staging_connection_name
+    extend self
+
+    def staging_connection_name
       Rails.configuration.x.stagehand.staging_connection_name || raise(StagingConnectionNameNotSet)
     end
 
-    def self.production_connection_name
+    def production_connection_name
       Rails.configuration.x.stagehand.production_connection_name || raise(ProductionConnectionNameNotSet)
     end
 
-    def self.ghost_mode
+    def ghost_mode
       Rails.configuration.x.stagehand.ghost_mode
     end
   end

@@ -1,7 +1,9 @@
 module Stagehand
   module Staging
     module Synchronizer
-      def self.auto_sync(delay = 5.seconds)
+      extend self
+
+      def auto_sync(delay = 5.seconds)
         scope = Configuration.ghost_mode ? CommitEntry.limit(1000) : CommitEntry.auto_syncable.limit(1000)
 
         loop do
@@ -12,11 +14,11 @@ module Stagehand
       end
 
       # Copies all the affected records from the staging database to the production database
-      def self.sync_record(record)
+      def sync_record(record)
         return Synchronizer.sync_entries(Checklist.new(record).compacted_entries)
       end
 
-      def self.sync_entries(entries)
+      def sync_entries(entries)
         ActiveRecord::Base.transaction do
           max_id = 0
           entries.each do |entry|
