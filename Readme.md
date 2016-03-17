@@ -151,5 +151,12 @@ prepended to reduce the chance any other code accesses the database before a con
 It is possible that other filter prepended could be inserted so that they run before the connection is made, so be aware
 of insertion order when prepending filters.
 
+- If the host app has some sort of undelete system where a record is actually deleted from the database and restored
+by inserting them back into the table with the same id, there could be bugs. The checklist compacts entries by preferring
+delete entries over all others, so the re-insertion entry will be masked by any unsynced delete entry. When the entries
+are synced, the re-insertion entry will be erased because the delete entry is assumed to represent the current state of
+that record.
+
+
 ## TODO
 Override create_table migration to require the user to decide stagehand/no stagehand
