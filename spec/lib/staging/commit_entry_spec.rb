@@ -65,6 +65,12 @@ describe Stagehand::Staging::CommitEntry do
       subject; other
       expect(klass.auto_syncable).to include(other)
     end
+
+    it 'does not return entries that are part of a commit in progress' do
+      klass.start_operations.create
+      subject
+      expect(klass.auto_syncable).not_to include(subject)
+    end
   end
 
   describe '#record' do

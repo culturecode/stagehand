@@ -157,6 +157,8 @@ delete entries over all others, so the re-insertion entry will be masked by any 
 are synced, the re-insertion entry will be erased because the delete entry is assumed to represent the current state of
 that record.
 
+- If a crash leaves a commit unfinished, subsequent commit entries which use the same session will not be autosynced.
 
 ## TODO
 Override create_table migration to require the user to decide stagehand/no stagehand
+Add a way to detect "dangling" start commits
