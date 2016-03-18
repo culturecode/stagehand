@@ -5,7 +5,7 @@ describe Stagehand::Staging::Checklist do
   let(:source_record) { SourceRecord.create }
 
   describe '#affected_records' do
-    it 'returns the given record even if it has no related commits' do
+    it 'returns the given record with commit entries even if it has no related commits' do
       expect(subject.affected_records).to include(source_record)
     end
 
@@ -46,6 +46,22 @@ describe Stagehand::Staging::Checklist do
 
       records = subject.affected_records.to_a
       expect { records.uniq! }.not_to change { records.length }
+    end
+  end
+
+  describe '#compacted_entries' do
+    it 'returns uncontained deletes matching the record' do
+      Stagehand::Staging::Commit.capture { source_record.touch }
+      source_record.delete
+      expect(subject.compacted_entries).to include(be_delete_operation)
+    end
+
+    it 'returns uncontained deletes related to the record' do
+      other_record = SourceRecord.create
+      Stagehand::Staging::Commit.capture { source_record.touch; other_record.touch }
+      other_record.delete
+
+      expect(subject.compacted_entries).to include(be_delete_operation)
     end
   end
 

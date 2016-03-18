@@ -159,10 +159,10 @@ describe Stagehand::Staging::Commit do
       expect(subject.related_entries).not_to include(*other_commit.content_entries)
     end
 
-    it 'does not return entries that are not part of a commit' do
+    it 'returns entries that are not part of a commit' do
       source_record.touch
       commit_entry = Stagehand::Staging::CommitEntry.last
-      expect(subject.related_entries).not_to include(commit_entry)
+      expect(subject.related_entries).to include(commit_entry)
     end
   end
 

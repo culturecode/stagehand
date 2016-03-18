@@ -58,10 +58,11 @@ module Stagehand
       def affected_entries
         cache(:affected_entries) do
           entries = []
-          entries += CommitEntry.uncontained.matching(@staging_record)
           if commit = first_commit_containing_record(@staging_record)
             entries += commit.content_entries
             entries += commit.related_entries
+          else
+            entries = CommitEntry.matching(@staging_record)
           end
 
           entries
