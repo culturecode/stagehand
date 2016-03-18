@@ -1,5 +1,12 @@
 RSpec.configure do |config|
   config.before(:suite) do
+    # Drop all tables
+    table_names = ActiveRecord::Base.connection.tables
+    table_names -= ['schema_migrations']
+    ActiveRecord::Schema.define do
+      table_names.each {|table_name| drop_table(table_name) }
+    end
+
     # Create tables in the test and production database so we test copying from one to the other
     [Stagehand.configuration.staging_connection_name, Stagehand.configuration.production_connection_name].each do |connection_name|
       ActiveRecord::Base.establish_connection connection_name
