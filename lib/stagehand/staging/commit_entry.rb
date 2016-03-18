@@ -65,6 +65,10 @@ module Stagehand
         operation == UPDATE_OPERATION
       end
 
+      def save_operation?
+        operation.in?([INSERT_OPERATION, UPDATE_OPERATION])
+      end
+
       def delete_operation?
         operation == DELETE_OPERATION
       end
