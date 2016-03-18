@@ -95,11 +95,13 @@ module Stagehand
 
         entries_to_spider = content_entries
         while entries_to_spider.present?
-          matching_entries = CommitEntry.matching(entries_to_spider)
-          matching_commit_entries = CommitEntry.content_operations.where(:commit_id => matching_entries.collect(&:commit_id).uniq)
+          contained_matching = CommitEntry.contained.matching(entries_to_spider)
+          matching_commit_entries = CommitEntry.content_operations.where(:commit_id => contained_matching.collect(&:commit_id).uniq)
           entries_to_spider = matching_commit_entries - @related_entries
           @related_entries.concat(entries_to_spider)
         end
+
+        @related_entries.concat(CommitEntry.uncontained.matching(@related_entries))
 
         @related_entries -= entries
 

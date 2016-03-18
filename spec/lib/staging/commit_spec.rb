@@ -159,10 +159,17 @@ describe Stagehand::Staging::Commit do
       expect(subject.related_entries).not_to include(*other_commit.content_entries)
     end
 
-    it 'returns entries that are not part of a commit' do
+    it 'returns related entries that are not part of a commit' do
       source_record.touch
       commit_entry = Stagehand::Staging::CommitEntry.last
       expect(subject.related_entries).to include(commit_entry)
+    end
+
+    it "does not include unrelated uncontained entries when it includes related uncontained entries" do
+      source_record.touch
+      SourceRecord.create
+      commit_entry = Stagehand::Staging::CommitEntry.last
+      expect(subject.related_entries).not_to include(commit_entry)
     end
   end
 
