@@ -65,6 +65,21 @@ describe Stagehand::Staging::Checklist do
     end
   end
 
+  describe '#affected_entries' do
+    it 'returns all control and content entries for all commits related to this record' do
+      Stagehand::Staging::Commit.capture { source_record }
+      expect(subject.affected_entries).to include(be_start_operation, be_insert_operation, be_end_operation)
+    end
+
+    it 'returns uncontained entries related to the record' do
+      other_record = SourceRecord.create
+      entry = Stagehand::Staging::CommitEntry.last
+      Stagehand::Staging::Commit.capture { source_record.touch; other_record.touch }
+
+      expect(subject.affected_entries).to include(entry)
+    end
+  end
+
   describe '#confirm_create' do
     let(:other_record) { SourceRecord.create }
 

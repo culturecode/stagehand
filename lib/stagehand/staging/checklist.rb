@@ -26,21 +26,35 @@ module Stagehand
         cache(:requires_confirmation) { grouped_required_confirmation_entries.values.flatten.collect(&:record).compact }
       end
 
+      def affected_records
+        cache(:affected_records) { affected_entries.collect(&:record).uniq }
+      end
+
       def compacted_entries
         cache(:compacted_entries) { compact_entries(affected_entries) }
       end
 
-      def affected_records
-        cache(:affected_records) { affected_entries.collect(&:record).uniq }
+      def affected_entries
+        cache(:affected_entries) do
+          entries = []
+          if commit = first_commit_containing_record(@staging_record)
+            entries += commit.entries
+            entries += commit.related_entries
+          else
+            entries = CommitEntry.matching(@staging_record)
+          end
+
+          entries
+        end
       end
 
       private
 
       def grouped_required_confirmation_entries
         cache(:grouped_required_confirmation_entries) do
-          staging_record_start_operation_ids = affected_entries.select(&:start_operation?)
-                                                               .select {|entry| entry.matches?(@staging_record) }
-                                                               .collect(&:id)
+          staging_record_start_operation_ids = affected_entries.select do |entry|
+            entry.start_operation? && entry.record_id? && entry.matches?(@staging_record)
+          end.collect(&:id)
 
           # Don't need to confirm entries that were part of a commits kicked off by the staging record
           entries = affected_entries.reject {|entry| staging_record_start_operation_ids.include?(entry.commit_id) }
@@ -52,20 +66,6 @@ module Stagehand
           entries = preload_records(entries)
           entries = filter_entries(entries)
           entries = group_entries(entries)
-        end
-      end
-
-      def affected_entries
-        cache(:affected_entries) do
-          entries = []
-          if commit = first_commit_containing_record(@staging_record)
-            entries += commit.content_entries
-            entries += commit.related_entries
-          else
-            entries = CommitEntry.matching(@staging_record)
-          end
-
-          entries
         end
       end
 
