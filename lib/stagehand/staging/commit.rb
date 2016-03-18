@@ -70,7 +70,7 @@ module Stagehand
       end
 
       def include?(record)
-        content_entries.where(:record_id => record.id, :table_name => record.class.table_name).exists?
+        entries.where(:record_id => record.id, :table_name => record.class.table_name).exists?
       end
 
       def hash
