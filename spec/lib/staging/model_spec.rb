@@ -1,7 +1,10 @@
 require 'rails_helper'
 
 describe Stagehand::Staging::Model do
-  let(:klass) { Klass = Class.new(SourceRecord) }
+  let(:klass) do
+    Object.send(:remove_const, :Klass) if Object.const_defined?(:Klass)
+    Klass = Class.new(SourceRecord)
+  end
 
   context 'when included in a model' do
     before { klass.establish_connection(Stagehand.configuration.production_connection_name) }
