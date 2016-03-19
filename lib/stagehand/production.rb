@@ -47,7 +47,7 @@ module Stagehand
     # Returns a scope that limits results any occurrences of the specified record.
     # Record can be specified by passing a staging record, or an id and table_name.
     def lookup(staging_record, table_name = nil)
-      table_name, id = Stagehand::Key.generate(staging_record, table_name)
+      table_name, id = Stagehand::Key.generate(staging_record, :table_name => table_name)
       prepare_to_modify(table_name)
       return Record.where(:id => id)
     end
@@ -65,7 +65,7 @@ module Stagehand
     end
 
     def staging_record_attributes(staging_record, table_name = nil)
-      table_name, id = Stagehand::Key.generate(staging_record, table_name)
+      table_name, id = Stagehand::Key.generate(staging_record, :table_name => table_name)
       Stagehand::Staging::CommitEntry.connection.select_one("SELECT * FROM #{table_name} WHERE id = #{id}")
     end
 

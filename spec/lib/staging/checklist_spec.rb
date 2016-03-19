@@ -1,8 +1,51 @@
 require 'rails_helper'
 
 describe Stagehand::Staging::Checklist do
-  subject { Stagehand::Staging::Checklist.new(source_record) }
+  let(:klass) { Stagehand::Staging::Checklist }
   let(:source_record) { SourceRecord.create }
+
+  subject { Stagehand::Staging::Checklist.new(source_record) }
+
+  describe '::related_entries' do
+    let(:commit) { Stagehand::Staging::Commit.capture { source_record.touch } }
+
+    it "accepts a single entry"
+    it "accepts multiple entries"
+    it "accepts a record"
+
+    it 'returns all entries from commits that contain entries matching the given entries' do
+      source_record.touch
+      commit_entry = Stagehand::Staging::CommitEntry.last
+      commit = Stagehand::Staging::Commit.capture { source_record.touch; SourceRecord.create }
+
+      expect(klass.related_entries(commit_entry)).to include(*commit.entries)
+    end
+
+    it 'does not return entries unrelated to commits the given entry is a part of' do
+      other_commit = Stagehand::Staging::Commit.capture { SourceRecord.create }
+      expect(klass.related_entries(commit.entries)).not_to include(*other_commit.entries)
+    end
+
+    it 'returns related entries that are not part of a commit' do
+      source_record.touch
+      commit_entry = Stagehand::Staging::CommitEntry.last
+      expect(klass.related_entries(commit.entries)).to include(commit_entry)
+    end
+
+    it "does not include unrelated uncontained entries when it includes related uncontained entries" do
+      unrelated_entry = SourceRecord.create; Stagehand::Staging::CommitEntry.last
+      source_record.touch
+      expect(klass.related_entries(commit.entries)).not_to include(unrelated_entry)
+    end
+
+    it 'does not return duplicates if when passed an uncontained entry for a record that also appears in a commit' do
+      source_record.touch
+      commit_entry = Stagehand::Staging::CommitEntry.last
+      entries = klass.related_entries(commit_entry)
+
+      expect(entries.length).to eq(entries.uniq.length)
+    end
+  end
 
   describe '#affected_records' do
     it 'returns the given record with commit entries even if it has no related commits' do

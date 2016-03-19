@@ -2,7 +2,7 @@ module Stagehand
   module Key
     extend self
 
-    def generate(staging_record, table_name = nil)
+    def generate(staging_record, options = {})
       case staging_record
       when Staging::CommitEntry
         id = staging_record.record_id
@@ -12,11 +12,16 @@ module Stagehand
         table_name = staging_record.class.table_name
       else
         id = staging_record
+        table_name = options[:table_name]
       end
 
-      raise 'Invalid input' unless table_name && id
-
-      return [table_name, id]
+      if table_name && id
+        return [table_name, id]
+      elsif options[:allow_nil]
+        nil
+      else
+        raise 'Invalid input'
+      end
     end
   end
 

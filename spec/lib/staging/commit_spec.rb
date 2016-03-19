@@ -123,56 +123,6 @@ describe Stagehand::Staging::Commit do
     end
   end
 
-  describe '#related_commits' do
-    subject { klass.capture { source_record.touch } }
-
-    it 'returns a list of commits that contain entries for any of the records present in this commit' do
-      other_commit = klass.capture { source_record.touch }
-      expect(subject.related_commits).to include(other_commit)
-    end
-
-    it 'does not include commits that do not contain entries for any of the records present in this commit' do
-      other_commit = klass.capture { SourceRecord.create }
-      expect(subject.related_commits).not_to include(other_commit)
-    end
-  end
-
-  describe '#related_entries' do
-    subject { klass.capture { source_record.touch } }
-
-    it "does not include its own entries" do
-      expect(subject.related_entries).not_to include(*subject.content_entries)
-    end
-
-    it 'returns a entries from other commits for records present in this commit' do
-      other_commit = klass.capture { source_record.touch }
-      expect(subject.related_entries).to include(*other_commit.content_entries)
-    end
-
-    it 'returns a entries from other commits related to this commit, but that do not appear in this commit' do
-      other_commit = klass.capture { source_record.touch; SourceRecord.create }
-      expect(subject.related_entries).to include(*other_commit.content_entries)
-    end
-
-    it 'does not include entries for records not present in this commit, or any related commit' do
-      other_commit = klass.capture { SourceRecord.create }
-      expect(subject.related_entries).not_to include(*other_commit.content_entries)
-    end
-
-    it 'returns related entries that are not part of a commit' do
-      source_record.touch
-      commit_entry = Stagehand::Staging::CommitEntry.last
-      expect(subject.related_entries).to include(commit_entry)
-    end
-
-    it "does not include unrelated uncontained entries when it includes related uncontained entries" do
-      source_record.touch
-      SourceRecord.create
-      commit_entry = Stagehand::Staging::CommitEntry.last
-      expect(subject.related_entries).not_to include(commit_entry)
-    end
-  end
-
   describe 'equality' do
     subject { klass.capture { } }
     let(:other) { klass.capture { } }

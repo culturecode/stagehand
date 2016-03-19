@@ -3,6 +3,31 @@ module Stagehand
     class Checklist
       attr_reader :staging_record
 
+      def self.related_commits(commit)
+        Commit.find(related_commit_ids(commit))
+      end
+
+      def self.related_commit_ids(commit)
+        related_entries(commit.entries).collect(&:commit_id).uniq
+      end
+
+      def self.related_entries(entries)
+        entries = Array.wrap(entries)
+        related_entries = []
+
+        entries_to_spider = Array.wrap(entries)
+        while entries_to_spider.present?
+          contained_matching = CommitEntry.contained.matching(entries_to_spider)
+          matching_commit_entries = CommitEntry.where(:commit_id => contained_matching.collect(&:commit_id).uniq)
+          entries_to_spider = matching_commit_entries - related_entries
+          related_entries.concat(entries_to_spider)
+        end
+
+        related_entries.concat(CommitEntry.uncontained.matching(entries + related_entries))
+
+        return related_entries
+      end
+
       def initialize(staging_record, &confirmation_filter)
         @staging_record = staging_record
         @confirmation_filter = confirmation_filter
@@ -35,17 +60,7 @@ module Stagehand
       end
 
       def affected_entries
-        cache(:affected_entries) do
-          entries = []
-          if commit = first_commit_containing_record(@staging_record)
-            entries += commit.entries
-            entries += commit.related_entries
-          else
-            entries = CommitEntry.matching(@staging_record)
-          end
-
-          entries
-        end
+        cache(:affected_entries) { self.class.related_entries(@staging_record) }
       end
 
       private

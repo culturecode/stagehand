@@ -28,7 +28,7 @@ module Stagehand
                                        .select('MAX(id) AS id')) }
 
       def self.matching(object)
-        keys = Array.wrap(object).collect {|entry| Stagehand::Key.generate(entry) }
+        keys = Array.wrap(object).collect {|entry| Stagehand::Key.generate(entry, :allow_nil => true) }.compact
         sql = []
         interpolates = []
 

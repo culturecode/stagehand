@@ -85,29 +85,6 @@ module Stagehand
         id == other.id
       end
 
-      def related_commits
-        @related_commits ||= self.class.find(related_entries.collect(&:commit_id).uniq)
-      end
-
-      def related_entries
-        return @related_entries if @related_entries
-        @related_entries = []
-
-        entries_to_spider = content_entries
-        while entries_to_spider.present?
-          contained_matching = CommitEntry.contained.matching(entries_to_spider)
-          matching_commit_entries = CommitEntry.content_operations.where(:commit_id => contained_matching.collect(&:commit_id).uniq)
-          entries_to_spider = matching_commit_entries - @related_entries
-          @related_entries.concat(entries_to_spider)
-        end
-
-        @related_entries.concat(CommitEntry.uncontained.matching(@related_entries))
-
-        @related_entries -= entries
-
-        return @related_entries
-      end
-
       def content_entries
         entries.content_operations
       end
