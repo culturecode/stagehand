@@ -19,13 +19,10 @@ module Stagehand
       scope :delete_operations,  lambda { where(:operation => DELETE_OPERATION) }
       scope :uncontained,        lambda { where(:commit_id => nil) }
       scope :contained,          lambda { where.not(:commit_id => nil) }
-      scope :auto_syncable,      lambda {
-        # Filter out content_operations that share their session with an "dangling" start commit entry.
-        # This prevents us from syncing commits that are still in progress.
-        where(:id => content_operations.where.not(:session => start_operations.uncontained.select(:session))
-                                       .group('record_id, table_name')
-                                       .having('count(commit_id) = 0')
-                                       .select('MAX(id) AS id')) }
+      scope :not_in_progress,    lambda {
+        joins("LEFT OUTER JOIN (#{ unscoped.select('session, MAX(id) AS start_id').uncontained.start_operations.group('session').to_sql }) AS active_starts
+               ON active_starts.session = stagehand_commit_entries.session AND active_starts.start_id <= stagehand_commit_entries.id")
+       .where("active_starts.start_id IS NULL") }
 
       def self.matching(object)
         keys = Array.wrap(object).collect {|entry| Stagehand::Key.generate(entry, :allow_nil => true) }.compact

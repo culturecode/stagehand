@@ -31,48 +31,6 @@ describe Stagehand::Staging::CommitEntry do
     end
   end
 
-  describe '::auto_syncable' do
-    let(:other) { dup = subject.dup; dup.save; dup }
-
-    it 'returns entries without commit_ids' do
-      subject.update_column(:commit_id, nil)
-      expect(klass.auto_syncable).to include(subject)
-    end
-
-    it 'does not return entries with a commit_id' do
-      subject.update_column(:commit_id, 1)
-      expect(klass.auto_syncable).not_to include(subject)
-    end
-
-    it 'only include entries with about a record' do
-      subject.update_columns(:record_id => nil, :table_name => nil)
-      expect(klass.auto_syncable).not_to include(subject)
-    end
-
-    it 'does not return entries without a commit_id about the same record as an entry with a commit_id' do
-      subject.update_column(:commit_id, nil)
-      other.update_column(:commit_id, 1)
-
-      expect(klass.auto_syncable).not_to include(subject, other)
-    end
-
-    it 'does not return more than one entry about the same record' do
-      subject; other
-      expect(klass.auto_syncable.group_by(&:key).values).to all( have_attributes(:count => 1) )
-    end
-
-    it 'returns the latest entry about a record if more than one exists' do
-      subject; other
-      expect(klass.auto_syncable).to include(other)
-    end
-
-    it 'does not return entries that are part of a commit in progress' do
-      klass.start_operations.create
-      subject
-      expect(klass.auto_syncable).not_to include(subject)
-    end
-  end
-
   describe '#record' do
     context 'on an insert operation entry' do
       it 'returns the record represented by the row that triggered this entry' do

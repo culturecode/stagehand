@@ -12,6 +12,10 @@ module Stagehand
         end
       end
 
+      def sync
+        sync_entries(autosyncable_entries.limit(1000))
+      end
+
       def sync_autosyncable
         autosyncable_entries.find_in_batches do |entries|
           sync_entries(entries)
@@ -47,7 +51,12 @@ module Stagehand
       end
 
       def autosyncable_entries
-        Configuration.ghost_mode ? CommitEntry : CommitEntry.auto_syncable
+        if Configuration.ghost_mode?
+          CommitEntry
+        else
+          CommitEntry.where(:id =>
+            CommitEntry.select('MAX(id) AS id').content_operations.not_in_progress.group('record_id, table_name').having('count(commit_id) = 0'))
+        end
       end
     end
   end

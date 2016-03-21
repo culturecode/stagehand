@@ -42,4 +42,35 @@ describe Stagehand::Staging::Synchronizer do
       expect(commit.entries.reload).to be_blank
     end
   end
+
+  describe '::sync' do
+    it 'syncs records with only entries that do not belong to a commit ' do
+      source_record.touch
+      expect { subject.sync }.to change { Stagehand::Production.status(source_record) }.to(:not_modified)
+    end
+
+    it 'does not sync records with entries that belong to a commit' do
+      Stagehand::Staging::Commit.capture { source_record.touch }
+      expect { subject.sync }.not_to change { Stagehand::Production.status(source_record) }
+    end
+
+    it 'does not sync records with entries that belong to commits in progress' do
+      start_operation = Stagehand::Staging::CommitEntry.start_operations.create
+      source_record.touch
+      expect { subject.sync }.not_to change { Stagehand::Production.status(source_record) }
+    end
+
+    it 'does not sync records with entries that belong to a commit and also entries that do not' do
+      Stagehand::Staging::Commit.capture { source_record.touch }
+      source_record.touch
+      expect { subject.sync }.not_to change { Stagehand::Production.status(source_record) }
+    end
+
+    it 'deletes records that have been updated and then deleted on staging' do
+      Stagehand::Production.save(source_record)
+      source_record.touch
+      source_record.delete
+      expect { subject.sync }.to change { Stagehand::Production.status(source_record) }.from(:modified).to(:new)
+    end
+  end
 end
