@@ -13,31 +13,34 @@ module Stagehand
       end
 
       def sync_autosyncable
-        sync_entries(autosyncable_entries.find_each)
-      end
+        autosyncable_entries.find_in_batches do |entries|
+          sync_entries(entries)
 
-      def sync_all
-        sync_entries(CommitEntry.find_each)
+          # Delete any entries that match since we don't need to sync them now that we've copied their records
+          # Don't delete any entries after the synced entries in case the record was updated after we synced it
+          CommitEntry.matching(entries).where('id <= ?', entries.collect(&:id).max).delete_all
+        end
       end
 
       # Copies all the affected records from the staging database to the production database
       def sync_record(record)
-        sync_entries(Checklist.new(record).compacted_entries)
+        checklist = Checklist.new(record)
+        sync_entries(checklist.compacted_entries)
+        CommitEntry.delete(checklist.affected_entries)
       end
 
       private
 
       def sync_entries(entries)
         ActiveRecord::Base.transaction do
-          max_id = 0
           entries.each do |entry|
             Rails.logger.info "Synchronizing #{entry.table_name} #{entry.record_id}"
-            entry.delete_operation? ? Stagehand::Production.delete(entry) : Stagehand::Production.save(entry)
-            max_id = entry.id if entry.id > max_id
+            if entry.delete_operation?
+              Stagehand::Production.delete(entry)
+            elsif entry.save_operation?
+              Stagehand::Production.save(entry)
+            end
           end
-          # Delete any entries that match since we don't need to sync them now that we've copied their records
-          # Don't delete any entries after the synced entries in case the record was updated after we synced it
-          CommitEntry.matching(entries).where('id <= ?', max_id).delete_all
         end
 
         return entries.length

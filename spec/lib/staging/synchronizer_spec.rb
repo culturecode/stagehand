@@ -25,5 +25,21 @@ describe Stagehand::Staging::Synchronizer do
       Stagehand::Production.save(source_record)
       expect(subject.sync_record(source_record)).to eq(1)
     end
+
+    it 'deletes all control entries for directly related commits' do
+      commit = Stagehand::Staging::Commit.capture { source_record.touch }
+      subject.sync_record(source_record)
+
+      expect(commit.entries.reload).to be_blank
+    end
+
+    it 'deletes all control entries for indirectly related commits' do
+      other_record = SourceRecord.create
+      Stagehand::Staging::Commit.capture { source_record.touch; other_record.touch }
+      commit = Stagehand::Staging::Commit.capture { other_record.touch }
+      subject.sync_record(source_record)
+
+      expect(commit.entries.reload).to be_blank
+    end
   end
 end
