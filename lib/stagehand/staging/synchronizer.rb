@@ -16,16 +16,6 @@ module Stagehand
         sync_entries(autosyncable_entries.limit(1000))
       end
 
-      def sync_autosyncable
-        autosyncable_entries.find_in_batches do |entries|
-          sync_entries(entries)
-
-          # Delete any entries that match since we don't need to sync them now that we've copied their records
-          # Don't delete any entries after the synced entries in case the record was updated after we synced it
-          CommitEntry.matching(entries).where('id <= ?', entries.collect(&:id).max).delete_all
-        end
-      end
-
       # Copies all the affected records from the staging database to the production database
       def sync_record(record)
         checklist = Checklist.new(record)
