@@ -16,8 +16,8 @@ module Stagehand
       Rails.configuration.x.stagehand.production_connection_name || raise(ProductionConnectionNameNotSet)
     end
 
-    def ghost_mode
-      Rails.configuration.x.stagehand.ghost_mode
+    def ghost_mode?
+      !!Rails.configuration.x.stagehand.ghost_mode
     end
   end
 

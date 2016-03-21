@@ -31,7 +31,7 @@ module Stagehand
     @@connection_name_stack = [Rails.env.to_sym]
 
     def with_connection(connection_name)
-      different = !Configuration.ghost_mode && current_connection_name != connection_name.to_sym
+      different = !Configuration.ghost_mode? && current_connection_name != connection_name.to_sym
 
       @@connection_name_stack.push(connection_name.to_sym)
       Rails.logger.debug "Connecting to #{current_connection_name}"
@@ -45,7 +45,7 @@ module Stagehand
     end
 
     def set_connection_for_model(model, connection_name)
-      connect_to(connection_name, model) unless Configuration.ghost_mode
+      connect_to(connection_name, model) unless Configuration.ghost_mode?
     end
 
     private
