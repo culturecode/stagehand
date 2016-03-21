@@ -101,7 +101,7 @@ describe Stagehand::Staging::Checklist do
       expect(subject.affected_records).to include(source_record, other_record)
     end
 
-    it "returns all records from commits that overlap each other, at least of which contains the given record" do
+    it "returns all records from commits that have content_operations indirectly related to the given record" do
       other_record = SourceRecord.create
       other_other_record = SourceRecord.create
       Stagehand::Staging::Commit.capture { source_record.touch }
