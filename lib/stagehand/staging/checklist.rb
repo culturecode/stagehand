@@ -59,12 +59,12 @@ module Stagehand
         cache(:requires_confirmation) { grouped_required_confirmation_entries.values.flatten.collect(&:record).compact }
       end
 
-      def affected_records
-        cache(:affected_records) { affected_entries.collect(&:record).uniq }
+      def syncing_entries
+        cache(:syncing_entries) { compact_entries(affected_entries) }
       end
 
-      def compacted_entries
-        cache(:compacted_entries) { compact_entries(affected_entries) }
+      def affected_records
+        cache(:affected_records) { affected_entries.collect(&:record).uniq }
       end
 
       def affected_entries

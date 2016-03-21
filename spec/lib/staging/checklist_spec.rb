@@ -131,11 +131,11 @@ describe Stagehand::Staging::Checklist do
     end
   end
 
-  describe '#compacted_entries' do
+  describe '#syncing_entries' do
     it 'returns uncontained deletes matching the record' do
       Stagehand::Staging::Commit.capture { source_record.touch }
       source_record.delete
-      expect(subject.compacted_entries).to include(be_delete_operation)
+      expect(subject.syncing_entries).to include(be_delete_operation)
     end
 
     it 'returns uncontained deletes related to the record' do
@@ -143,7 +143,19 @@ describe Stagehand::Staging::Checklist do
       Stagehand::Staging::Commit.capture { source_record.touch; other_record.touch }
       other_record.delete
 
-      expect(subject.compacted_entries).to include(be_delete_operation)
+      expect(subject.syncing_entries).to include(be_delete_operation)
+    end
+
+    # 1{ 2 }  3{ 2 } --- Does not include 3{}
+    it "does not return control operations indirectly related through content operations" do
+      record_1 = source_record
+      record_2 = SourceRecord.create
+      record_3 = SourceRecord.create
+
+      commit_1 = Stagehand::Staging::Commit.capture(record_1) { record_2.touch }
+      commit_3 = Stagehand::Staging::Commit.capture(record_3) { record_2.touch }
+
+      expect(subject.syncing_entries).not_to include(*commit_3.entries.control_operations)
     end
   end
 

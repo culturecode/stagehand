@@ -19,7 +19,7 @@ module Stagehand
       # Copies all the affected records from the staging database to the production database
       def sync_record(record)
         checklist = Checklist.new(record)
-        sync_entries(checklist.compacted_entries)
+        sync_entries(checklist.syncing_entries)
         CommitEntry.delete(checklist.affected_entries)
       end
 
