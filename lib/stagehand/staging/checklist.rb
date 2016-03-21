@@ -18,12 +18,20 @@ module Stagehand
         entries_to_spider = Array.wrap(entries)
         while entries_to_spider.present?
           contained_matching = CommitEntry.contained.matching(entries_to_spider)
-          matching_commit_entries = CommitEntry.where(:commit_id => contained_matching.collect(&:commit_id).uniq)
-          entries_to_spider = matching_commit_entries - related_entries
+          matching_commit_entries = CommitEntry.where(:commit_id => contained_matching.select(:commit_id))
+
+          # Spider using content operations. Don't spider control operations to avoid extending the list of results unnecessarily
+          content_operations, control_operations = matching_commit_entries.partition(&:content_operation?)
+          entries_to_spider = content_operations - related_entries
+
+          # Record the spidered entries and the control entries
           related_entries.concat(entries_to_spider)
+          related_entries.concat(control_operations)
         end
 
+        # Also include uncontained commit entries that matched
         related_entries.concat(CommitEntry.uncontained.matching(entries + related_entries))
+        related_entries.uniq!
 
         return related_entries
       end

@@ -38,6 +38,45 @@ describe Stagehand::Staging::Checklist do
       expect(klass.related_entries(commit.entries)).not_to include(unrelated_entry)
     end
 
+    # 1{ 2 }  3{ 1, 3 } --- Includes 3{ 1, 3 }
+    it "returns all operations for a commit directly related only through content operations" do
+      record_1 = SourceRecord.create
+      record_2 = SourceRecord.create
+      record_3 = SourceRecord.create
+
+      commit_1 = Stagehand::Staging::Commit.capture(record_1) { record_2.touch }
+      commit_3 = Stagehand::Staging::Commit.capture(record_3) { record_1.touch; record_3.touch }
+
+      expect(klass.related_entries(record_1)).to include(*commit_3.entries)
+    end
+
+    # 1{ 2 }  3{ 2 }  4{ 3, 4 } --- Doesn't include 4{ 3, 4 }
+    it "does not return any operations indirectly related only through control operations" do
+      record_1 = SourceRecord.create
+      record_2 = SourceRecord.create
+      record_3 = SourceRecord.create
+      record_4 = SourceRecord.create
+
+      commit_1 = Stagehand::Staging::Commit.capture(record_1) { record_2.touch }
+      commit_3 = Stagehand::Staging::Commit.capture(record_3) { record_2.touch }
+      commit_4 = Stagehand::Staging::Commit.capture(record_4) { record_3.touch; record_4.touch }
+
+      expect(klass.related_entries(record_1)).not_to include(*commit_4.entries)
+    end
+
+    # 1{ 2 }  3{ 2 } --- Includes 3{ 2 }
+    it "returns all operations indirectly related only through content operations" do
+      record_1 = SourceRecord.create
+      record_2 = SourceRecord.create
+      record_3 = SourceRecord.create
+
+      commit_1 = Stagehand::Staging::Commit.capture(record_1) { record_2.touch }
+      commit_3 = Stagehand::Staging::Commit.capture(record_3) { record_2.touch }
+
+      expect(klass.related_entries(record_1)).to include(*commit_3.entries)
+    end
+
+
     it 'does not return duplicates if when passed an uncontained entry for a record that also appears in a commit' do
       source_record.touch
       commit_entry = Stagehand::Staging::CommitEntry.last

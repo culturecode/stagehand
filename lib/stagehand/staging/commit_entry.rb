@@ -39,7 +39,7 @@ module Stagehand
           interpolates << keys.collect(&:last)
         end
 
-        return keys.present? ? content_operations.where(sql.join(' OR '), *interpolates) : none
+        return keys.present? ? where(sql.join(' OR '), *interpolates) : none
       end
 
       def self.infer_class(table_name)
