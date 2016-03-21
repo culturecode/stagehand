@@ -11,11 +11,15 @@ module Stagehand
       UPDATE_OPERATION = 'update'
       DELETE_OPERATION = 'delete'
 
+      CONTROL_OPERATIONS = [START_OPERATION, END_OPERATION]
+      CONTENT_OPERATIONS = [INSERT_OPERATION, UPDATE_OPERATION, DELETE_OPERATION]
+      SAVE_OPERATIONS = [INSERT_OPERATION, UPDATE_OPERATION]
+
       scope :start_operations,   lambda { where(:operation => START_OPERATION) }
       scope :end_operations,     lambda { where(:operation => END_OPERATION) }
-      scope :control_operations, lambda { where(:operation => [START_OPERATION, END_OPERATION]) }
-      scope :content_operations, lambda { where(:operation => [INSERT_OPERATION, UPDATE_OPERATION, DELETE_OPERATION]) }
-      scope :save_operations,    lambda { where(:operation => [INSERT_OPERATION, UPDATE_OPERATION]) }
+      scope :control_operations, lambda { where(:operation => CONTROL_OPERATIONS) }
+      scope :content_operations, lambda { where(:operation => CONTENT_OPERATIONS) }
+      scope :save_operations,    lambda { where(:operation => SAVE_OPERATIONS) }
       scope :delete_operations,  lambda { where(:operation => DELETE_OPERATION) }
       scope :uncontained,        lambda { where(:commit_id => nil) }
       scope :contained,          lambda { where.not(:commit_id => nil) }
@@ -50,8 +54,16 @@ module Stagehand
         @record ||= delete_operation? ? build_production_record : record_class.find_by_id(record_id) if content_operation?
       end
 
+      def control_operation?
+        operation.in?(CONTROL_OPERATIONS)
+      end
+
       def content_operation?
-        record_id? && table_name?
+        operation.in?(CONTENT_OPERATIONS)
+      end
+
+      def save_operation?
+        operation.in?(SAVE_OPERATIONS)
       end
 
       def insert_operation?
@@ -60,10 +72,6 @@ module Stagehand
 
       def update_operation?
         operation == UPDATE_OPERATION
-      end
-
-      def save_operation?
-        operation.in?([INSERT_OPERATION, UPDATE_OPERATION])
       end
 
       def delete_operation?
