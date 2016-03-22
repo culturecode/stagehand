@@ -1,13 +1,12 @@
 module Stagehand
   module Staging
     class Checklist
-
       def self.related_commits(commit)
         Commit.find(related_commit_ids(commit))
       end
 
       def self.related_commit_ids(commit)
-        related_entries(commit.entries).collect(&:commit_id).uniq
+        related_entries(commit.entries).collect(&:commit_id).select(&:present?).uniq
       end
 
       def self.related_entries(entries)
