@@ -1,7 +1,6 @@
 module Stagehand
   module Staging
     class Checklist
-      attr_reader :staging_record
 
       def self.related_commits(commit)
         Commit.find(related_commit_ids(commit))
@@ -36,8 +35,8 @@ module Stagehand
         return related_entries
       end
 
-      def initialize(staging_record, &confirmation_filter)
-        @staging_record = staging_record
+      def initialize(subject, &confirmation_filter)
+        @subject = subject
         @confirmation_filter = confirmation_filter
         @cache = {}
       end
@@ -54,6 +53,11 @@ module Stagehand
         cache(:confirm_update) { grouped_required_confirmation_entries[:update].collect(&:record) }
       end
 
+      # Returns true if there are any changes in the checklist that require confirmation
+      def requires_confirmation?
+        cache(:requires_confirmation?) { grouped_required_confirmation_entries.values.flatten.present? }
+      end
+
       # Returns a list of records that exist in commits where the staging_record is not in the start operation
       def requires_confirmation
         cache(:requires_confirmation) { grouped_required_confirmation_entries.values.flatten.collect(&:record).compact }
@@ -68,7 +72,7 @@ module Stagehand
       end
 
       def affected_entries
-        cache(:affected_entries) { self.class.related_entries(@staging_record) }
+        cache(:affected_entries) { self.class.related_entries(@subject) }
       end
 
       private
@@ -76,7 +80,7 @@ module Stagehand
       def grouped_required_confirmation_entries
         cache(:grouped_required_confirmation_entries) do
           staging_record_start_operation_ids = affected_entries.select do |entry|
-            entry.start_operation? && entry.record_id? && entry.matches?(@staging_record)
+            entry.start_operation? && entry.record_id? && entry.matches?(@subject)
           end.collect(&:id)
 
           # Don't need to confirm entries that were part of a commits kicked off by the staging record
