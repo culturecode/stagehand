@@ -93,5 +93,25 @@ describe Stagehand::Staging::Synchronizer do
       end
     end
   end
+
+  describe '::sync_now' do
+    it 'requires a block'
+
+    it 'immediately syncs records modified from within the block if they are not part of an existing commit' do
+      expect { subject.sync_now { source_record.touch } }
+        .to change { Stagehand::Production.status(source_record) }.from(:new).to(:not_modified)
+    end
+
+    it 'does not sync records modified from within the block if they are part of an existing commit' do
+      Stagehand::Staging::Commit.capture { source_record.touch }
+      expect { subject.sync_now { source_record.touch } }.not_to change { Stagehand::Production.status(source_record) }
+    end
+
+    it 'does not sync changes to records not modified in the block' do
+      other_record = SourceRecord.create
+      expect { subject.sync_now { source_record.touch } }.not_to change { Stagehand::Production.status(other_record) }
+    end
+
+    it 'does not sync changes to a record that are made outside the block while the block is executing'
   end
 end

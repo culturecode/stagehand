@@ -3,6 +3,15 @@ module Stagehand
     module Synchronizer
       extend self
 
+      # Immediately attempt to sync the changes from the block if possible
+      # The block is wrapped in a transaction to prevent changes to records while being synced
+      def sync_now(&block)
+        ActiveRecord::Base.transaction do
+          checklist = Checklist.new(Commit.capture(&block).entries)
+          sync_checklist(checklist) unless checklist.requires_confirmation?
+        end
+      end
+
       def auto_sync(delay = 5.seconds)
         scope = autosyncable_entries.limit(1000)
 
@@ -18,12 +27,15 @@ module Stagehand
 
       # Copies all the affected records from the staging database to the production database
       def sync_record(record)
-        checklist = Checklist.new(record)
-        sync_entries(checklist.syncing_entries)
-        CommitEntry.delete(checklist.affected_entries)
+        sync_checklist(Checklist.new(record))
       end
 
       private
+
+      def sync_checklist(checklist)
+        sync_entries(checklist.syncing_entries)
+        CommitEntry.delete(checklist.affected_entries)
+      end
 
       def sync_entries(entries)
         ActiveRecord::Base.transaction do

@@ -86,8 +86,8 @@ module Stagehand
         operation == END_OPERATION
       end
 
-      def matches?(other)
-        key == Stagehand::Key.generate(other)
+      def matches?(others)
+        Array.wrap(others).any? {|other| key == Stagehand::Key.generate(other) }
       end
 
       def key
