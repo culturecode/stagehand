@@ -95,6 +95,10 @@ module Stagehand
         @key ||= Stagehand::Key.generate(self)
       end
 
+      def record_class
+        @record_class ||= self.class.infer_class(table_name)
+      end
+
       private
 
       def build_production_record
@@ -105,10 +109,6 @@ module Stagehand
         production_record.readonly!
 
         return production_record
-      end
-
-      def record_class
-        self.class.infer_class(table_name)
       end
     end
   end
