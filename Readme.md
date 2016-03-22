@@ -87,19 +87,103 @@ production. The connection name should match whatever names you've used in `data
   end
   ```
 
-6. Set up automated synchronization of records that don't require user confirmation. The Synchronizer polls the database
-to check for changes.
+## Usage
 
-  ```bash
-  # Syncing can be handled at the command line using a rake task
-  rake stagehand:auto_sync
-  rake stagehand:auto_sync[10] # Override default polling delay of 5 seconds
-  ```
+Syncing is the process of copying modified records from the staging database to the production database. Changes may
+include creation of a record, updates to that record, or deletion of that record. Each time a record is modified, a log
+entry is added to the `stagehand_commit_entries` table using database triggers. This table is used to keep track of what
+records in the staging database need to be synchronized to the production database, as well as provide the data
+necessary to perform more advanced syncing operations.
 
-  ```ruby
-    # Syncing can also be handled in ruby
-    Synchronizer.auto_sync(5.seconds) # Optional delay can be customized. Set to falsey value for no delay.
-  ```
+### Confirming Changes
+To prevent modifications from being synced to the database without user confirmation, you can wrap blocks of changes in
+a Commit. This bundles the changes together and forces them to be synchronized manually. The typical usecase for this is
+in a controller action like create or update.
+
+```ruby
+# In you controller
+def create
+  capture_changes do
+    # database modifications
+  end
+end
+```
+
+```ruby
+# ... or anywhere you want to ensure a set of changes are synchronized to the production database together
+Stagehand::Staging::Commit.capture do
+  # database modifications
+end
+```
+
+Any database changes that take place within the block will logged as part of a Commit. Commits are used when determining
+what additional records to sync when syncing a specific record. For instance, if creating a record updates another
+record in the process, the commit will ensure that manual syncing copies both the new record and the updated record.
+
+### Sync Checklist
+If a commit contains multiple records, and other commits contain any of those records, they too will need to be synced
+to maintain database consistency on production. To resolve all the interconnectedness between commits, and make it
+simple to sync a record and changes to all affected records, use the Checklist to determine which records will be
+synced, and which changes should be confirmed by the user.
+
+```ruby
+  checklist = Stagehand::Staging::Checklist.new(subject_record)
+  checklist.affected_records #=> Records that are directly or indirectly related to changes made to the subject record
+  checklist.requires_confirmation #=> Affected Records whose changes should be checked by a user before syncing
+  checklist.confirm_create #=> Requires Confirmation records that will be created in the production database
+  checklist.confirm_update #=> Requires Confirmation records that will be updated in the production database
+  checklist.confirm_delete #=> Requires Confirmation records that will be deleted in the production database
+```
+
+### Manual Syncing
+
+Manual syncing typically takes place in a a controller action where a user confirms the changes to records about to be
+synced.
+
+```ruby
+# In an action in any controller that includes Stagehand::Staging::Controller
+def update
+  # ...
+  sync_record(record) if params[:sync_confirmed]
+  # ...
+end
+```
+
+```ruby
+# ... or anywhere you want
+Stagehand::Staging::Synchronizer.sync_record(record)
+```
+
+### Automatic Syncing
+
+In addition to manually syncing records that require confirmation, you can set up automated synchronization of records
+that don't require user confirmation. The Synchronizer polls the database to check for changes.
+
+```bash
+# Syncing can be handled at the command line using a rake task
+rake stagehand:auto_sync
+rake stagehand:auto_sync[10] # Override default polling delay of 5 seconds
+```
+
+```ruby
+# Syncing can also be handled in ruby
+Stagehand::Staging::Synchronizer.auto_sync(5.seconds) # Optional delay can be customized. Set to falsey value for no delay.
+```
+
+### Immediate Syncing
+
+If an automated task makes changes to the database that need to be synced together, these can be wrapped in a special
+commit capture block that attempts an immediate sync. If the changes are unable to sync immediately due to
+interconnectedness with other commits, they will remain unsynced in a commit block, ready to be synced when any of the
+interconnected records are synced.
+
+```ruby
+# Syncing can also be handled in ruby
+Stagehand::Staging::Synchronizer.sync_now do
+  # Some automated task that does not require user confirmation
+  # but that requires a block of changes to be synced together.
+end
+```
 
 ## Ghost Mode
 Before rolling out the system to you users, it's a good idea to test that everything works as you'd expect. You can
