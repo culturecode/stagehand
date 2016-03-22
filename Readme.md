@@ -95,16 +95,16 @@ entry is added to the `stagehand_commit_entries` table using database triggers. 
 records in the staging database need to be synchronized to the production database, as well as provide the data
 necessary to perform more advanced syncing operations.
 
-### Confirming Changes
+### Staging Changes
 To prevent modifications from being synced to the database without user confirmation, you can wrap blocks of changes in
 a Commit. This bundles the changes together and forces them to be synchronized manually. The typical usecase for this is
 in a controller action like create or update.
 
 ```ruby
-# In you controller
+# In an action in any controller that includes Stagehand::Staging::Controller
 def create
-  capture_changes do
-    # database modifications
+  stage_changes do
+    # database modifications to be confirmed before syncing
   end
 end
 ```
@@ -120,7 +120,7 @@ Any database changes that take place within the block will logged as part of a C
 what additional records to sync when syncing a specific record. For instance, if creating a record updates another
 record in the process, the commit will ensure that manual syncing copies both the new record and the updated record.
 
-### Sync Checklist
+### Previewing Changes
 If a commit contains multiple records, and other commits contain any of those records, they too will need to be synced
 to maintain database consistency on production. To resolve all the interconnectedness between commits, and make it
 simple to sync a record and changes to all affected records, use the Checklist to determine which records will be
@@ -135,7 +135,7 @@ synced, and which changes should be confirmed by the user.
   checklist.confirm_delete #=> Requires Confirmation records that will be deleted in the production database
 ```
 
-### Manual Syncing
+### Syncing Changes Manually
 
 Manual syncing typically takes place in a a controller action where a user confirms the changes to records about to be
 synced.
@@ -154,7 +154,7 @@ end
 Stagehand::Staging::Synchronizer.sync_record(record)
 ```
 
-### Automatic Syncing
+### Syncing Changes Automatically
 
 In addition to manually syncing records that require confirmation, you can set up automated synchronization of records
 that don't require user confirmation. The Synchronizer polls the database to check for changes.
