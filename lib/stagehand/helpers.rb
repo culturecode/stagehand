@@ -5,8 +5,8 @@ module Stagehand
     def generate(staging_record, options = {})
       case staging_record
       when Staging::CommitEntry
-        id = staging_record.record_id
-        table_name = staging_record.table_name
+        id = staging_record.record_id || staging_record.id
+        table_name = staging_record.table_name || staging_record.class.table_name
       when ActiveRecord::Base
         id = staging_record.id
         table_name = staging_record.class.table_name
@@ -15,13 +15,9 @@ module Stagehand
         table_name = options[:table_name]
       end
 
-      if table_name && id
-        return [table_name, id]
-      elsif options[:allow_nil]
-        nil
-      else
-        raise 'Invalid input'
-      end
+      raise 'Invalid input' unless table_name && id
+
+      return [table_name, id]
     end
   end
 

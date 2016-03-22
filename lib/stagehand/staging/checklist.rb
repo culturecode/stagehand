@@ -80,7 +80,7 @@ module Stagehand
       def grouped_required_confirmation_entries
         cache(:grouped_required_confirmation_entries) do
           staging_record_start_operation_ids = affected_entries.select do |entry|
-            entry.start_operation? && entry.record_id? && entry.matches?(@subject)
+            entry.start_operation? && entry.matches?(@subject)
           end.collect(&:id)
 
           # Don't need to confirm entries that were part of a commits kicked off by the staging record

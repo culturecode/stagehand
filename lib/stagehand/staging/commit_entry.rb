@@ -29,7 +29,7 @@ module Stagehand
        .where("active_starts.start_id IS NULL") }
 
       def self.matching(object)
-        keys = Array.wrap(object).collect {|entry| Stagehand::Key.generate(entry, :allow_nil => true) }.compact
+        keys = Array.wrap(object).collect {|entry| Stagehand::Key.generate(entry) }.compact
         sql = []
         interpolates = []
 
