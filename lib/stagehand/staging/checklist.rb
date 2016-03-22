@@ -92,10 +92,6 @@ module Stagehand
         end
       end
 
-      def first_commit_containing_record(staging_record)
-        Commit.find(CommitEntry.contained.matching(staging_record).limit(1).pluck(:commit_id).first)
-      end
-
       def filter_entries(entries)
         @confirmation_filter ? entries.select {|entry| @confirmation_filter.call(entry.record) } : entries
       end
