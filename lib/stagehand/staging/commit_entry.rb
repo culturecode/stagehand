@@ -21,6 +21,7 @@ module Stagehand
       scope :content_operations, lambda { where(:operation => CONTENT_OPERATIONS) }
       scope :save_operations,    lambda { where(:operation => SAVE_OPERATIONS) }
       scope :delete_operations,  lambda { where(:operation => DELETE_OPERATION) }
+      scope :with_record,        lambda { where.not(:record_id => nil) }
       scope :uncontained,        lambda { where(:commit_id => nil) }
       scope :contained,          lambda { where.not(:commit_id => nil) }
       scope :not_in_progress,    lambda {
