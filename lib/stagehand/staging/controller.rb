@@ -8,6 +8,16 @@ module Stagehand
         prepend_around_action :use_staging_database
       end
 
+      # Creates a stagehand commit to log database changes associated with the given record
+      def capture_changes(subject_record = nil, &block)
+        Staging::Commit.capture(subject_record, &block)
+      end
+
+      # Syncs the given record and all affected records to the production database
+      def sync_record(record)
+        Stagehand::Staging::Synchronizer.sync_record(record)
+      end
+
       private
 
       def use_staging_database(&block)
