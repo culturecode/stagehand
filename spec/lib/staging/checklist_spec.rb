@@ -6,12 +6,42 @@ describe Stagehand::Staging::Checklist do
 
   subject { Stagehand::Staging::Checklist.new(source_record) }
 
+  describe '::new' do
+    it 'raises an exception if no subject record is provided'
+  end
+
   describe '::related_entries' do
     let(:commit) { Stagehand::Staging::Commit.capture { source_record.touch } }
 
-    it "accepts a single entry"
-    it "accepts multiple entries"
-    it "accepts a record"
+    it "accepts a single entry" do
+      source_record.touch
+      commit_entry = Stagehand::Staging::CommitEntry.last
+      checklist = klass.new(commit_entry)
+
+      expect(checklist.affected_records).to include(source_record)
+    end
+
+    it "accepts multiple entries" do
+      source_record.touch
+      commit_entry = Stagehand::Staging::CommitEntry.last
+      other_record = SourceRecord.create
+      other_commit_entry = Stagehand::Staging::CommitEntry.last
+      checklist = klass.new([commit_entry, other_commit_entry])
+
+      expect(checklist.affected_records).to include(source_record)
+    end
+
+    it "accepts a record" do
+      checklist = klass.new(source_record)
+      expect(checklist.affected_records).to include(source_record)
+    end
+
+    it "accepts multiple records" do
+      other_record = SourceRecord.create
+      checklist = klass.new([source_record, other_record])
+      expect(checklist.affected_records).to include(source_record, other_record)
+    end
+
 
     it 'returns all entries from commits that contain entries matching the given entries' do
       source_record.touch

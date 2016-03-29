@@ -95,7 +95,9 @@ describe Stagehand::Staging::Synchronizer do
   end
 
   describe '::sync_now' do
-    it 'requires a block'
+    it 'requires a block' do
+      expect { subject.sync_now }.to raise_exception(Stagehand::SyncBlockRequired)
+    end
 
     it 'immediately syncs records modified from within the block if they are not part of an existing commit' do
       expect { subject.sync_now { source_record.touch } }

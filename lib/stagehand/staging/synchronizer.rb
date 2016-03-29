@@ -6,6 +6,8 @@ module Stagehand
       # Immediately attempt to sync the changes from the block if possible
       # The block is wrapped in a transaction to prevent changes to records while being synced
       def sync_now(&block)
+        raise SyncBlockRequired unless block_given?
+
         ActiveRecord::Base.transaction do
           checklist = Checklist.new(Commit.capture(&block).entries)
           sync_checklist(checklist) unless checklist.requires_confirmation?
@@ -62,4 +64,8 @@ module Stagehand
       end
     end
   end
+
+  # EXCEPTIONS
+
+  class SyncBlockRequired < StandardError; end
 end
