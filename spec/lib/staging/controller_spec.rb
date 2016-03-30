@@ -5,11 +5,11 @@ describe 'Stagehand::Staging::Controller', :type => :controller do
   let(:production) { Stagehand.configuration.production_connection_name }
   around {|example| Stagehand::Database.with_connection(production) { example.run } }
 
-  context 'when included' do
+  context 'when included in a controller' do
     controller do
       # Simulate inheriting production database connection from superclass
       around_action :use_production_database,     :if => proc {|c| c.params[:use_production_callback] }
-      around_action :preceeding_callback,          :if => proc {|c| c.params[:preceeding_callback] }
+      around_action :preceeding_callback,         :if => proc {|c| c.params[:preceeding_callback] }
 
       include Stagehand::Staging::Controller
 
@@ -58,7 +58,7 @@ describe 'Stagehand::Staging::Controller', :type => :controller do
       expect { get :index }.to change { StagingSourceRecord.count }.by(1)
     end
 
-    it 'skipping the use_staging_database callback disable the database connection behaviour' do
+    it 'can have database connection behaviour disabled by skipping the use_staging_database callback' do
       expect { get :index, :skip_staging_callback => true }.not_to change { StagingSourceRecord.count }
     end
 
