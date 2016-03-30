@@ -202,6 +202,18 @@ describe Stagehand::Staging::Checklist do
 
       expect(subject.affected_entries).to include(entry)
     end
+
+    it 'is unaffected by a transaction rollback' do
+      entry = nil
+      ActiveRecord::Base.transaction do
+        source_record.touch
+        entry = Stagehand::Staging::CommitEntry.last
+        subject
+        raise ActiveRecord::Rollback
+      end
+
+      expect(subject.affected_entries).to include(entry)
+    end
   end
 
   describe '#confirm_create' do

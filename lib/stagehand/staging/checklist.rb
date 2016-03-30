@@ -38,6 +38,7 @@ module Stagehand
         @subject = subject
         @confirmation_filter = confirmation_filter
         @cache = {}
+        affected_entries # Init the affected_entries changes can be rolled back without affecting the checklist
       end
 
       def confirm_create
