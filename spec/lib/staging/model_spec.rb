@@ -14,9 +14,7 @@ describe Stagehand::Staging::Model do
       expect { klass.include(subject) }.to change { klass.connection.current_database }.to(staging['database'])
     end
 
-    context 'in ghost mode' do
-      before { Rails.configuration.x.stagehand.ghost_mode = true }
-
+    in_ghost_mode do
       it 'does not change the connection' do
         expect { klass.include(subject) }.not_to change { klass.connection.current_database }
       end

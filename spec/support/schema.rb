@@ -28,16 +28,7 @@ RSpec.configure do |config|
 
     # Add stagehand
     Stagehand::Schema.add_stagehand!
-  end
 
-  # Ensure changes to the connection_name are reset
-  staging = Rails.configuration.x.stagehand.staging_connection_name
-  production = Rails.configuration.x.stagehand.production_connection_name
-  ghost_mode = Rails.configuration.x.stagehand.ghost_mode
-
-  config.before do
-    Rails.configuration.x.stagehand.staging_connection_name = staging
-    Rails.configuration.x.stagehand.production_connection_name = production
-    Rails.configuration.x.stagehand.ghost_mode = ghost_mode
+    ActiveRecord::Base.establish_connection(:test)
   end
 end

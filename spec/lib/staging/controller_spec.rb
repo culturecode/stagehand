@@ -74,9 +74,7 @@ describe 'Stagehand::Staging::Controller', :type => :controller do
       expect { get :index, :subsequent_callback => true }.to change { StagingSourceRecord.count }.by(2)
     end
 
-    context 'in ghost mode' do
-      before { Rails.configuration.x.stagehand.ghost_mode = true }
-
+    in_ghost_mode do
       it 'disables connection swapping' do
         expect do
           SourceRecord.create

@@ -73,9 +73,7 @@ describe Stagehand::Staging::Synchronizer do
       expect { subject.sync }.to change { Stagehand::Production.status(source_record) }.from(:modified).to(:new)
     end
 
-    context 'in ghost mode' do
-      before { Rails.configuration.x.stagehand.ghost_mode = true }
-
+    in_ghost_mode do
       it 'syncs records with only entries that do not belong to a commit ' do
         source_record.touch
         expect { subject.sync }.to change { Stagehand::Production.status(source_record) }.to(:not_modified)
