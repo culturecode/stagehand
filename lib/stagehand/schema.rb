@@ -17,6 +17,7 @@ module Stagehand
 
           add_index :stagehand_commit_entries, :commit_id
           add_index :stagehand_commit_entries, :operation
+          add_index :stagehand_commit_entries, [:record_id, :table_name]
 
           # Create trigger to initialize session using a function
           ActiveRecord::Base.connection.execute("DROP TRIGGER IF EXISTS stagehand_session_trigger;")
