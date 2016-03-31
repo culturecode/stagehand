@@ -1,5 +1,9 @@
+require "stagehand/schema/statements"
+
 module Stagehand
   module Schema
+    UNTRACKED_TABLES = ['schema_migrations', Stagehand::Staging::CommitEntry.table_name]
+
     def self.add_stagehand!(options = {})
       ActiveRecord::Schema.define do
         unless Stagehand::Staging::CommitEntry.table_exists?
@@ -22,7 +26,7 @@ module Stagehand
         end
 
         table_names = ActiveRecord::Base.connection.tables
-        table_names -= [Stagehand::Staging::CommitEntry.table_name, 'schema_migrations']
+        table_names -= UNTRACKED_TABLES
         table_names -= Array(options[:except]).collect(&:to_s)
         table_names &= Array(options[:only]).collect(&:to_s) if options[:only].present?
 

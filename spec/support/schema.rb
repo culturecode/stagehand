@@ -12,7 +12,7 @@ RSpec.configure do |config|
       ActiveRecord::Base.establish_connection connection_name
 
       ActiveRecord::Schema.define do
-        create_table :source_records, :force => true do |t|
+        create_table :source_records, :force => true, :stagehand => true do |t|
           t.string :name
           t.string :type
           t.timestamps :null => true

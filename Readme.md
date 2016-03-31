@@ -47,6 +47,23 @@ staging environment.
   Stagehand::Schema.add_stagehand! :only => [:some, :new, :tables]
   ```
 
+  From now on, when creating a table Stagehand will require you to declare whether or not that table is for use in
+  the production database. If set to `true`, the aforementioned database triggers will be added automatically.
+
+  ```ruby
+  # In a migration
+
+  create_table :my_table_used_in_production, :stagehand => true do |t|
+    # etc...
+  end
+
+  create_table :my_other_table_used_just_for_staging, :stagehand => false do |t|
+    # etc...
+  end
+  ```
+
+  Failing to include the `:stagehand` option will result in a `Stagehand::TableOptionNotSet` exception.
+
 4. Modify the environment configuration file to specify which database to use for staging and which to use for
 production. The connection name should match whatever names you've used in `database.yml`.
 
