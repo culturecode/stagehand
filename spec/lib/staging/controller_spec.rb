@@ -5,16 +5,18 @@ describe 'Stagehand::Staging::Controller', :type => :controller do
   let(:production) { Stagehand.configuration.production_connection_name }
   around {|example| Stagehand::Database.with_connection(production) { example.run } }
 
-  context 'when included in a controller' do
+  context 'a controller using the staging database' do
     controller do
+      include Stagehand::ControllerExtensions
+
       # Simulate inheriting production database connection from superclass
-      around_action :use_production_database,     :if => proc {|c| c.params[:use_production_callback] }
+      use_production_database                     :if => proc {|c| c.params[:use_production_callback] }
       around_action :preceeding_callback,         :if => proc {|c| c.params[:preceeding_callback] }
 
       include Stagehand::Staging::Controller
 
-      around_action :subsequent_callback,         :if => proc {|c| c.params[:subsequent_callback] }
-      skip_action_callback :use_staging_database, :if => proc {|c| c.params[:skip_staging_callback] }
+      around_action :subsequent_callback,          :if => proc {|c| c.params[:subsequent_callback] }
+      use_production_database                      :if => proc {|c| c.params[:override_staging_callback] }
 
       def index
         SourceRecord.create; render :nothing => true
@@ -31,11 +33,6 @@ describe 'Stagehand::Staging::Controller', :type => :controller do
 
     it 'performs all queries on the staging database' do
       expect { get :index }.to change { StagingSourceRecord.count }.by(1)
-    end
-
-    it 'only has an effect for the duration of the action' do
-      get :index
-      expect { SourceRecord.create }.not_to change { StagingSourceRecord.count }
     end
 
     it 'resets the connection to the previous database after the action' do
@@ -58,11 +55,11 @@ describe 'Stagehand::Staging::Controller', :type => :controller do
       expect { get :index }.to change { StagingSourceRecord.count }.by(1)
     end
 
-    it 'can have database connection behaviour disabled by skipping the use_staging_database callback' do
-      expect { get :index, :skip_staging_callback => true }.not_to change { StagingSourceRecord.count }
+    it 'can override database connection behaviour by calling use_production_database' do
+      expect { get :index, :override_staging_callback => true }.not_to change { StagingSourceRecord.count }
     end
 
-    it 'can be used to override the behaviour of use_production_database' do
+    it 'overrides the database connection behaviour of Stagehand::Production::Controller' do
       expect { get :index, :use_production_callback => true }.to change { StagingSourceRecord.count }.by(1)
     end
 
