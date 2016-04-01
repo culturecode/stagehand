@@ -117,21 +117,13 @@ describe 'Stagehand::Staging::Controller', :type => :controller do
   end
 
 
-  # HELPERS
+  # CLASSES
 
-  class Probe < ActiveRecord::Base; end
-
-  class StagingSourceRecord
-    def self.count
-      Probe.establish_connection(:staging)
-      Probe.connection.select_value("SELECT count(id) FROM source_records").to_i
-    end
+  class StagingSourceRecord < Stagehand::Database::StagingProbe
+    self.table_name = 'source_records'
   end
 
-  class ProductionSourceRecord
-    def self.count
-      Probe.establish_connection(:production)
-      Probe.connection.select_value("SELECT count(id) FROM source_records").to_i
-    end
+  class ProductionSourceRecord < Stagehand::Database::ProductionProbe
+    self.table_name = 'source_records'
   end
 end

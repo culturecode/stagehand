@@ -61,5 +61,28 @@ module Stagehand
     def current_connection_name
       @@connection_name_stack.last
     end
+
+
+    # CLASSES
+
+    class Probe < ActiveRecord::Base
+      self.abstract_class = true
+      class_attribute :connection_name
+
+      def self.connection
+        @connected ||= establish_connection(connection_name)
+        super
+      end
+    end
+
+    class StagingProbe < Probe
+      self.abstract_class = true
+      self.connection_name = Configuration.staging_connection_name
+    end
+
+    class ProductionProbe < Probe
+      self.abstract_class = true
+      self.connection_name = Configuration.production_connection_name
+    end
   end
 end

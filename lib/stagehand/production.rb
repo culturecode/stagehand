@@ -56,7 +56,6 @@ module Stagehand
 
     def prepare_to_modify(table_name)
       raise "Can't prepare to modify production records without knowning the table_name" unless table_name.present?
-      Record.establish_connection(Configuration.production_connection_name) and @connection_established = true unless @connection_established
       Record.table_name = table_name
     end
 
@@ -71,7 +70,7 @@ module Stagehand
 
     # CLASSES
 
-    class Record < ActiveRecord::Base
+    class Record < Stagehand::Database::ProductionProbe
       self.record_timestamps = false
     end
   end
