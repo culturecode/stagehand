@@ -7,12 +7,15 @@ RSpec.configure do |config|
       table_names.each {|table_name| drop_table(table_name) }
     end
 
+    # Add stagehand
+    Stagehand::Schema.add_stagehand!
+
     # Create tables in the test and production database so we test copying from one to the other
     [Stagehand.configuration.staging_connection_name, Stagehand.configuration.production_connection_name].each do |connection_name|
       ActiveRecord::Base.establish_connection connection_name
 
       ActiveRecord::Schema.define do
-        create_table :source_records, :force => true, :stagehand => true do |t|
+        create_table :source_records, :force => true do |t|
           t.string :name
           t.string :type
           t.timestamps :null => true
@@ -25,9 +28,6 @@ RSpec.configure do |config|
     # Create the model
     class SourceRecord < ActiveRecord::Base; end
     class STISourceRecord < SourceRecord; end
-
-    # Add stagehand
-    Stagehand::Schema.add_stagehand!
 
     ActiveRecord::Base.establish_connection(:test)
   end
