@@ -201,6 +201,7 @@ end
 ```
 
 ## Ghost Mode
+
 Before rolling out the system to you users, it's a good idea to test that everything works as you'd expect. You can
 enable the system "behind the scenes" by enabling Ghost Mode. In this mode database changes are still logged
 but database connection swapping is disabled, so all controllers connect the database specified in your database.yml as
@@ -221,7 +222,22 @@ You can enable ghost mode in the environment
 config.x.stagehand.ghost_mode = true
 ```
 
+## Database Migrations
+
+Both staging and production databases need to be migrated to allow syncing to occur. A rake task to migrate both staging
+and production databases is included.
+
+```bash
+# at the command line
+rake stagehand:migrate
+```
+
+If the two databases have different schema versions, a `Stagehand::SchemaMismatch` exception will be raised when trying
+to sync.
+
+
 ## Removing Stagehand
+
 To stop monitoring a table for changes:
 
 ```ruby
