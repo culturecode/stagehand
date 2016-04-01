@@ -16,6 +16,8 @@ describe 'Stagehand::Staging::Controller', :type => :controller do
       include Stagehand::Staging::Controller
 
       around_action :subsequent_callback,          :if => proc {|c| c.params[:subsequent_callback] }
+      around_action :halt_filter_chain,            :if => proc {|c| c.params[:halt_filter_chain] }
+      around_action :explode,                      :if => proc {|c| c.params[:explode] }
       use_production_database                      :if => proc {|c| c.params[:override_staging_callback] }
 
       def index
@@ -29,6 +31,14 @@ describe 'Stagehand::Staging::Controller', :type => :controller do
       def subsequent_callback
         SourceRecord.create; yield
       end
+
+      def halt_filter_chain
+        false
+      end
+
+      def explode
+        raise
+      end
     end
 
     it 'performs all queries on the staging database' do
@@ -36,11 +46,21 @@ describe 'Stagehand::Staging::Controller', :type => :controller do
     end
 
     it 'resets the connection to the previous database after the action' do
-      expect do
-        SourceRecord.create
-        get :index
-        SourceRecord.create
-      end.to change { SourceRecord.count }.by(2)
+      record = SourceRecord.create!(:name => 'reset test')
+      get :index
+      expect(SourceRecord.last).to eq(record)
+    end
+
+    it 'resets to the previous connection when the filter chain is halted' do
+      record = SourceRecord.create!(:name => 'reset after halt test')
+      get :index, :halt_filter_chain => true
+      expect(SourceRecord.last).to eq(record)
+    end
+
+    it 'resets to the previous connection if the action raises an exception' do
+      record = SourceRecord.create!(:name => 'reset after raise test')
+      begin get :index, :explode => true; rescue; end
+      expect(SourceRecord.last).to eq(record)
     end
 
     it 'does not affect the connection of models that have specifically called establish_connection' do
