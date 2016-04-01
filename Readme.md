@@ -47,13 +47,13 @@ staging environment.
   Stagehand::Schema.add_stagehand! :only => [:some, :new, :tables]
   ```
 
-  From now on, when creating a table Stagehand will require you to declare whether or not that table is for use in
-  the production database. If set to `true`, the aforementioned database triggers will be added automatically.
+  From now on, when creating a table Stagehand will allow you to declare whether or not that table is for use in
+  the production database. Logging triggers are added automatically unless `:stagehand => false` is passed.
 
   ```ruby
   # In a migration
 
-  create_table :my_table_used_in_production, :stagehand => true do |t|
+  create_table :my_table_used_in_production do |t|
     # etc...
   end
 
@@ -61,8 +61,6 @@ staging environment.
     # etc...
   end
   ```
-
-  Failing to include the `:stagehand` option will result in a `Stagehand::TableOptionNotSet` exception.
 
 4. Modify the environment configuration file to specify which database to use for staging and which to use for
 production. The connection name should match whatever names you've used in `database.yml`.
@@ -259,6 +257,11 @@ are synced, the re-insertion entry will be erased because the delete entry is as
 that record.
 
 - If a crash leaves a commit unfinished, subsequent commit entries which use the same session will not be autosynced.
+
+- Restoring the database using a `:ruby` schema dump instead of `:sql` will not include the `:stagehand` option on
+`create_table` commands. This means all tables will receive logging triggers instead of just the ones specified at
+creation. This won't affect the behaviour of the app other than causing changes in those `:stagehand => false` tables to
+be copied to the production database when syncing.
 
 ## TODO
 Add a way to detect "dangling" start commits
