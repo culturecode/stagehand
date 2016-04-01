@@ -26,6 +26,14 @@ module Stagehand
 
     @@connection_name_stack = [Rails.env.to_sym]
 
+    def connected_to_production?
+      current_connection_name == Configuration.production_connection_name
+    end
+
+    def connected_to_staging?
+      current_connection_name == Configuration.staging_connection_name
+    end
+
     def with_connection(connection_name)
       different = !Configuration.ghost_mode? && current_connection_name != connection_name.to_sym
 

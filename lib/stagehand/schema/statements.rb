@@ -5,9 +5,11 @@ module Stagehand
       def create_table(table_name, options = {})
         super
 
-        unless options.symbolize_keys[:stagehand] == false || UNTRACKED_TABLES.include?(table_name)
-          Schema.add_stagehand! :only => table_name
-        end
+        return if options.symbolize_keys[:stagehand] == false
+        return if UNTRACKED_TABLES.include?(table_name)
+        return if Database.connected_to_production?
+
+        Schema.add_stagehand! :only => table_name
       end
     end
   end
