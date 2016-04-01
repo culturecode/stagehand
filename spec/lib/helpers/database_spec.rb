@@ -30,4 +30,39 @@ describe Stagehand::Database do
       end
     end
   end
+
+  describe '::staging_connection' do
+    without_transactional_fixtures
+
+    before { SourceRecord.establish_connection(staging) }
+    after { SourceRecord.remove_connection }
+
+    it 'returns a connection object that uses the staging database' do
+      expect { SourceRecord.create }.to change { subject.staging_connection.select_values(SourceRecord.all) }
+    end
+
+    it 'ignores the effects of a `with_connection` block connected to a different database' do
+      subject.with_connection(production) do
+        expect { SourceRecord.create }.to change { subject.staging_connection.select_values(SourceRecord.all) }
+      end
+    end
+  end
+
+  describe '::production_connection' do
+    without_transactional_fixtures
+
+    before { SourceRecord.establish_connection(production) }
+    after { SourceRecord.remove_connection }
+
+    it 'returns a connection object that uses the staging database' do
+      expect { SourceRecord.create }.to change { subject.production_connection.select_values(SourceRecord.all) }
+    end
+
+    it 'ignores the effects of a `with_connection` block connected to a different database' do
+      subject.with_connection(staging) do
+        expect { SourceRecord.create }.to change { subject.production_connection.select_values(SourceRecord.all) }
+      end
+    end
+  end
+
 end

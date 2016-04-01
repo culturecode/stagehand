@@ -1,6 +1,8 @@
 require 'rails_helper'
 
 describe 'Stagehand::Staging::Controller', :type => :controller do
+  without_transactional_fixtures
+
   let(:staging) { Stagehand.configuration.staging_connection_name }
   let(:production) { Stagehand.configuration.production_connection_name }
   around {|example| Stagehand::Database.with_connection(production) { example.run } }
@@ -100,20 +102,6 @@ describe 'Stagehand::Staging::Controller', :type => :controller do
         end.to change { SourceRecord.count }.by(3)
       end
     end
-  end
-
-
-  # CONTEXT SETUP
-
-  # Transactions hide changes from other connections. Disable transactional fixtures so it's easier to detect changes
-  # across connections. In practice, this won't be an issue because connections will be modified at the beginning of
-  # the controller action.
-  before(:context) do
-    self.use_transactional_fixtures = false
-  end
-
-  after(:context) do
-    self.use_transactional_fixtures = true
   end
 
 
