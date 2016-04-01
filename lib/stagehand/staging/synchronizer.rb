@@ -40,6 +40,8 @@ module Stagehand
       end
 
       def sync_entries(entries)
+        raise SchemaMismatch unless schemas_match?
+
         ActiveRecord::Base.transaction do
           entries.each do |entry|
             Rails.logger.info "Synchronizing #{entry.table_name} #{entry.record_id}"
@@ -62,10 +64,18 @@ module Stagehand
             CommitEntry.select('MAX(id) AS id').content_operations.not_in_progress.group('record_id, table_name').having('count(commit_id) = 0'))
         end
       end
+
+      def schemas_match?
+        versions_scope = ActiveRecord::SchemaMigration.order(:version)
+        staging_versions = Stagehand::Database.staging_connection.select_values(versions_scope)
+        production_versions = Stagehand::Database.production_connection.select_values(versions_scope)
+        return staging_versions == production_versions
+      end
     end
   end
 
   # EXCEPTIONS
 
   class SyncBlockRequired < StandardError; end
+  class SchemaMismatch < StandardError; end
 end

@@ -34,6 +34,14 @@ module Stagehand
       current_connection_name == Configuration.staging_connection_name
     end
 
+    def staging_connection
+      StagingProbe.connection
+    end
+
+    def production_connection
+      ProductionProbe.connection
+    end
+
     def with_connection(connection_name)
       different = !Configuration.ghost_mode? && current_connection_name != connection_name.to_sym
 

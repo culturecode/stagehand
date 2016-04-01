@@ -41,6 +41,11 @@ describe Stagehand::Staging::Synchronizer do
 
       expect(commit.entries.reload).to be_blank
     end
+
+    it 'raises an exception if staging and production schemas are out of sync' do
+      Stagehand::Database.staging_connection.execute('INSERT INTO schema_migrations VALUES (1234)')
+      expect { subject.sync_record(source_record) }.to raise_exception(Stagehand::SchemaMismatch)
+    end
   end
 
   describe '::sync' do
