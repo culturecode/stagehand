@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    culturecode_stagehand (0.1.2)
+    culturecode_stagehand (0.1.4)
       mysql2
       rails (~> 4.2)
 

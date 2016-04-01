@@ -34,7 +34,7 @@ staging environment.
 
   ```ruby
     # In a migration
-    Stagehand::Schema.add_stagehand! :except => [:users, :admin_messages, :other_tables, :not_needed_by_visitors]
+    Stagehand::Schema.init_stagehand! :except => [:users, :admin_messages, :other_tables, :not_needed_by_visitors]
   ```
 
   Monitoring is achieved using database triggers. Three triggers (INSERT, UPDATE, DELETE) are added to each monitored

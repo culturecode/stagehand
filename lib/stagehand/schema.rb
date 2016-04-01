@@ -4,27 +4,32 @@ module Stagehand
   module Schema
     UNTRACKED_TABLES = ['schema_migrations', Stagehand::Staging::CommitEntry.table_name]
 
+    def self.init_stagehand!(options = {})
+      ActiveRecord::Schema.define do
+        create_table :stagehand_commit_entries do |t|
+          t.integer :record_id
+          t.string :table_name
+          t.string :operation, :null => false
+          t.integer :commit_id
+          t.string :session
+        end
+
+        add_index :stagehand_commit_entries, :commit_id
+        add_index :stagehand_commit_entries, :operation
+        add_index :stagehand_commit_entries, [:record_id, :table_name]
+
+        # Create trigger to initialize session using a function
+        ActiveRecord::Base.connection.execute("DROP TRIGGER IF EXISTS stagehand_session_trigger;")
+        ActiveRecord::Base.connection.execute("
+        CREATE TRIGGER stagehand_session_trigger BEFORE INSERT ON stagehand_commit_entries
+        FOR EACH ROW SET NEW.session = CONNECTION_ID();")
+      end
+
+      add_stagehand!(options)
+    end
+
     def self.add_stagehand!(options = {})
       ActiveRecord::Schema.define do
-        unless Stagehand::Staging::CommitEntry.table_exists?
-          create_table :stagehand_commit_entries do |t|
-            t.integer :record_id
-            t.string :table_name
-            t.string :operation, :null => false
-            t.integer :commit_id
-            t.string :session
-          end
-
-          add_index :stagehand_commit_entries, :commit_id
-          add_index :stagehand_commit_entries, :operation
-          add_index :stagehand_commit_entries, [:record_id, :table_name]
-
-          # Create trigger to initialize session using a function
-          ActiveRecord::Base.connection.execute("DROP TRIGGER IF EXISTS stagehand_session_trigger;")
-          ActiveRecord::Base.connection.execute("
-          CREATE TRIGGER stagehand_session_trigger BEFORE INSERT ON stagehand_commit_entries
-          FOR EACH ROW SET NEW.session = CONNECTION_ID();")
-        end
 
         table_names = ActiveRecord::Base.connection.tables
         table_names -= UNTRACKED_TABLES

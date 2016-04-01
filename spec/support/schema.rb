@@ -8,7 +8,7 @@ RSpec.configure do |config|
     end
 
     # Add stagehand
-    Stagehand::Schema.add_stagehand!
+    Stagehand::Schema.init_stagehand!
 
     # Create tables in the test and production database so we test copying from one to the other
     [Stagehand.configuration.staging_connection_name, Stagehand.configuration.production_connection_name].each do |connection_name|
