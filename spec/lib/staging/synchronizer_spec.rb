@@ -46,6 +46,14 @@ describe Stagehand::Staging::Synchronizer do
       Stagehand::Database.staging_connection.execute('INSERT INTO schema_migrations VALUES (1234)')
       expect { subject.sync_record(source_record) }.to raise_exception(Stagehand::SchemaMismatch)
     end
+
+    it 'does not deadlock when used in a transaction and staging and production databases are the same' do
+      with_configuration(:staging_connection_name => :staging, :production_connection_name => :staging) do
+        ActiveRecord::Base.transaction do
+          expect { subject.sync_record(source_record) }.not_to raise_exception
+        end
+      end
+    end
   end
 
   describe '::sync' do

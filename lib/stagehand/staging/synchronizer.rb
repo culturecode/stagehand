@@ -40,6 +40,8 @@ module Stagehand
       end
 
       def sync_entries(entries)
+        return 0 if Configuration.single_connection? # Avoid deadlocking if the databases are the same
+
         raise SchemaMismatch unless schemas_match?
 
         ActiveRecord::Base.transaction do

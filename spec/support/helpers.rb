@@ -1,9 +1,35 @@
 def in_ghost_mode(&block)
   context 'in ghost mode' do
-    before { Rails.configuration.x.stagehand.ghost_mode = true }
-    after { Rails.configuration.x.stagehand.ghost_mode = false }
-
+    use_configuration(:ghost_mode => true)
     instance_exec(&block)
+  end
+end
+
+def use_configuration(new_configuration, &block)
+  around do |example|
+    with_configuration(new_configuration) do
+      example.run
+    end
+  end
+end
+
+def with_configuration(new_configuration, &block)
+  old_configuration = set_configuration(new_configuration)
+  block.call
+
+ensure
+  set_configuration(old_configuration)
+end
+
+def set_configuration(new_configuration)
+  {}.tap do |old_configuration|
+    new_configuration.each do |option, value|
+      old_configuration[option] = Rails.configuration.x.stagehand.send("#{option}")
+      Rails.configuration.x.stagehand.send("#{option}=", value)
+    end
+
+    Stagehand::Database::ProductionProbe.init_connection
+    Stagehand::Database::StagingProbe.init_connection
   end
 end
 
