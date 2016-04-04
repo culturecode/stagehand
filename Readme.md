@@ -279,5 +279,10 @@ that record.
 creation. This won't affect the behaviour of the app other than causing changes in those `:stagehand => false` tables to
 be copied to the production database when syncing.
 
+- CommitEntry#record loads the record associated with the commit entry. However, only the table name and the record id
+are saved in the entry, so the actual record class is inferred from the table_name. If multiple classes share the same
+table_name, the first one is chosen. This may lead to unexpected behaviour if anything other than the record attributes
+are being used.
+
 ## TODO
 Add a way to detect "dangling" start commits
