@@ -236,6 +236,30 @@ If the two databases have different schema versions, a `Stagehand::SchemaMismatc
 to sync.
 
 
+## Error Detection
+
+In order to achieve minimal impact on the normal operation of the app, Stagehand does not wrap Commits in a transaction.
+This means if the app terminates unexpectedly, the entries that make up a Stagehand::Commit may not have been finalized
+or even all exist. Stagehand is designed to limit the impact of such errors on normal logging and syncing behaviour,
+however it is also possible to detect these incomplete commits so as to correct the issue manually. It is recommended
+that the Auditor be added to a Rake task that at an appropriate time, e.g. nightly, at startup, or if the system detects
+an unexpected termination.
+
+```ruby
+incomplete_commits = Stagehand::Staging::Auditor.incomplete_commits #=> { 1 => [start, insert], 13 => [start, end] }
+```
+
+The Auditor's `incomplete_commits` method returns a hash where the keys are the commit id and the values are the entries
+that are part of the incomplete commit. These entries can be synced manually if desired:
+
+```ruby
+Stagehand::Staging::Synchronizer.sync_record(incomplete_commits[13]) # Syncs commit 13
+```
+
+Be aware that sync_record will still search the database for related commits that must also be synced to maintain
+database consistency. See [Previewing Changes](#previewing-changes).
+
+
 ## Removing Stagehand
 
 To stop monitoring a table for changes:
