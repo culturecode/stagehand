@@ -1,6 +1,6 @@
-## Stagehand
+## Stagehand [![Gem Version](https://badge.fury.io/rb/culturecode_stagehand.svg)](https://badge.fury.io/rb/culturecode_stagehand)
 
-By [Culture Code](http://culturecode.ca/).
+By [Culture Code](http://culturecode.ca/). 
 
 **Stagehand** is a gem that makes it easy to have a staging database where content editors can modify highly relational
 data, and then publish those changes to a production database. It aims to solve the problem of being able to publish
