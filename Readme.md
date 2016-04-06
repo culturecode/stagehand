@@ -18,6 +18,11 @@ Key features:
 - Allows published content to be edited without those changes immediately being seen by visitors
 - Can selectively update content without needing to sync the entire database with production
 
+## Compatibility
+
+Stagehand currently supports MySQL, but could easily be adapted to work on multiple databases by modifying the database
+triggers and session identification code.
+
 ## Setup
 1. Add **Stagehand** to your Gemfile:
 
