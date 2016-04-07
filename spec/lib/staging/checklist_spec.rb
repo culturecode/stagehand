@@ -116,6 +116,59 @@ describe Stagehand::Staging::Checklist do
     end
   end
 
+  describe '::associated_records' do
+    let(:record_1) { SourceRecord.create }
+    let(:record_2) { SourceRecord.create }
+    let(:record_3) { SourceRecord.create }
+
+    context "when another record was created outside outside of a commit" do
+      before { record_2 }
+
+      it 'includes the record if assigned during the commit via to a Has Many Through' do
+        commit = Stagehand::Staging::Commit.capture { record_1.targets << record_2 }
+        expect(klass.associated_records(commit.entries)).to include(record_2)
+      end
+
+      it 'includes the record if assigned during the commit via to a Has Many' do
+        commit = Stagehand::Staging::Commit.capture { record_2.target_assignments.create }
+        expect(klass.associated_records(commit.entries)).to include(record_2)
+      end
+
+      it 'includes the record if assigned during the commit via to a Belongs To' do
+        commit = Stagehand::Staging::Commit.capture { TargetAssignment.create(:target => record_2) }
+        expect(klass.associated_records(commit.entries)).to include(record_2)
+      end
+
+      it 'includes the record if assigned during the commit via to a polymorphic association' do
+        commit = Stagehand::Staging::Commit.capture { record_1.update_attributes!(:attachable => record_2) }
+        expect(klass.associated_records(commit.entries)).to include(record_2)
+      end
+    end
+
+    it 'does not return nil entries if passed an entry without a record' do
+      commit = Stagehand::Staging::Commit.capture {}
+      expect(klass.associated_records(commit.entries)).not_to include(nil)
+    end
+
+    it 'does not return duplicate records if entries for the same record are passed' do
+      commit = Stagehand::Staging::Commit.capture { record_1.targets << record_2; record_1.target_assignments.last.touch }
+      associated_records = klass.associated_records(commit.entries)
+      expect(associated_records.uniq).to eq(associated_records)
+    end
+
+    it 'does not return duplicate records if separate records are assocatied with the same record' do
+      commit = Stagehand::Staging::Commit.capture { record_1.targets << record_2; record_3.targets << record_2 }
+      associated_records = klass.associated_records(commit.entries)
+      expect(associated_records.uniq).to eq(associated_records)
+    end
+
+    it 'does not include entries for tables that do not exist in production' do
+      user = User.new
+      commit = Stagehand::Staging::Commit.capture { record_1.update_attributes!(:user => user) }
+      expect(klass.associated_records(commit.entries)).not_to include(user)
+    end
+  end
+
   describe '#affected_records' do
     it 'returns the given record with commit entries even if it has no related commits' do
       expect(subject.affected_records).to include(source_record)
@@ -158,6 +211,19 @@ describe Stagehand::Staging::Checklist do
 
       records = subject.affected_records.to_a
       expect { records.uniq! }.not_to change { records.length }
+    end
+
+    it 'returns records from associated_records' do
+      record_2 = SourceRecord.create
+      commit_1 = Stagehand::Staging::Commit.capture { source_record.targets << record_2 }
+      expect(subject.affected_records).to include(record_2)
+    end
+
+    it 'returns records spidered through associated_records' do
+      record_2 = SourceRecord.create
+      commit_1 = Stagehand::Staging::Commit.capture { source_record.targets << record_2 }
+
+      expect(subject.affected_records).to include(record_2)
     end
   end
 
@@ -213,6 +279,19 @@ describe Stagehand::Staging::Checklist do
       end
 
       expect(subject.affected_entries).to include(entry)
+    end
+
+    it 'does not explode if a related record has an empty Belongs To association' do
+      Stagehand::Staging::Commit.capture(source_record) { TargetAssignment.create }
+      expect { subject.affected_entries }.not_to raise_exception
+    end
+
+    it 'does not return entries for records that no longer exist in either database' do
+      other_record = SourceRecord.create
+      Stagehand::Staging::Commit.capture { source_record.targets << other_record }
+      other_record.destroy
+
+      expect(subject.affected_entries).not_to include(Stagehand::Staging::CommitEntry.matching other_record)
     end
   end
 

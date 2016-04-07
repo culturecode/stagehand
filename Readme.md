@@ -1,6 +1,6 @@
 ## Stagehand [![Gem Version](https://badge.fury.io/rb/culturecode_stagehand.svg)](https://badge.fury.io/rb/culturecode_stagehand)
 
-By [Culture Code](http://culturecode.ca/). 
+By [Culture Code](http://culturecode.ca/).
 
 **Stagehand** is a gem that makes it easy to have a staging database where content editors can modify highly relational
 data, and then publish those changes to a production database. It aims to solve the problem of being able to publish
@@ -116,6 +116,7 @@ records in the staging database need to be synchronized to the production databa
 necessary to perform more advanced syncing operations.
 
 ### Staging Changes
+
 To prevent modifications from being synced to the database without user confirmation, you can wrap blocks of changes in
 a Commit. This bundles the changes together and forces them to be synchronized manually. The typical usecase for this is
 in a controller action like create or update.
@@ -141,10 +142,10 @@ what additional records to sync when syncing a specific record. For instance, if
 record in the process, the commit will ensure that manual syncing copies both the new record and the updated record.
 
 ### Previewing Changes
-If a commit contains multiple records, and other commits contain any of those records, they too will need to be synced
-to maintain database consistency on production. To resolve all the interconnectedness between commits, and make it
-simple to sync a record and changes to all affected records, use the Checklist to determine which records will be
-synced, and which changes should be confirmed by the user.
+
+Before syncing changes to the production database, it's a good idea to review what records will be copied in order to
+maintain consistency while avoiding the need to copy the entire database. Use the Checklist to see what records should
+be reviewed before syncing.
 
 ```ruby
   checklist = Stagehand::Staging::Checklist.new(subject_record)
@@ -154,6 +155,37 @@ synced, and which changes should be confirmed by the user.
   checklist.confirm_update #=> Requires Confirmation records that will be updated in the production database
   checklist.confirm_delete #=> Requires Confirmation records that will be deleted in the production database
 ```
+
+To determine which records are related to the subject record, two methods of detection are used:
+
+#### Related Records
+
+If a commit contains multiple records, and other commits contain any of those records, they too will need to be synced
+to maintain database consistency on production. To resolve all the interconnectedness between commits, and make it
+simple to sync a record and changes to all affected records, use the Checklist to determine which records will be
+synced, and which changes should be confirmed by the user.
+
+In addition to records that were modified during related commits, other common operations are taken into account when
+previewing changes.
+
+#### Associated Records
+
+If during a commit a record is saved and another record is assigned to it via a `has many :through` association, the
+commit will contain an entry for the creation of the `:through` record that associates the two records. However, since
+the record at the end of the through association was not modified during the commit, it will not be contained in the
+commit.
+
+| **Commit**               | **Uncontained**    |
+|:-------------------------|:------------------:|     
+|                          | Create - Vehicle 1 |
+| Update - User 1          |                    |
+| Create - ThroughRecord 1 |                    |
+
+To work around this issue, the Checklist includes all `belongs_to` associations of records in the commit when detecting
+what records need to be synced. In this case, ThroughRecord 1 has two `belongs_to` associations, one that points at the
+User, and one that points at the Vehicle. Both of those records are then used to detect additional related records. This
+ensures that if a record is published with a foreign key to another record, the association will not be orphaned if the
+associated record does not already exist in the production database.
 
 ### Syncing Changes Manually
 

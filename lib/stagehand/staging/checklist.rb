@@ -1,6 +1,9 @@
 module Stagehand
   module Staging
     class Checklist
+      extend Cache
+      include Cache
+
       def self.related_commits(commit)
         Commit.find(related_commit_ids(commit))
       end
@@ -34,10 +37,67 @@ module Stagehand
         return related_entries
       end
 
+      def self.associated_records(entries)
+        records = preload_records(compact_entries(entries)).select(&:record).flat_map do |entry|
+          associated_associations(entry.record_class).flat_map do |association|
+            entry.record.send(association)
+          end
+        end
+
+        records.uniq!
+        records.compact!
+        records.select! {|record| stagehand_class?(record.class) }
+
+        return records
+      end
+
+      # Returns a list of entries that only includes a single entry for each record.
+      # The type of entry chosen prioritizes creates over updates, and deletes over creates.
+      def self.compact_entries(entries)
+        compact_entries = group_entries(entries)
+        compact_entries = compact_entries[:delete] + compact_entries[:insert] + compact_entries[:update]
+        compact_entries.uniq!(&:key)
+
+        return compact_entries
+      end
+
+      # Groups entries by their operation
+      def self.group_entries(entries)
+        group_entries = Hash.new {|h,k| h[k] = [] }
+        group_entries.merge! entries.group_by(&:operation).symbolize_keys!
+
+        return group_entries
+      end
+
+      def self.preload_records(entries)
+        entries.group_by(&:table_name).each do |table_name, group_entries|
+          klass = CommitEntry.infer_class(table_name)
+          records = klass.where(:id => group_entries.collect(&:record_id))
+          records = records.includes(associated_associations(klass))
+          records_by_id = records.collect {|r| [r.id, r] }.to_h
+          group_entries.each do |entry|
+            entry.record = records_by_id[entry.record_id]
+          end
+        end
+
+        return entries
+      end
+
+      private
+
+      def self.associated_associations(klass)
+        cache("#{klass.name}_associated_associations") { klass.reflect_on_all_associations(:belongs_to).collect(&:name) }
+      end
+
+      def self.stagehand_class?(klass)
+        cache("#{klass.name}_stagehand_class?") { Schema.has_stagehand?(klass.table_name) }
+      end
+
+      public
+
       def initialize(subject, &confirmation_filter)
         @subject = subject
         @confirmation_filter = confirmation_filter
-        @cache = {}
         affected_entries # Init the affected_entries changes can be rolled back without affecting the checklist
       end
 
@@ -64,7 +124,7 @@ module Stagehand
       end
 
       def syncing_entries
-        cache(:syncing_entries) { compact_entries(affected_entries) }
+        cache(:syncing_entries) { self.class.compact_entries(affected_entries) }
       end
 
       def affected_records
@@ -72,7 +132,13 @@ module Stagehand
       end
 
       def affected_entries
-        cache(:affected_entries) { self.class.related_entries(@subject) }
+        cache(:affected_entries) do
+          related = self.class.related_entries(@subject)
+          associated = self.class.associated_records(related)
+          associated_related = self.class.related_entries(associated)
+
+          related + associated_related
+        end
       end
 
       private
@@ -89,58 +155,14 @@ module Stagehand
           # Don't need to confirm entries that were not part of a commit
           entries = entries.select(&:commit_id)
 
-          entries = compact_entries(entries)
-          entries = preload_records(entries)
+          entries = self.class.compact_entries(entries)
           entries = filter_entries(entries)
-          entries = group_entries(entries)
+          entries = self.class.group_entries(entries)
         end
       end
 
       def filter_entries(entries)
         @confirmation_filter ? entries.select {|entry| @confirmation_filter.call(entry.record) } : entries
-      end
-
-      # Returns a list of entries that only includes a single entry for each record.
-      # The type of entry chosen prioritizes creates over updates, and deletes over creates.
-      def compact_entries(entries)
-        compact_entries = group_entries(entries)
-        compact_entries = compact_entries[:delete] + compact_entries[:insert] + compact_entries[:update]
-        compact_entries.uniq!(&:key)
-
-        return compact_entries
-      end
-
-      # Groups entries by their operation
-      def group_entries(entries)
-        group_entries = Hash.new {|h,k| h[k] = [] }
-        group_entries.merge! entries.group_by(&:operation).symbolize_keys!
-
-        return group_entries
-      end
-
-      def preload_records(entries)
-        entries.group_by(&:table_name).each do |table_name, group_entries|
-          klass = CommitEntry.infer_class(table_name)
-          records = klass.where(:id => group_entries.collect(&:record_id))
-          records_by_id = records.collect {|r| [r.id, r] }.to_h
-          group_entries.each do |entry|
-            entry.record = records_by_id[entry.record_id]
-          end
-        end
-
-        return entries
-      end
-
-      def cache(key, &block)
-        if @cache.key?(key)
-          @cache[key]
-        else
-          @cache[key] = block.call
-        end
-      end
-
-      def clear_cache
-        @cache.clear
       end
     end
   end
