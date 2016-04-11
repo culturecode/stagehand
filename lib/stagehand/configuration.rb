@@ -9,11 +9,11 @@ module Stagehand
     extend self
 
     def staging_connection_name
-      Rails.configuration.x.stagehand.staging_connection_name || Rails.env.to_sym || raise(StagingConnectionNameNotSet)
+      Rails.configuration.x.stagehand.staging_connection_name || Rails.env.to_sym
     end
 
     def production_connection_name
-      Rails.configuration.x.stagehand.production_connection_name || raise(ProductionConnectionNameNotSet)
+      Rails.configuration.x.stagehand.production_connection_name || Rails.env.to_sym
     end
 
     def ghost_mode?
@@ -26,8 +26,4 @@ module Stagehand
       staging_connection_name == production_connection_name
     end
   end
-
-  # EXCEPTIONS
-  class StagingConnectionNameNotSet < StandardError; end
-  class ProductionConnectionNameNotSet < StandardError; end
 end
