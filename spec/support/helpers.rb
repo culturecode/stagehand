@@ -15,9 +15,7 @@ end
 
 def with_configuration(new_configuration, &block)
   old_configuration = set_configuration(new_configuration)
-  block.call
-
-ensure
+  block.call rescue nil
   set_configuration(old_configuration)
 end
 
