@@ -9,7 +9,7 @@ module Stagehand
     extend self
 
     def staging_connection_name
-      Rails.configuration.x.stagehand.staging_connection_name || raise(StagingConnectionNameNotSet)
+      Rails.configuration.x.stagehand.staging_connection_name || Rails.env.to_sym || raise(StagingConnectionNameNotSet)
     end
 
     def production_connection_name

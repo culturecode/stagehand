@@ -40,7 +40,6 @@ Rails.application.configure do
   # Raises error for missing translations
   # config.action_view.raise_on_missing_translations = true
 
-  # Stagehand database connections
-  config.x.stagehand.staging_connection_name = :staging
+  # Stagehand database connection
   config.x.stagehand.production_connection_name = :production
 end

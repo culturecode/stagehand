@@ -9,8 +9,8 @@ describe Stagehand::Configuration do
     end
 
     it 'returns the value from the Rails custom configuration variable stagehand.production_connection_name' do
-      expect { Rails.configuration.x.stagehand.production_connection_name = 'test' }
-        .to change { subject.production_connection_name }.to('test')
+      expect { Rails.configuration.x.stagehand.production_connection_name = :bob }
+        .to change { subject.production_connection_name }.to(:bob)
     end
 
     it 'raises an exception when not set' do
@@ -27,13 +27,14 @@ describe Stagehand::Configuration do
     end
 
     it 'returns the value from the Rails custom configuration variable stagehand.staging_connection_name' do
-      expect { Rails.configuration.x.stagehand.staging_connection_name = 'test' }
-        .to change { subject.staging_connection_name }.to('test')
+      expect { Rails.configuration.x.stagehand.staging_connection_name = :bob }
+        .to change { subject.staging_connection_name }.to(:bob)
     end
 
-    it 'raises an exception when not set' do
-      Rails.configuration.x.stagehand.staging_connection_name = nil
-      expect { subject.staging_connection_name }.to raise_exception(Stagehand::StagingConnectionNameNotSet)
+    it 'defaults to the database.yml connection for the current Rails.env' do
+      Rails.configuration.x.stagehand.staging_connection_name = :bob
+      expect { Rails.configuration.x.stagehand.staging_connection_name = nil }
+        .to change { subject.staging_connection_name }.to(:test)
     end
   end
 

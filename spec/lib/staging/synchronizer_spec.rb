@@ -48,7 +48,8 @@ describe Stagehand::Staging::Synchronizer do
     end
 
     it 'does not deadlock when used in a transaction and staging and production databases are the same' do
-      with_configuration(:staging_connection_name => :staging, :production_connection_name => :staging) do
+      connection = Stagehand.configuration.staging_connection_name
+      with_configuration(:staging_connection_name => connection, :production_connection_name => connection) do
         ActiveRecord::Base.transaction do
           expect { subject.sync_record(source_record) }.not_to raise_exception
         end

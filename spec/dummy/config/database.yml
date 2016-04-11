@@ -13,10 +13,6 @@ test:
   <<: *default
   database: stagehand_staging
 
-staging:
-  <<: *default
-  database: stagehand_staging
-
 production:
   <<: *default
   database: stagehand_production
