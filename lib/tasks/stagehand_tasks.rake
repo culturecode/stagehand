@@ -14,3 +14,6 @@ namespace :stagehand do
     end
   end
 end
+
+# Enhance the regular db:migrate task to run the stagehand migration task so both stagehand databases are migrated
+Rake::Task['db:migrate'].enhance(['stagehand:migrate'])

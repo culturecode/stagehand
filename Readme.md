@@ -261,16 +261,9 @@ config.x.stagehand.ghost_mode = true
 
 ## Database Migrations
 
-Both staging and production databases need to be migrated to allow syncing to occur. A rake task to migrate both staging
-and production databases is included.
-
-```bash
-# at the command line
-rake stagehand:migrate
-```
-
-If the two databases have different schema versions, a `Stagehand::SchemaMismatch` exception will be raised when trying
-to sync.
+Both staging and production databases need to be migrated to allow syncing to occur. The default behaviour of db:migrate
+has been enhanced to migrate both staging and production databases. If the two databases have different schema versions,
+a `Stagehand::SchemaMismatch` exception will be raised when trying to sync.
 
 
 ## Error Detection
