@@ -40,6 +40,11 @@ def without_transactional_fixtures
   end
 
   after(:context) do
+    tables = ActiveRecord::Base.connection.tables
+    tables -= Stagehand::Schema::UNTRACKED_TABLES
+    tables.each do |table_name|
+      ActiveRecord::Base.connection.execute("DELETE FROM #{table_name}")
+    end
     self.use_transactional_fixtures = true
   end
 end
