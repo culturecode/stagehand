@@ -106,6 +106,34 @@ describe Stagehand::Staging::Synchronizer do
     end
   end
 
+  describe '::sync_all' do
+    before { Stagehand::Production.save(source_record) }
+    after { Stagehand::Production.delete(source_record) }
+
+    it 'syncs records that require confirmation' do
+      Stagehand::Staging::Commit.capture { source_record.increment!(:counter) }
+      expect{ subject.sync_all }.to change { Stagehand::Production.status(source_record) }.from(:modified).to(:not_modified)
+    end
+
+    it 'syncs records that do not require confirmation' do
+      source_record.increment!(:counter)
+      expect{ subject.sync_all }.to change { Stagehand::Production.status(source_record) }.from(:modified).to(:not_modified)
+    end
+
+    it 'does not attempt to sync a record twice if it has multiple entries' do
+      source_record.increment!(:counter)
+      expect(Stagehand::Production).to receive(:save).once
+      subject.sync_all
+    end
+
+    it 'deletes records that have been modified and then deleted' do
+      source_record.increment!(:counter)
+      source_record.delete
+      expect{ subject.sync_all }.to change { Stagehand::Production.status(source_record) }.from(:modified).to(:new)
+    end
+
+  end
+
   describe '::sync_now' do
     it 'requires a block' do
       expect { subject.sync_now }.to raise_exception(Stagehand::SyncBlockRequired)

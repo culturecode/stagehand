@@ -18,13 +18,27 @@ module Stagehand
         scope = autosyncable_entries.limit(1000)
 
         loop do
-          puts "Synced #{sync_entries(scope.reload)} entries"
+          Rails.logger.info "Synced #{sync_entries(scope.reload)} entries"
           sleep(delay) if delay
         end
       end
 
-      def sync
-        sync_entries(autosyncable_entries.limit(1000))
+      def sync(limit = nil)
+        sync_entries(autosyncable_entries.limit(limit))
+      end
+
+      def sync_all
+        loop do
+          entries = CommitEntry.order(:id => :desc).limit(1000).to_a
+          break unless entries.present?
+
+          latest_entries = entries.uniq(&:key)
+          sync_entries(latest_entries)
+          Rails.logger.info "Synced #{latest_entries.count} entries"
+
+          deleted_count = CommitEntry.matching(latest_entries).delete_all
+          Rails.logger.info "Removed #{deleted_count - latest_entries.count} stale entries"
+        end
       end
 
       # Copies all the affected records from the staging database to the production database
@@ -46,7 +60,7 @@ module Stagehand
 
         ActiveRecord::Base.transaction do
           entries.each do |entry|
-            Rails.logger.info "Synchronizing #{entry.table_name} #{entry.record_id}"
+            Rails.logger.info "Synchronizing #{entry.table_name} #{entry.record_id}" if entry.content_operation?
             if entry.delete_operation?
               Stagehand::Production.delete(entry)
             elsif entry.save_operation?

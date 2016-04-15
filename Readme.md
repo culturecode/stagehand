@@ -206,6 +206,16 @@ end
 Stagehand::Staging::Synchronizer.sync_record(record)
 ```
 
+To sync all changes regardless of whether confirmation is required, use the following commands:
+
+```bash
+rake stagehand:sync_all # Will sync all records and then exit
+```
+
+```ruby
+Stagehand::Staging::Synchronizer.sync_all
+```
+
 ### Syncing Changes Automatically
 
 In addition to manually syncing records that require confirmation, you can set up automated synchronization of records
@@ -213,6 +223,8 @@ that don't require user confirmation. The Synchronizer polls the database to che
 
 ```bash
 # Syncing can be handled at the command line using a rake task
+rake stagehand:sync # Will sync records and then exit (can be use for scheduled syncs)
+rake stagehand:sync[1000] # Will sync a 1000 entries and then exit
 rake stagehand:auto_sync
 rake stagehand:auto_sync[10] # Override default polling delay of 5 seconds
 ```
@@ -258,6 +270,8 @@ You can enable ghost mode in the environment
 # In your production.rb, development.rb, etc...
 config.x.stagehand.ghost_mode = true
 ```
+
+
 
 ## Database Migrations
 

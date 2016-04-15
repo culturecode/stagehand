@@ -4,6 +4,16 @@ namespace :stagehand do
     Stagehand::Staging::Synchronizer.auto_sync(args[:delay] ||= 5.seconds)
   end
 
+  desc "Syncs records that don't need confirmation to production"
+  task :sync, [:limit] => :environment do |t, args|
+    Stagehand::Staging::Synchronizer.sync(args[:limit])
+  end
+
+  desc "Syncs all records to production, including those that require confirmation"
+  task :sync_all, :environment do
+    Stagehand::Staging::Synchronizer.sync_all
+  end
+
   desc "Migrate both databases used by stagehand"
   task :migrate => :environment do
     [Rails.configuration.x.stagehand.staging_connection_name,
