@@ -5,22 +5,22 @@ module Stagehand
     extend self
 
     # Outputs a symbol representing the status of the staging record as it exists in the production database
-    def status(staging_record)
-      if !exists?(staging_record)
+    def status(staging_record, table_name = nil)
+      if !exists?(staging_record, table_name)
         :new
-      elsif modified?(staging_record)
+      elsif modified?(staging_record, table_name)
         :modified
       else
         :not_modified
       end
     end
 
-    def save(staging_record)
-      attributes = staging_record_attributes(staging_record)
+    def save(staging_record, table_name = nil)
+      attributes = staging_record_attributes(staging_record, table_name)
 
       return unless attributes.present?
 
-      is_new = lookup(staging_record).update_all(attributes).zero?
+      is_new = lookup(staging_record, table_name).update_all(attributes).zero?
 
       # Ensure we always return a record, even when updating instead of creating
       Record.new.tap do |record|
@@ -40,8 +40,8 @@ module Stagehand
     # Returns true if the staging record's attributes are different from the production record's attributes
     # Returns true if the staging_record does not exist on production
     # Returns false if the staging record is identical to the production record
-    def modified?(staging_record)
-      production_record_attributes(staging_record) != staging_record_attributes(staging_record)
+    def modified?(staging_record, table_name = nil)
+      production_record_attributes(staging_record, table_name) != staging_record_attributes(staging_record, table_name)
     end
 
     # Returns a scope that limits results any occurrences of the specified record.
@@ -59,8 +59,8 @@ module Stagehand
       Record.table_name = table_name
     end
 
-    def production_record_attributes(staging_record)
-      Record.connection.select_one(lookup(staging_record))
+    def production_record_attributes(staging_record, table_name = nil)
+      Record.connection.select_one(lookup(staging_record, table_name))
     end
 
     def staging_record_attributes(staging_record, table_name = nil)
