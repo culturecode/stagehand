@@ -33,8 +33,15 @@ module Stagehand
         keys = Array.wrap(object).collect {|entry| Stagehand::Key.generate(entry) }.compact
         sql = []
         interpolates = []
+        groups = keys.group_by(&:first)
 
-        keys.group_by(&:first).each do |table_name, keys|
+        # If passed control operation commit entries, ensure they are returned since their keys match the CommitEntry's primary key
+        if commit_entry_group = groups.delete(CommitEntry.table_name)
+          sql << 'id IN (?)'
+          interpolates << commit_entry_group.collect(&:last)
+        end
+
+        groups.each do |table_name, keys|
           sql << "(table_name = ? AND record_id IN (?))"
           interpolates << table_name
           interpolates << keys.collect(&:last)

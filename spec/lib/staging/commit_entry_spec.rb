@@ -29,6 +29,11 @@ describe Stagehand::Staging::CommitEntry do
       source_record
       expect(klass.matching(nil)).to be_empty
     end
+
+    it 'returns matching control operations' do
+      start_operation = klass.start_operations.create(:commit_id => 1)
+      end_operation = klass.end_operations.create(:commit_id => 1)
+      expect(klass.matching([start_operation, end_operation])).to include(start_operation, end_operation)
     end
   end
 
