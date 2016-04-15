@@ -24,7 +24,7 @@ describe Stagehand::Staging::Commit do
 
     it 'commits records that were updated' do
       source_record
-      commit = klass.capture { source_record.touch }
+      commit = klass.capture { source_record.increment!(:counter) }
       expect(commit).to include(source_record)
     end
 
@@ -87,7 +87,7 @@ describe Stagehand::Staging::Commit do
     end
 
     it 'returns commits that contain the given commit_entry when there is a matching entry with no commit' do
-      source_record.touch
+      source_record.increment!(:counter)
       expect(klass.containing(source_record)).to include(commit)
     end
 
@@ -103,7 +103,7 @@ describe Stagehand::Staging::Commit do
     end
 
     it 'returns update operations' do
-      commit = klass.capture { source_record.touch }
+      commit = klass.capture { source_record.increment!(:counter) }
       expect(commit.entries).to include( be_update_operation )
     end
 
@@ -113,12 +113,12 @@ describe Stagehand::Staging::Commit do
     end
 
     it 'returns start operations' do
-      commit = klass.capture { source_record.touch }
+      commit = klass.capture { source_record.increment!(:counter) }
       expect(commit.entries).to include( be_start_operation )
     end
 
     it 'returns end operations' do
-      commit = klass.capture { source_record.touch }
+      commit = klass.capture { source_record.increment!(:counter) }
       expect(commit.entries).to include( be_end_operation )
     end
   end
@@ -148,7 +148,7 @@ describe Stagehand::Staging::Commit do
     it 'records entries correctly if the transaction is contained in the capture block' do
       commit = klass.capture do
         ActiveRecord::Base.transaction do
-          source_record.touch
+          source_record.increment!(:counter)
         end
       end
 
@@ -158,7 +158,7 @@ describe Stagehand::Staging::Commit do
     it 'rollback removes entries if the transaction is contained in the capture block' do
       commit = klass.capture do
         ActiveRecord::Base.transaction do
-          source_record.touch
+          source_record.increment!(:counter)
           raise ActiveRecord::Rollback
         end
       end

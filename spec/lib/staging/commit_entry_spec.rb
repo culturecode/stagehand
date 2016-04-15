@@ -7,27 +7,28 @@ describe Stagehand::Staging::CommitEntry do
 
   describe '::matching' do
     it 'returns a list of entries that match the given source_record' do
-      expect(Stagehand::Staging::CommitEntry.matching(source_record)).to contain_exactly(subject)
+      expect(klass.matching(source_record)).to contain_exactly(subject)
     end
 
     it 'returns a list of entries that match the given CommitEntry' do
       other_entry = subject.dup
       other_entry.save
-      expect(Stagehand::Staging::CommitEntry.matching(subject)).to contain_exactly(subject, other_entry)
+      expect(klass.matching(subject)).to contain_exactly(subject, other_entry)
     end
 
     it 'returns a list of entries that match the given array of source records' do
-      expect(Stagehand::Staging::CommitEntry.matching([source_record])).to contain_exactly(subject)
+      expect(klass.matching([source_record])).to contain_exactly(subject)
     end
 
     it 'returns an empty array if given an empty array' do
       source_record
-      expect(Stagehand::Staging::CommitEntry.matching([])).to be_empty
+      expect(klass.matching([])).to be_empty
     end
 
     it 'returns an empty array if given a nil' do
       source_record
-      expect(Stagehand::Staging::CommitEntry.matching(nil)).to be_empty
+      expect(klass.matching(nil)).to be_empty
+    end
     end
   end
 

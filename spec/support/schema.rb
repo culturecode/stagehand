@@ -15,6 +15,7 @@ RSpec.configure do |config|
 
           create_table :source_records, :force => true do |t|
             t.string :name
+            t.integer :counter
             t.string :type
             t.references :user
             t.references :attachable, :polymorphic => true

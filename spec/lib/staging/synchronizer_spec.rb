@@ -27,7 +27,7 @@ describe Stagehand::Staging::Synchronizer do
     end
 
     it 'deletes all control entries for directly related commits' do
-      commit = Stagehand::Staging::Commit.capture { source_record.touch }
+      commit = Stagehand::Staging::Commit.capture { source_record.increment!(:counter) }
       subject.sync_record(source_record)
 
       expect(commit.entries.reload).to be_blank
@@ -35,8 +35,8 @@ describe Stagehand::Staging::Synchronizer do
 
     it 'deletes all control entries for indirectly related commits' do
       other_record = SourceRecord.create
-      Stagehand::Staging::Commit.capture { source_record.touch; other_record.touch }
-      commit = Stagehand::Staging::Commit.capture { other_record.touch }
+      Stagehand::Staging::Commit.capture { source_record.increment!(:counter); other_record.increment!(:counter) }
+      commit = Stagehand::Staging::Commit.capture { other_record.increment!(:counter) }
       subject.sync_record(source_record)
 
       expect(commit.entries.reload).to be_blank
@@ -59,48 +59,48 @@ describe Stagehand::Staging::Synchronizer do
 
   describe '::sync' do
     it 'syncs records with only entries that do not belong to a commit ' do
-      source_record.touch
+      source_record.increment!(:counter)
       expect { subject.sync }.to change { Stagehand::Production.status(source_record) }.to(:not_modified)
     end
 
     it 'does not sync records with entries that belong to a commit' do
-      Stagehand::Staging::Commit.capture { source_record.touch }
+      Stagehand::Staging::Commit.capture { source_record.increment!(:counter) }
       expect { subject.sync }.not_to change { Stagehand::Production.status(source_record) }
     end
 
     it 'does not sync records with entries that belong to commits in progress' do
       start_operation = Stagehand::Staging::CommitEntry.start_operations.create
-      source_record.touch
+      source_record.increment!(:counter)
       expect { subject.sync }.not_to change { Stagehand::Production.status(source_record) }
     end
 
     it 'does not sync records with entries that belong to a commit and also entries that do not' do
-      Stagehand::Staging::Commit.capture { source_record.touch }
-      source_record.touch
+      Stagehand::Staging::Commit.capture { source_record.increment!(:counter) }
+      source_record.increment!(:counter)
       expect { subject.sync }.not_to change { Stagehand::Production.status(source_record) }
     end
 
     it 'deletes records that have been updated and then deleted on staging' do
       Stagehand::Production.save(source_record)
-      source_record.touch
+      source_record.increment!(:counter)
       source_record.delete
       expect { subject.sync }.to change { Stagehand::Production.status(source_record) }.from(:modified).to(:new)
     end
 
     in_ghost_mode do
       it 'syncs records with only entries that do not belong to a commit ' do
-        source_record.touch
+        source_record.increment!(:counter)
         expect { subject.sync }.to change { Stagehand::Production.status(source_record) }.to(:not_modified)
       end
 
       it 'syncs records with entries that belong to a commit' do
-        Stagehand::Staging::Commit.capture { source_record.touch }
+        Stagehand::Staging::Commit.capture { source_record.increment!(:counter) }
         expect { subject.sync }.to change { Stagehand::Production.status(source_record) }.from(:new).to(:not_modified)
       end
 
       it 'syncs records with entries that belong to a commit and also entries that do not' do
-        Stagehand::Staging::Commit.capture { source_record.touch }
-        source_record.touch
+        Stagehand::Staging::Commit.capture { source_record.increment!(:counter) }
+        source_record.increment!(:counter)
         expect { subject.sync }.to change { Stagehand::Production.status(source_record) }.from(:new).to(:not_modified)
       end
     end
@@ -112,18 +112,18 @@ describe Stagehand::Staging::Synchronizer do
     end
 
     it 'immediately syncs records modified from within the block if they are not part of an existing commit' do
-      expect { subject.sync_now { source_record.touch } }
+      expect { subject.sync_now { source_record.increment!(:counter) } }
         .to change { Stagehand::Production.status(source_record) }.from(:new).to(:not_modified)
     end
 
     it 'does not sync records modified from within the block if they are part of an existing commit' do
-      Stagehand::Staging::Commit.capture { source_record.touch }
-      expect { subject.sync_now { source_record.touch } }.not_to change { Stagehand::Production.status(source_record) }
+      Stagehand::Staging::Commit.capture { source_record.increment!(:counter) }
+      expect { subject.sync_now { source_record.increment!(:counter) } }.not_to change { Stagehand::Production.status(source_record) }
     end
 
     it 'does not sync changes to records not modified in the block' do
       other_record = SourceRecord.create
-      expect { subject.sync_now { source_record.touch } }.not_to change { Stagehand::Production.status(other_record) }
+      expect { subject.sync_now { source_record.increment!(:counter) } }.not_to change { Stagehand::Production.status(other_record) }
     end
 
     it 'does not sync changes to a record that are made outside the block while the block is executing'
