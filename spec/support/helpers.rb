@@ -41,7 +41,7 @@ def without_transactional_fixtures
 
   after(:context) do
     tables = ActiveRecord::Base.connection.tables
-    tables -= Stagehand::Schema::UNTRACKED_TABLES
+    tables -= ['schema_migrations']
     tables.each do |table_name|
       ActiveRecord::Base.connection.execute("DELETE FROM #{table_name}")
     end
