@@ -14,8 +14,9 @@ module Stagehand
       require "stagehand/database"
       require "stagehand/controller_extensions"
       require "stagehand/staging"
-      require "stagehand/schema"
       require "stagehand/production"
+      require "stagehand/schema"
+      require 'stagehand/auditor'
     end
   end
 end

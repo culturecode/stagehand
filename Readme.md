@@ -282,6 +282,8 @@ a `Stagehand::SchemaMismatch` exception will be raised when trying to sync.
 
 ## Error Detection
 
+### Incomplete Commits
+
 In order to achieve minimal impact on the normal operation of the app, Stagehand does not wrap Commits in a transaction.
 This means if the app terminates unexpectedly, the entries that make up a Stagehand::Commit may not have been finalized
 or even all exist. Stagehand is designed to limit the impact of such errors on normal logging and syncing behaviour,
@@ -290,7 +292,7 @@ that the Auditor be added to a Rake task that at an appropriate time, e.g. night
 an unexpected termination.
 
 ```ruby
-incomplete_commits = Stagehand::Staging::Auditor.incomplete_commits #=> { 1 => [start, insert], 13 => [start, end] }
+incomplete_commits = Stagehand::Auditor.incomplete_commits #=> { 1 => [start, insert], 13 => [start, end] }
 ```
 
 The Auditor's `incomplete_commits` method returns a hash where the keys are the commit id and the values are the entries
@@ -303,6 +305,17 @@ Stagehand::Staging::Synchronizer.sync_record(incomplete_commits[13]) # Syncs com
 Be aware that sync_record will still search the database for related commits that must also be synced to maintain
 database consistency. See [Previewing Changes](#previewing-changes).
 
+### Mismatched Records
+
+If you suspect that some failure has left the staging and production databases out of sync, you can detect mismatched
+records as follows.
+
+```ruby
+Stagehand::Auditor.mismatched_records #=> { table name => { id => { :staging => [row data...], :production => [row_data...] } } }
+```
+
+Each mismatched record is grouped by table name and then by id, with `:staging` and `:production` containing the row
+data from their respective databases for comparison purposes.
 
 ## Removing Stagehand
 
