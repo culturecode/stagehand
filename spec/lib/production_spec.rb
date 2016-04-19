@@ -21,9 +21,9 @@ describe Stagehand::Production do
     end
   end
 
-  describe '::lookup' do
+  describe '::matching' do
     it 'returns an ActiveRecord::Relation' do
-      expect(subject.lookup(source_record)).to be_a(ActiveRecord::Relation)
+      expect(subject.matching(source_record)).to be_a(ActiveRecord::Relation)
     end
 
     it 'includes only production records that match the given staging record' do
@@ -31,11 +31,11 @@ describe Stagehand::Production do
       production_record_2 = subject.save(source_record)
       production_record_3 = subject.save(SourceRecord.create)
 
-      expect(subject.lookup(source_record)).to contain_exactly(production_record_2)
+      expect(subject.matching(source_record)).to contain_exactly(production_record_2)
     end
 
     it 'does not return records that have not been saved to the production database' do
-      expect(subject.lookup(source_record)).to be_empty
+      expect(subject.matching(source_record)).to be_empty
     end
   end
 

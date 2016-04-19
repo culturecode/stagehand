@@ -20,7 +20,7 @@ module Stagehand
 
       return unless attributes.present?
 
-      is_new = lookup(staging_record, table_name).update_all(attributes).zero?
+      is_new = matching(staging_record, table_name).update_all(attributes).zero?
 
       # Ensure we always return a record, even when updating instead of creating
       Record.new.tap do |record|
@@ -30,11 +30,11 @@ module Stagehand
     end
 
     def delete(staging_record, table_name = nil)
-      lookup(staging_record, table_name).delete_all
+      matching(staging_record, table_name).delete_all
     end
 
     def exists?(staging_record, table_name = nil)
-      lookup(staging_record, table_name).exists?
+      matching(staging_record, table_name).exists?
     end
 
     # Returns true if the staging record's attributes are different from the production record's attributes
@@ -44,9 +44,13 @@ module Stagehand
       production_record_attributes(staging_record, table_name) != staging_record_attributes(staging_record, table_name)
     end
 
+    def find(*args)
+      matching(*args).first
+    end
+
     # Returns a scope that limits results any occurrences of the specified record.
     # Record can be specified by passing a staging record, or an id and table_name.
-    def lookup(staging_record, table_name = nil)
+    def matching(staging_record, table_name = nil)
       table_name, id = Stagehand::Key.generate(staging_record, :table_name => table_name)
       prepare_to_modify(table_name)
       return Record.where(:id => id)
@@ -60,7 +64,7 @@ module Stagehand
     end
 
     def production_record_attributes(staging_record, table_name = nil)
-      Record.connection.select_one(lookup(staging_record, table_name))
+      Record.connection.select_one(matching(staging_record, table_name))
     end
 
     def staging_record_attributes(staging_record, table_name = nil)

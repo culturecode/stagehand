@@ -109,7 +109,7 @@ module Stagehand
       private
 
       def build_production_record
-        production_record = Stagehand::Production.lookup(record_id, table_name).first
+        production_record = Stagehand::Production.find(record_id, table_name)
         return unless production_record
 
         production_record = record_class.new(production_record.attributes)
