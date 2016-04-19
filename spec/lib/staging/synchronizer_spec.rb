@@ -106,6 +106,15 @@ describe Stagehand::Staging::Synchronizer do
       expect(commit_entry.class.where(:id => commit_entry)).not_to exist
     end
 
+    it 'stops syncing once the limit has been reached' do
+      record_1 = SourceRecord.create
+      record_2 = SourceRecord.create
+
+      subject.sync(1)
+      statuses = [record_1, record_2].collect {|record| Stagehand::Production.status(record) }
+
+      expect(statuses.count(:not_modified)).to eq(1)
+    end
 
     in_ghost_mode do
       it 'syncs records with only entries that do not belong to a commit ' do
