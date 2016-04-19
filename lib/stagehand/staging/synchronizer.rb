@@ -3,6 +3,8 @@ module Stagehand
     module Synchronizer
       extend self
 
+      BATCH_SIZE = 1000
+
       # Immediately attempt to sync the changes from the block if possible
       # The block is wrapped in a transaction to prevent changes to records while being synced
       def sync_now(&block)
@@ -14,22 +16,33 @@ module Stagehand
         end
       end
 
-      def auto_sync(delay = 5.seconds)
-        scope = autosyncable_entries.limit(1000)
-
+      def auto_sync(polling_delay = 5.seconds)
         loop do
-          Rails.logger.info "Synced #{sync_entries(scope.reload)} entries"
-          sleep(delay) if delay
+          sync(BATCH_SIZE)
+          sleep(polling_delay) if polling_delay
         end
       end
 
       def sync(limit = nil)
-        sync_entries(autosyncable_entries.limit(limit))
+        synced_count = 0
+        deleted_count = 0
+
+        iterate_autosyncable_entries do |entry|
+          sync_entries(entry)
+          synced_count += 1
+          deleted_count += CommitEntry.matching(entry).delete_all
+          break if synced_count == limit
+        end
+
+        Rails.logger.info "Synced #{synced_count} entries"
+        Rails.logger.info "Removed #{deleted_count} stale entries"
+
+        return synced_count
       end
 
       def sync_all
         loop do
-          entries = CommitEntry.order(:id => :desc).limit(1000).to_a
+          entries = CommitEntry.order(:id => :desc).limit(BATCH_SIZE).to_a
           break unless entries.present?
 
           latest_entries = entries.uniq(&:key)
@@ -55,8 +68,9 @@ module Stagehand
 
       def sync_entries(entries)
         return 0 if Configuration.single_connection? # Avoid deadlocking if the databases are the same
-
         raise SchemaMismatch unless schemas_match?
+
+        entries = Array.wrap(entries)
 
         ActiveRecord::Base.transaction do
           entries.each do |entry|
@@ -72,13 +86,28 @@ module Stagehand
         return entries.length
       end
 
-      def autosyncable_entries
-        if Configuration.ghost_mode?
-          CommitEntry
-        else
-          CommitEntry.where(:id =>
-            CommitEntry.select('MAX(id) AS id').content_operations.not_in_progress.group('record_id, table_name').having('count(commit_id) = 0'))
+      # Lazily iterate through millions of commit entries
+      # Returns commit entries in ID descending order
+      def iterate_autosyncable_entries(&block)
+        sessions = CommitEntry.order(:id => :desc).distinct.pluck(:session)
+        offset = 0
+
+        while sessions.present?
+          autosyncable_entries(:session => sessions.shift(30)).offset(offset).limit(BATCH_SIZE).each(&block)
+          offset += BATCH_SIZE
         end
+      end
+
+      # Returns commit entries in ID descending order
+      def autosyncable_entries(scope = nil)
+        entries = CommitEntry
+
+        unless Configuration.ghost_mode?
+          subquery = CommitEntry.content_operations.not_in_progress.group('record_id, table_name').having('count(commit_id) = 0').where(scope)
+          entries = entries.joins("JOIN (#{subquery.select('MAX(id) AS max_id').to_sql}) subquery ON id = max_id")
+        end
+
+        return entries.order(:id => :desc)
       end
 
       def schemas_match?

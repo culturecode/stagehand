@@ -87,6 +87,24 @@ describe Stagehand::Staging::Synchronizer do
       expect { subject.sync }.to change { Stagehand::Production.status(source_record) }.from(:modified).to(:new)
     end
 
+    it 'deletes synced entries' do
+      source_record
+      commit_entry = Stagehand::Staging::CommitEntry.last
+      subject.sync
+
+      expect(commit_entry.class.where(:id => commit_entry)).not_to exist
+    end
+
+    it 'deletes stale entries' do
+      source_record
+      commit_entry = Stagehand::Staging::CommitEntry.last
+      source_record.touch
+      subject.sync
+
+      expect(commit_entry.class.where(:id => commit_entry)).not_to exist
+    end
+
+
     in_ghost_mode do
       it 'syncs records with only entries that do not belong to a commit ' do
         source_record.increment!(:counter)
