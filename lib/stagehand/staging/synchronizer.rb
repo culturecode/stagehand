@@ -2,6 +2,7 @@ module Stagehand
   module Staging
     module Synchronizer
       extend self
+      mattr_accessor :schemas_match
 
       BATCH_SIZE = 1000
 
@@ -111,14 +112,14 @@ module Stagehand
       end
 
       def schemas_match?
-        return @schemas_match unless @schemas_match.nil?
+        return schemas_match unless schemas_match.nil?
 
         versions_scope = ActiveRecord::SchemaMigration.order(:version)
         staging_versions = Stagehand::Database.staging_connection.select_values(versions_scope)
         production_versions = Stagehand::Database.production_connection.select_values(versions_scope)
-        @schemas_match = staging_versions == production_versions
+        self.schemas_match = staging_versions == production_versions
 
-        return @schemas_match
+        return schemas_match
       end
     end
   end
