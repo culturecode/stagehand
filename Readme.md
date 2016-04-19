@@ -364,6 +364,3 @@ be copied to the production database when syncing.
 are saved in the entry, so the actual record class is inferred from the table_name. If multiple classes share the same
 table_name, the first one is chosen. This may lead to unexpected behaviour if anything other than the record attributes
 are being used.
-
-## TODO
-Add a way to detect "dangling" start commits
