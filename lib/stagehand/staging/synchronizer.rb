@@ -62,9 +62,49 @@ module Stagehand
 
       private
 
+      # Lazily iterate through millions of commit entries
+      # Returns commit entries in ID descending order
+      def iterate_autosyncable_entries(&block)
+        sessions = CommitEntry.order(:id => :desc).distinct.pluck(:session)
+        offset = 0
+
+        while sessions.present?
+          autosyncable_entries(:session => sessions.shift(30)).offset(offset).limit(BATCH_SIZE).each do |entry|
+            with_confirmed_autosyncability(entry, &block)
+          end
+          offset += BATCH_SIZE
+        end
+      end
+
+      # Executes the code in the block if the record referred to by the entry is in fact, autosyncable.
+      # This confirmation is used to guard against writes to the record that occur after loading an initial list of
+      # entries that are autosyncable, but before the record is actually synced. To prevent this, a lock on the record
+      # is acquired and then the record's autosync eligibility is rechecked before calling the block.
+      # NOTE: This method must be called from within a transaction
+      def with_confirmed_autosyncability(entry, &block)
+        ActiveRecord::Base.transaction do
+          CommitEntry.connection.execute("SELECT 1 FROM #{entry.table_name} WHERE id = #{entry.record_id}")
+          block.call(entry) if autosyncable_entries(:record_id => entry.record_id, :table_name => entry.table_name).exists?
+        end
+      end
+
+      # Returns commit entries in ID descending order
+      def autosyncable_entries(scope = nil)
+        entries = CommitEntry.content_operations.not_in_progress
+
+        unless Configuration.ghost_mode?
+          subquery = CommitEntry.group('record_id, table_name').having('count(commit_id) = 0').where(scope)
+          entries = entries.joins("JOIN (#{subquery.select('MAX(id) AS max_id').to_sql}) subquery ON id = max_id")
+        end
+
+        return entries.order(:id => :desc)
+      end
+
       def sync_checklist(checklist)
-        sync_entries(checklist.syncing_entries)
-        CommitEntry.delete(checklist.affected_entries)
+        ActiveRecord::Base.transaction do
+          sync_entries(checklist.syncing_entries)
+          CommitEntry.delete(checklist.affected_entries)
+        end
       end
 
       def sync_entries(entries)
@@ -73,42 +113,16 @@ module Stagehand
 
         entries = Array.wrap(entries)
 
-        ActiveRecord::Base.transaction do
-          entries.each do |entry|
-            Rails.logger.info "Synchronizing #{entry.table_name} #{entry.record_id}" if entry.content_operation?
-            if entry.delete_operation?
-              Stagehand::Production.delete(entry)
-            elsif entry.save_operation?
-              Stagehand::Production.save(entry)
-            end
+        entries.each do |entry|
+          Rails.logger.info "Synchronizing #{entry.table_name} #{entry.record_id}" if entry.content_operation?
+          if entry.delete_operation?
+            Stagehand::Production.delete(entry)
+          elsif entry.save_operation?
+            Stagehand::Production.save(entry)
           end
         end
 
         return entries.length
-      end
-
-      # Lazily iterate through millions of commit entries
-      # Returns commit entries in ID descending order
-      def iterate_autosyncable_entries(&block)
-        sessions = CommitEntry.order(:id => :desc).distinct.pluck(:session)
-        offset = 0
-
-        while sessions.present?
-          autosyncable_entries(:session => sessions.shift(30)).offset(offset).limit(BATCH_SIZE).each(&block)
-          offset += BATCH_SIZE
-        end
-      end
-
-      # Returns commit entries in ID descending order
-      def autosyncable_entries(scope = nil)
-        entries = CommitEntry
-
-        unless Configuration.ghost_mode?
-          subquery = CommitEntry.content_operations.not_in_progress.group('record_id, table_name').having('count(commit_id) = 0').where(scope)
-          entries = entries.joins("JOIN (#{subquery.select('MAX(id) AS max_id').to_sql}) subquery ON id = max_id")
-        end
-
-        return entries.order(:id => :desc)
       end
 
       def schemas_match?

@@ -133,6 +133,19 @@ describe Stagehand::Staging::Synchronizer do
         expect { subject.sync }.to change { Stagehand::Production.status(source_record) }.from(:new).to(:not_modified)
       end
     end
+
+    context 'when another connection is writing to records being synced' do
+      without_transactional_fixtures
+
+      it 'does not sync the record if an outside write makes a change to the record during the sync' do
+        # thread 1 initiates sync
+        # thread 1 finds list of entries that are autosyncable
+        # thread 2 modifies one of the records refered to in the list of entries
+        # thread 1 attempts to sync each of the entries in the list
+
+        # expect the changes to the modified record are not synced
+      end
+    end
   end
 
   describe '::sync_all' do
