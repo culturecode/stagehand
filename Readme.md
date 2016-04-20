@@ -364,3 +364,10 @@ be copied to the production database when syncing.
 are saved in the entry, so the actual record class is inferred from the table_name. If multiple classes share the same
 table_name, the first one is chosen. This may lead to unexpected behaviour if anything other than the record attributes
 are being used.
+
+- Syncing records that don't require confirmation is not protected against race conditions where the list of eligible
+records is determined, and then a change is made to one by another connection before it can be synced. In this situation
+transaction isolation is not achieved because the commit entries table is read, but the record that entries reference
+are not, so no locks are obtained on them that would otherwise prevent non-repeatable reads. This could be corrected by
+loading the entry's record during the transaction and then re-checking its eligibility for syncing now that cannot be
+modified outside of the current transaction.
