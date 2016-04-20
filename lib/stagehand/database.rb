@@ -12,12 +12,20 @@ module Stagehand
       current_connection_name == Configuration.staging_connection_name
     end
 
+    def production_connection
+      ProductionProbe.connection
+    end
+
     def staging_connection
       StagingProbe.connection
     end
 
-    def production_connection
-      ProductionProbe.connection
+    def production_database_name
+      database_name(Configuration.production_connection_name)
+    end
+
+    def staging_database_name
+      database_name(Configuration.staging_connection_name)
     end
 
     def with_connection(connection_name)
@@ -48,6 +56,9 @@ module Stagehand
       @@connection_name_stack.last
     end
 
+    def database_name(connection_name)
+      Rails.configuration.database_configuration[connection_name.to_s]['database']
+    end
 
     # CLASSES
 
