@@ -160,7 +160,6 @@ describe Stagehand::Staging::Synchronizer do
       source_record.delete
       expect{ subject.sync_all }.to change { Stagehand::Production.status(source_record) }.from(:modified).to(:new)
     end
-
   end
 
   describe '::sync_now' do
@@ -183,7 +182,6 @@ describe Stagehand::Staging::Synchronizer do
       expect { subject.sync_now { source_record.increment!(:counter) } }.not_to change { Stagehand::Production.status(other_record) }
     end
 
-
     context 'when multiple connections are modifying a record during the block' do
       without_transactional_fixtures
 
@@ -192,54 +190,73 @@ describe Stagehand::Staging::Synchronizer do
           subject.sync_now do
             @thread_1_syncing = true
             sleep
-            ActiveRecord::Base.connection.execute("UPDATE #{SourceRecord.table_name} SET counter = 1 WHERE id = #{source_record.id}")
-            @thread_1_modified_record = true
+            SourceRecord.find(source_record.id).update_columns(:counter => 1)
+            @thread_1_done = true
             sleep
           end
         end
       end
 
-      let(:thread_2) do
-        Thread.new do
-          ActiveRecord::Base.connection.execute("UPDATE #{SourceRecord.table_name} SET counter = 2 WHERE id = #{source_record.id}")
-          @thread_2_modified_record = true
-        end
-      end
-
       before do
-        source_record.update_column(:counter, 0)
+        source_record
         @thread_1_syncing = false
-        @thread_1_modified_record = false
-        @thread_2_modified_record = false
+        @thread_1_done = false
+        @thread_2_done = false
         thread_1
       end
 
-      it 'does not sync outside changes made before changes in the block' do
+      it 'syncs outside writes made before writes in the block' do
         sleep 0.1 while !@thread_1_syncing
-        thread_2
-        sleep 0.1 while !@thread_2_modified_record
+
+        thread_2 = Thread.new do
+          SourceRecord.find(source_record.id).update_columns(:name => 'Bob')
+          @thread_2_done = true
+        end
+
+        sleep 0.1 while !@thread_2_done
         thread_1.wakeup
         sleep 0.1 while thread_1.status != 'sleep'
         thread_1.wakeup
-        thread_1.join(1) || raise('Waited too long for Thread 1')
-        thread_2.join(1) || raise('Waited too long for Thread 2')
+        thread_1.join(1)
+        thread_2.join(1)
 
-        expect(source_record.reload).to have_attributes(:counter => 1)
-        expect(Stagehand::Production.find(source_record)).to have_attributes(:counter => 1)
+        expect(Stagehand::Production.find(source_record)).to have_attributes(:name => 'Bob')
       end
 
-      it 'does not sync outside changes made after changes in the block' do
+      it 'does not sync outside writes made after reads in the block' do
         sleep 0.1 while thread_1.status != 'sleep'
         thread_1.wakeup
-        sleep 0.1 while !@thread_1_modified_record
-        thread_2
-        sleep 0.1 while thread_1.status != 'sleep'
-        thread_1.wakeup
-        thread_1.join(1) || raise('Waited too long for Thread 1')
-        thread_2.join(1) || raise('Waited too long for Thread 2')
+        sleep 0.1 while !@thread_1_done
 
-        expect(source_record.reload).to have_attributes(:counter => 2)
-        expect(Stagehand::Production.find(source_record)).to have_attributes(:counter => 1)
+        thread_2 = Thread.new do
+          SourceRecord.find(source_record.id)
+          @thread_2_done = true
+        end
+
+        sleep 0.1 while thread_1.status != 'sleep'
+        thread_1.wakeup
+        thread_1.join(1)
+        thread_2.join(1)
+
+        expect(Stagehand::Production.find(source_record)).not_to have_attributes(:name => 'Bob')
+      end
+
+      it 'does not sync outside writes made after writes in the block' do
+        sleep 0.1 while thread_1.status != 'sleep'
+        thread_1.wakeup
+        sleep 0.1 while !@thread_1_done
+
+        thread_2 = Thread.new do
+          SourceRecord.find(source_record.id).update_columns(:name => 'Bob')
+          @thread_2_done = true
+        end
+
+        sleep 0.1 while thread_1.status != 'sleep'
+        thread_1.wakeup
+        thread_1.join(1)
+        thread_2.join(1)
+
+        expect(Stagehand::Production.find(source_record)).not_to have_attributes(:name => 'Bob')
       end
     end
   end
