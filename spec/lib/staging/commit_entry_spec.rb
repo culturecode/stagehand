@@ -37,6 +37,31 @@ describe Stagehand::Staging::CommitEntry do
     end
   end
 
+  describe '#record_class' do
+    subject { klass.last }
+    context 'on an entry referencing a table used by multiple models' do
+      it 'returns the class used to create the entry if it was a descendant STI model' do
+        record = STISourceRecord.create
+        expect(subject.record_class).to eq(record.class)
+      end
+
+      it 'returns the class used to create the entry if it was a root STI model' do
+        record = SourceRecord.create
+        expect(subject.record_class).to eq(record.class)
+      end
+
+      it 'returns the class used to create the entry if it was a root STI model' do
+        record = SourceRecord.create
+        expect(subject.record_class).to eq(record.class)
+      end
+
+      it 'raises an exception if the record class could not be determined from the table_name' do
+        entry = klass.create(:record_id => 1, :table_name => 'fake_table', :operation => :insert)
+        expect { subject.record_class }.to raise_exception(Stagehand::IndeterminateRecordClass)
+      end
+    end
+  end
+
   describe '#record' do
     context 'on an insert operation entry' do
       it 'returns the record represented by the row that triggered this entry' do
@@ -61,11 +86,6 @@ describe Stagehand::Staging::CommitEntry do
 
       it 'raises a read_only exception when saving' do
         expect { subject.record.save }.to raise_exception(ActiveRecord::ReadOnlyRecord)
-      end
-
-      it 'raises an exception if the record class could not be determined from the table_name' do
-        entry = klass.create(:record_id => 1, :table_name => 'fake_table', :operation => :insert)
-        expect { entry.record }.to raise_exception(Stagehand::IndeterminateRecordClass)
       end
     end
   end

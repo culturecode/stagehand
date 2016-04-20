@@ -50,10 +50,16 @@ module Stagehand
         return keys.present? ? where(sql.join(' OR '), *interpolates) : none
       end
 
-      def self.infer_class(table_name)
-        klass = ActiveRecord::Base.descendants.detect {|klass| klass.table_name == table_name && klass != Stagehand::Production::Record }
-        klass ||= table_name.classify.constantize # Try loading the class if it isn't loaded yet
+      def self.infer_class(table_name, record_id = nil)
+        classes = ActiveRecord::Base.descendants.select {|klass| klass.table_name == table_name }
+        classes.delete(Stagehand::Production::Record)
+        root_class = classes.first || table_name.classify.constantize # Try loading the class if it isn't loaded yet
 
+        if record_id && record = root_class.find_by_id(record_id)
+          klass = record.class
+        end
+
+        return klass || root_class
       rescue NameError
         raise(IndeterminateRecordClass, "Can't determine class from table name: #{table_name}")
       end
@@ -103,7 +109,7 @@ module Stagehand
       end
 
       def record_class
-        @record_class ||= self.class.infer_class(table_name)
+        @record_class ||= self.class.infer_class(table_name, record_id)
       end
 
       private
