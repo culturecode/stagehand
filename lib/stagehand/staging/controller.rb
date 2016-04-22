@@ -15,7 +15,9 @@ module Stagehand
 
       # Syncs the given record and all affected records to the production database
       def sync_record(record)
-        Stagehand::Staging::Synchronizer.sync_record(record)
+        record.run_callbacks :sync do
+          Stagehand::Staging::Synchronizer.sync_record(record)
+        end
       end
     end
   end

@@ -249,6 +249,11 @@ Stagehand::Staging::Synchronizer.sync_now do
 end
 ```
 
+## Callbacks
+
+Stagehand extends ActiveRecord::Base with `before_sync` and `after_sync` callbacks. You can use these callbacks as you
+would `before_save` and `after_save` callbacks to run code related to a sync.
+
 ## Ghost Mode
 
 Before rolling out the system to you users, it's a good idea to test that everything works as you'd expect. You can
