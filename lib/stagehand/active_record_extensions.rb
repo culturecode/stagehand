@@ -20,8 +20,12 @@ ActiveRecord::Base.class_eval do
         :class_name => Stagehand::Staging::CommitEntry,
         :foreign_key => :record_id
 
-      def stagehand_synced?
-        stagehand_commit_entries.blank?
+      def stagehand_synced?(options = {})
+        if options[:only_contained]
+          stagehand_commit_entries.contained.blank?
+        else
+          stagehand_commit_entries.blank?
+        end
       end
     end
   end
