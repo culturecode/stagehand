@@ -43,23 +43,23 @@ RSpec.configure do |config|
       end
     end
 
-    # Create the model
-    class SourceRecord < ActiveRecord::Base
-      belongs_to :user
-      belongs_to :attachable, :polymorphic => true
-      has_many :target_assignments
-      has_many :targets, through: :target_assignments
-    end
-
-    class STISourceRecord < SourceRecord; end
-
-    class TargetAssignment < ActiveRecord::Base
-      belongs_to :source_record
-      belongs_to :target, class_name: 'SourceRecord'
-    end
-
-    class User < ActiveRecord::Base; end
-
     ActiveRecord::Base.establish_connection(:test)
   end
 end
+
+# Create the model
+class SourceRecord < ActiveRecord::Base
+  belongs_to :user
+  belongs_to :attachable, :polymorphic => true
+  has_many :target_assignments
+  has_many :targets, through: :target_assignments
+end
+
+class STISourceRecord < SourceRecord; end
+
+class TargetAssignment < ActiveRecord::Base
+  belongs_to :source_record
+  belongs_to :target, class_name: 'SourceRecord'
+end
+
+class User < ActiveRecord::Base; end
