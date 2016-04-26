@@ -5,7 +5,7 @@ def in_ghost_mode(&block)
   end
 end
 
-def use_configuration(new_configuration, &block)
+def use_configuration(new_configuration)
   around do |example|
     with_configuration(new_configuration) do
       example.run
