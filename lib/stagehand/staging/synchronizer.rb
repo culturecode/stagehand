@@ -108,17 +108,20 @@ module Stagehand
       end
 
       def sync_entries(entries)
-        return 0 if Configuration.single_connection? # Avoid deadlocking if the databases are the same
         raise SchemaMismatch unless schemas_match?
 
         entries = Array.wrap(entries)
 
         entries.each do |entry|
-          Rails.logger.info "Synchronizing #{entry.table_name} #{entry.record_id}" if entry.content_operation?
-          if entry.delete_operation?
-            Stagehand::Production.delete(entry)
-          elsif entry.save_operation?
-            Stagehand::Production.save(entry)
+          run_sync_callbacks(entry) do
+            Rails.logger.info "Synchronizing #{entry.table_name} #{entry.record_id}" if entry.content_operation?
+            if Configuration.single_connection?
+              next # Avoid deadlocking if the databases are the same
+            elsif entry.delete_operation?
+              Stagehand::Production.delete(entry)
+            elsif entry.save_operation?
+              Stagehand::Production.save(entry)
+            end
           end
         end
 
@@ -134,6 +137,10 @@ module Stagehand
         self.schemas_match = staging_versions == production_versions
 
         return schemas_match
+      end
+
+      def run_sync_callbacks(entry, &block)
+        entry.record.run_callbacks(:sync, &block) if entry.record
       end
     end
   end

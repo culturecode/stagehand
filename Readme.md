@@ -253,6 +253,8 @@ end
 
 Stagehand extends ActiveRecord::Base with `before_sync` and `after_sync` callbacks. You can use these callbacks as you
 would `before_save` and `after_save` callbacks to run code related to a sync.
+NOTE: The only difference from typical ActiveRecord callbacks is that the callbacks are not run on the record instance
+being synced, but instead are run on a new instance reloaded from the database.
 
 ## Ghost Mode
 

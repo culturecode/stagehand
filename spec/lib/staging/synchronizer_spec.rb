@@ -276,4 +276,48 @@ describe Stagehand::Staging::Synchronizer do
       end
     end
   end
+
+  shared_examples_for 'sync callbacks' do
+    class SyncCallbackMock < SourceRecord
+      before_sync :before_sync_callback
+      after_sync :after_sync_callback
+
+      def before_sync_callback
+        self.name = 'before'
+        save!
+      end
+
+      def after_sync_callback
+        self.name << 'after'
+        save!
+      end
+    end
+
+    let(:record) { SyncCallbackMock.create(:name => 'mock') }
+
+    it 'runs :before_sync callback' do
+      subject.sync_record(record)
+      expect(record.reload.name).to include('before')
+    end
+
+    it 'runs :after_sync callback' do
+      subject.sync_record(record)
+      expect(record.reload.name).to include('after')
+    end
+  end
+
+  context 'in a multi-database configuration' do
+    it_behaves_like 'sync callbacks'
+  end
+
+  context 'in a single database configuration' do
+    connection = Stagehand.configuration.staging_connection_name
+    use_configuration(:staging_connection_name => connection, :production_connection_name => connection)
+
+    it_behaves_like 'sync callbacks'
+  end
+
+  in_ghost_mode do
+    it_behaves_like 'sync callbacks'
+  end
 end
