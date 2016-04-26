@@ -227,9 +227,12 @@ describe Stagehand::Staging::Synchronizer do
         end
 
         sleep 0.1 while !@thread_2_done
+
+        sleep 0.1 while thread_1.status != 'sleep'
         thread_1.wakeup
         sleep 0.1 while thread_1.status != 'sleep'
         thread_1.wakeup
+
         thread_1.join(1)
         thread_2.join(1)
 
