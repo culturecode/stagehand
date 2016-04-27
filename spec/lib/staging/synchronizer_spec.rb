@@ -202,10 +202,10 @@ describe Stagehand::Staging::Synchronizer do
         Thread.new do
           subject.sync_now do
             @thread_1_syncing = true
-            sleep
+            sleep 0.1 until @thread_1_wake_before_write
             SourceRecord.find(source_record.id).update_columns(:counter => 1)
             @thread_1_done = true
-            sleep
+            sleep 0.1 until @thread_1_wake_after_write
           end
         end
       end
@@ -213,64 +213,55 @@ describe Stagehand::Staging::Synchronizer do
       before do
         source_record
         @thread_1_syncing = false
+        @thread_1_wake_before_write = false
+        @thread_1_wake_after_write = false
         @thread_1_done = false
-        @thread_2_done = false
         thread_1
       end
 
       it 'syncs outside writes made before writes in the block' do
-        sleep 0.1 while !@thread_1_syncing
+        sleep 0.1 until @thread_1_syncing
 
         thread_2 = Thread.new do
           SourceRecord.find(source_record.id).update_columns(:name => 'Bob')
-          @thread_2_done = true
+          @thread_1_wake_before_write = true
+          @thread_1_wake_after_write = true
         end
 
-        sleep 0.1 while !@thread_2_done
-
-        sleep 0.1 while thread_1.status != 'sleep'
-        thread_1.wakeup
-        sleep 0.1 while thread_1.status != 'sleep'
-        thread_1.wakeup
-
-        thread_1.join(1)
-        thread_2.join(1)
+        thread_1.join(1) || fail('Timed out waiting for Thread 1')
+        thread_2.join(1) || fail('Timed out waiting for Thread 2')
 
         expect(Stagehand::Production.find(source_record)).to have_attributes(:name => 'Bob')
       end
 
-      it 'does not sync outside writes made after reads in the block' do
-        sleep 0.1 while thread_1.status != 'sleep'
-        thread_1.wakeup
-        sleep 0.1 while !@thread_1_done
+      it 'does not block external reads of records after they are written to in the block' do
+        @thread_1_wake_before_write = true
+        sleep 0.1 until @thread_1_done
 
         thread_2 = Thread.new do
           SourceRecord.find(source_record.id)
-          @thread_2_done = true
+          @thread_1_wake_after_write = true
         end
 
-        sleep 0.1 while thread_1.status != 'sleep'
-        thread_1.wakeup
-        thread_1.join(1)
-        thread_2.join(1)
+        thread_1.join(1) || fail('Timed out waiting for Thread 1')
+        thread_2.join(1) || fail('Timed out waiting for Thread 2')
 
         expect(Stagehand::Production.find(source_record)).not_to have_attributes(:name => 'Bob')
       end
 
       it 'does not sync outside writes made after writes in the block' do
-        sleep 0.1 while thread_1.status != 'sleep'
-        thread_1.wakeup
-        sleep 0.1 while !@thread_1_done
+        @thread_1_wake_before_write = true
+        sleep 0.1 until @thread_1_done
 
         thread_2 = Thread.new do
           SourceRecord.find(source_record.id).update_columns(:name => 'Bob')
-          @thread_2_done = true
         end
 
-        sleep 0.1 while thread_1.status != 'sleep'
-        thread_1.wakeup
-        thread_1.join(1)
-        thread_2.join(1)
+        sleep 0.1 until thread_2.status == 'sleep' # NOTE: This condition assumes thread_2 only sleeps while waiting for the lock on source_record
+        @thread_1_wake_after_write = true
+
+        thread_1.join(1) || fail('Timed out waiting for Thread 1')
+        thread_2.join(1) || fail('Timed out waiting for Thread 2')
 
         expect(Stagehand::Production.find(source_record)).not_to have_attributes(:name => 'Bob')
       end
