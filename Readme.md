@@ -347,7 +347,8 @@ If you need to completely remove Stagehand from your app:
 
 ## Possible Caveats to double check when development is complete
 - Transactions blocks don't expect multiple connections to be operating within them, so if a transaction fails while
-writing content to multiple databases, only the connection that started the transaction will roll back.
+writing content to multiple databases, only the connection that started the transaction will roll back. This could be
+corrected by starting a transaction using the ProductionRecord while writing.
 
 - Connections to each database are performed in an around filter that wraps each controller action. The filter is
 prepended to reduce the chance any other code accesses the database before a connection to the desired database is made.
