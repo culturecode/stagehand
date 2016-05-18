@@ -11,6 +11,13 @@ module Stagehand
 
         Schema.add_stagehand! :only => table_name
       end
+
+      def rename_table(old_table_name, new_table_name, *)
+        Schema.remove_stagehand!(:only => old_table_name)
+        super
+        Schema.add_stagehand!(:only => new_table_name)
+        Staging::CommitEntry.where(:table_name => old_table_name).update_all(:table_name => new_table_name)
+      end
     end
   end
 end

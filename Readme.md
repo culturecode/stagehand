@@ -286,6 +286,15 @@ Both staging and production databases need to be migrated to allow syncing to oc
 has been enhanced to migrate both staging and production databases. If the two databases have different schema versions,
 a `Stagehand::SchemaMismatch` exception will be raised when trying to sync.
 
+### create_table
+In order to minimize the chance new tables are not tracked for changes, the `create_table` schema migration method
+is extended to automatically call `add_stagehand!` on the new table.
+
+### rename_table
+In order to ensure that change tracking triggers are not left recording the wrong table name after the table is renamed,
+the `rename_table` schema migration method is extended to automatically `remove_stagehand!``
+
+
 
 ## Error Detection
 
