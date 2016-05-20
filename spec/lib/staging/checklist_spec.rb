@@ -418,5 +418,10 @@ describe Stagehand::Staging::Checklist do
       Stagehand::Staging::Commit.capture(source_record) { SourceRecord.create }
       expect(subject.requires_confirmation).not_to include(source_record)
     end
+
+    it 'does not return records that were passed in as the subject of the checklist' do
+      Stagehand::Staging::Commit.capture { source_record.increment!(:counter) }
+      expect(subject.requires_confirmation).not_to include(source_record)
+    end
   end
 end

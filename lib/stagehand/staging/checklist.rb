@@ -149,11 +149,16 @@ module Stagehand
             entry.start_operation? && entry.matches?(@subject)
           end.collect(&:id)
 
-          # Don't need to confirm entries that were part of a commits kicked off by the staging record
-          entries = affected_entries.reject {|entry| staging_record_start_operation_ids.include?(entry.commit_id) }
+          entries = affected_entries
+
+          # Don't need to confirm entries that match the checklist subject
+          entries.reject! {|entry| entry.matches?(@subject) }
+
+          # Don't need to confirm entries that are part of a commits whose subject is the checklist subject
+          entries.reject! {|entry| staging_record_start_operation_ids.include?(entry.commit_id) }
 
           # Don't need to confirm entries that were not part of a commit
-          entries = entries.select(&:commit_id)
+          entries.select!(&:commit_id)
 
           entries = self.class.compact_entries(entries)
           entries = filter_entries(entries)
