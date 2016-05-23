@@ -15,17 +15,13 @@ ActiveRecord::Base.class_eval do
     super
 
     subclass.class_eval do
-      has_many :stagehand_commit_entries,
-        lambda { where(:stagehand_commit_entries => {:table_name => subclass.table_name}) },
+      has_one :stagehand_sync_indicator,
+        lambda { where(:stagehand_commit_entries => {:table_name => subclass.table_name}).readonly },
         :class_name => Stagehand::Staging::CommitEntry,
         :foreign_key => :record_id
 
-      def stagehand_synced?(options = {})
-        if options[:only_contained]
-          stagehand_commit_entries.contained.blank?
-        else
-          stagehand_commit_entries.blank?
-        end
+      def synced?
+        stagehand_sync_indicator.present?
       end
     end
   end

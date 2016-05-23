@@ -187,6 +187,7 @@ User, and one that points at the Vehicle. Both of those records are then used to
 ensures that if a record is published with a foreign key to another record, the association will not be orphaned if the
 associated record does not already exist in the production database.
 
+
 ### Syncing Changes Manually
 
 Manual syncing typically takes place in a a controller action where a user confirms the changes to records about to be
@@ -249,12 +250,22 @@ Stagehand::Staging::Synchronizer.sync_now do
 end
 ```
 
-## Callbacks
+
+## ActiveRecord::Base Extensions
+
+### Sync Callbacks
 
 Stagehand extends ActiveRecord::Base with `before_sync` and `after_sync` callbacks. You can use these callbacks as you
 would `before_save` and `after_save` callbacks to run code related to a sync.
 NOTE: The only difference from typical ActiveRecord callbacks is that the callbacks are not run on the record instance
 being synced, but instead are run on a new instance reloaded from the database.
+
+### #synced?
+
+Stagehand also adds a `synced?` method to ActiveRecord models to make it easy to display the sync status of a record in
+the UI. The method uses the `stagehand_sync_indicator` association to detect if a CommitEntry exists for the record. The
+association should be eager loaded to prevent n+1 queries whenever appropriate.
+
 
 ## Ghost Mode
 
@@ -278,8 +289,6 @@ You can enable ghost mode in the environment
 config.x.stagehand.ghost_mode = true
 ```
 
-
-
 ## Database Migrations
 
 Both staging and production databases need to be migrated to allow syncing to occur. The default behaviour of db:migrate
@@ -287,13 +296,14 @@ has been enhanced to migrate both staging and production databases. If the two d
 a `Stagehand::SchemaMismatch` exception will be raised when trying to sync.
 
 ### create_table
+
 In order to minimize the chance new tables are not tracked for changes, the `create_table` schema migration method
 is extended to automatically call `add_stagehand!` on the new table.
 
 ### rename_table
+
 In order to ensure that change tracking triggers are not left recording the wrong table name after the table is renamed,
 the `rename_table` schema migration method is extended to automatically `remove_stagehand!``
-
 
 
 ## Error Detection
@@ -332,6 +342,7 @@ Stagehand::Auditor.mismatched_records #=> { table name => { id => { :staging => 
 
 Each mismatched record is grouped by table name and then by id, with `:staging` and `:production` containing the row
 data from their respective databases for comparison purposes.
+
 
 ## Removing Stagehand
 
