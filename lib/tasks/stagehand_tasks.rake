@@ -6,7 +6,8 @@ namespace :stagehand do
 
   desc "Syncs records that don't need confirmation to production"
   task :sync, [:limit] => :environment do |t, args|
-    Stagehand::Staging::Synchronizer.sync(args[:limit])
+    limit = args[:limit].present? ? args[:limit].to_i : nil
+    Stagehand::Staging::Synchronizer.sync(limit)
   end
 
   desc "Syncs all records to production, including those that require confirmation"
