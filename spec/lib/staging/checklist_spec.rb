@@ -5,7 +5,7 @@ describe Stagehand::Staging::Checklist do
   let(:source_record) { SourceRecord.create }
   let(:other_record) { SourceRecord.create }
 
-  subject { Stagehand::Staging::Checklist.new(source_record) }
+  subject { Stagehand::Staging::Checklist.new(source_record, preconfirm_subject: false) }
 
   describe '::new' do
     it 'raises an exception if no subject record is provided'
@@ -395,7 +395,7 @@ describe Stagehand::Staging::Checklist do
     it 'returns records that pass the condition in the block provided to the constructor' do
       other_record = SourceRecord.create
       Stagehand::Staging::Commit.capture { other_record.increment!(:counter); source_record.increment!(:counter) }
-      subject = Stagehand::Staging::Checklist.new(source_record) do |record|
+      subject = Stagehand::Staging::Checklist.new(source_record, :preconfirm_subject => false) do |record|
         record.id == source_record.id
       end
 
@@ -405,7 +405,7 @@ describe Stagehand::Staging::Checklist do
     it 'does not return records that do not pass the condition in the block provided to the constructor' do
       other_record = SourceRecord.create
       Stagehand::Staging::Commit.capture { other_record.increment!(:counter); source_record.increment!(:counter) }
-      subject = Stagehand::Staging::Checklist.new(source_record) do |record|
+      subject = Stagehand::Staging::Checklist.new(source_record, :preconfirm_subject => false) do |record|
         record.id != source_record.id
       end
 
@@ -417,9 +417,16 @@ describe Stagehand::Staging::Checklist do
       expect(subject.requires_confirmation).not_to include(source_record)
     end
 
-    it 'does not return records that were passed in as the subject of the checklist' do
+    it 'does not return records that were passed in as the subject of the checklist if :preconfirm_subject => true' do
       Stagehand::Staging::Commit.capture { source_record.increment!(:counter) }
+      subject = Stagehand::Staging::Checklist.new(source_record, :preconfirm_subject => true)
       expect(subject.requires_confirmation).not_to include(source_record)
+    end
+
+    it 'returns records that were passed in as the subject of the checklist if :preconfirm_subject => false' do
+      Stagehand::Staging::Commit.capture { source_record.increment!(:counter) }
+      subject = Stagehand::Staging::Checklist.new(source_record, :preconfirm_subject => false)
+      expect(subject.requires_confirmation).to include(source_record)
     end
   end
 end
