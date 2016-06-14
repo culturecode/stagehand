@@ -3,6 +3,7 @@ require 'rails_helper'
 describe Stagehand::Staging::Checklist do
   let(:klass) { Stagehand::Staging::Checklist }
   let(:source_record) { SourceRecord.create }
+  let(:other_record) { SourceRecord.create }
 
   subject { Stagehand::Staging::Checklist.new(source_record) }
 
@@ -24,7 +25,7 @@ describe Stagehand::Staging::Checklist do
     it "accepts multiple entries" do
       source_record.increment!(:counter)
       commit_entry = Stagehand::Staging::CommitEntry.last
-      other_record = SourceRecord.create
+      other_record
       other_commit_entry = Stagehand::Staging::CommitEntry.last
       checklist = klass.new([commit_entry, other_commit_entry])
 
@@ -37,7 +38,6 @@ describe Stagehand::Staging::Checklist do
     end
 
     it "accepts multiple records" do
-      other_record = SourceRecord.create
       checklist = klass.new([source_record, other_record])
       expect(checklist.affected_records).to include(source_record, other_record)
     end
@@ -175,7 +175,7 @@ describe Stagehand::Staging::Checklist do
     end
 
     it "returns all records from commits that overlap the given record" do
-      other_record = SourceRecord.create
+      other_record
       other_other_record = SourceRecord.create
       Stagehand::Staging::Commit.capture { source_record.increment!(:counter) }
       Stagehand::Staging::Commit.capture { source_record.increment!(:counter); other_record.increment!(:counter) }
@@ -185,7 +185,7 @@ describe Stagehand::Staging::Checklist do
     end
 
     it "returns all records from commits that have content_operations indirectly related to the given record" do
-      other_record = SourceRecord.create
+      other_record
       other_other_record = SourceRecord.create
       Stagehand::Staging::Commit.capture { source_record.increment!(:counter) }
       Stagehand::Staging::Commit.capture { source_record.increment!(:counter); other_record.increment!(:counter) }
@@ -195,7 +195,7 @@ describe Stagehand::Staging::Checklist do
     end
 
     it "does not return records from commits that are disjoint from any commit that overlaps, or indirectly overlaps the given record" do
-      other_record = SourceRecord.create
+      other_record
       other_other_record = SourceRecord.create
       Stagehand::Staging::Commit.capture { source_record.increment!(:counter) }
       Stagehand::Staging::Commit.capture { other_other_record.increment!(:counter) }
@@ -204,7 +204,7 @@ describe Stagehand::Staging::Checklist do
     end
 
     it 'does not return duplicate records' do
-      other_record = SourceRecord.create
+      other_record
       other_other_record = SourceRecord.create
       Stagehand::Staging::Commit.capture { source_record.increment!(:counter) }
       Stagehand::Staging::Commit.capture { source_record.increment!(:counter); other_record.increment!(:counter) }
@@ -214,16 +214,16 @@ describe Stagehand::Staging::Checklist do
     end
 
     it 'returns records from associated_records' do
-      record_2 = SourceRecord.create
-      commit_1 = Stagehand::Staging::Commit.capture { source_record.targets << record_2 }
-      expect(subject.affected_records).to include(record_2)
+      other_record
+      commit_1 = Stagehand::Staging::Commit.capture { source_record.targets << other_record }
+      expect(subject.affected_records).to include(other_record)
     end
 
     it 'returns records spidered through associated_records' do
-      record_2 = SourceRecord.create
-      commit_1 = Stagehand::Staging::Commit.capture { source_record.targets << record_2 }
+      other_record
+      commit_1 = Stagehand::Staging::Commit.capture { source_record.targets << other_record }
 
-      expect(subject.affected_records).to include(record_2)
+      expect(subject.affected_records).to include(other_record)
     end
   end
 
@@ -235,7 +235,7 @@ describe Stagehand::Staging::Checklist do
     end
 
     it 'returns uncontained deletes related to the record' do
-      other_record = SourceRecord.create
+      other_record
       Stagehand::Staging::Commit.capture { source_record.increment!(:counter); other_record.increment!(:counter) }
       other_record.delete
 
@@ -262,7 +262,7 @@ describe Stagehand::Staging::Checklist do
     end
 
     it 'returns uncontained entries related to the record' do
-      other_record = SourceRecord.create
+      other_record
       entry = Stagehand::Staging::CommitEntry.last
       Stagehand::Staging::Commit.capture { source_record.increment!(:counter); other_record.increment!(:counter) }
 
@@ -287,7 +287,7 @@ describe Stagehand::Staging::Checklist do
     end
 
     it 'does not return entries for records that no longer exist in either database' do
-      other_record = SourceRecord.create
+      other_record
       Stagehand::Staging::Commit.capture { source_record.targets << other_record }
       other_record.destroy
 
@@ -296,8 +296,6 @@ describe Stagehand::Staging::Checklist do
   end
 
   describe '#confirm_create' do
-    let(:other_record) { SourceRecord.create }
-
     it 'returns affected_records that have create operation entries that are part of a commit' do
       Stagehand::Staging::Commit.capture { source_record }
       expect(subject.confirm_create).to include(source_record)
