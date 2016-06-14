@@ -95,9 +95,10 @@ module Stagehand
 
       public
 
-      def initialize(subject, &confirmation_filter)
+      def initialize(subject, preconfirm_subject: true, &confirmation_filter)
         @subject = subject
         @confirmation_filter = confirmation_filter
+        @preconfirm_subject = preconfirm_subject
         affected_entries # Init the affected_entries changes can be rolled back without affecting the checklist
       end
 
@@ -152,7 +153,7 @@ module Stagehand
           entries = affected_entries.dup
 
           # Don't need to confirm entries that match the checklist subject
-          entries.reject! {|entry| entry.matches?(@subject) }
+          entries.reject! {|entry| entry.matches?(@subject) } if @preconfirm_subject
 
           # Don't need to confirm entries that are part of a commits whose subject is the checklist subject
           entries.reject! {|entry| staging_record_start_operation_ids.include?(entry.commit_id) }

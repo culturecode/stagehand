@@ -12,7 +12,7 @@ module Stagehand
         raise SyncBlockRequired unless block_given?
 
         ActiveRecord::Base.transaction do
-          checklist = Checklist.new(Commit.capture(&block).entries)
+          checklist = Checklist.new(Commit.capture(&block).entries, preconfirm_subject: false)
           sync_checklist(checklist) unless checklist.requires_confirmation?
         end
       end
