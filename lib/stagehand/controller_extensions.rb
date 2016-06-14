@@ -17,11 +17,19 @@ module Stagehand
     private
 
     def use_staging_database(&block)
-      Database.with_connection(Configuration.staging_connection_name, &block)
+      use_database(Configuration.staging_connection_name, &block)
     end
 
     def use_production_database(&block)
-      Database.with_connection(Configuration.production_connection_name, &block)
+      use_database(Configuration.production_connection_name, &block)
+    end
+
+    def use_database(connection_name, &block)
+      if Configuration.ghost_mode?
+        block.call
+      else
+        Database.with_connection(connection_name, &block)
+      end
     end
   end
 end
