@@ -149,7 +149,7 @@ module Stagehand
             entry.start_operation? && entry.matches?(@subject)
           end.collect(&:id)
 
-          entries = affected_entries
+          entries = affected_entries.dup
 
           # Don't need to confirm entries that match the checklist subject
           entries.reject! {|entry| entry.matches?(@subject) }
