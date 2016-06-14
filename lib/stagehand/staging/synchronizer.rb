@@ -69,7 +69,7 @@ module Stagehand
         offset = 0
 
         while sessions.present?
-          autosyncable_entries(:session => sessions.shift(30)).offset(offset).limit(BATCH_SIZE).each do |entry|
+          autosyncable_entries(:session => sessions.shift(30)).offset(offset).limit(BATCH_SIZE).uniq(&:id).each do |entry|
             with_confirmed_autosyncability(entry, &block)
           end
           offset += BATCH_SIZE
@@ -88,16 +88,10 @@ module Stagehand
         end
       end
 
-      # Returns commit entries in ID descending order
       def autosyncable_entries(scope = nil)
-        entries = CommitEntry.content_operations.not_in_progress
-
-        unless Configuration.ghost_mode?
-          subquery = CommitEntry.group('record_id, table_name').having('count(commit_id) = 0').where(scope)
-          entries = entries.joins("JOIN (#{subquery.select('MAX(id) AS max_id').to_sql}) subquery ON id = max_id")
-        end
-
-        return entries.order(:id => :desc)
+        entries = CommitEntry.content_operations.not_in_progress.where(scope).order(:id => :desc)
+        entries = entries.with_uncontained_keys unless Configuration.ghost_mode?
+        return entries
       end
 
       def sync_checklist(checklist)

@@ -26,8 +26,13 @@ module Stagehand
       scope :contained,          lambda { where.not(:commit_id => nil) }
       scope :not_in_progress,    lambda {
         joins("LEFT OUTER JOIN (#{ unscoped.select('session, MAX(id) AS start_id').uncontained.start_operations.group('session').to_sql }) AS active_starts
-               ON active_starts.session = stagehand_commit_entries.session AND active_starts.start_id <= stagehand_commit_entries.id")
+               ON active_starts.session = #{table_name}.session AND active_starts.start_id <= #{table_name}.id")
        .where("active_starts.start_id IS NULL") }
+      scope :with_uncontained_keys, lambda {
+        joins("LEFT OUTER JOIN (#{ unscoped.contained.select('record_id, table_name').to_sql}) AS contained
+               ON contained.record_id = #{table_name}.record_id AND contained.table_name = #{table_name}.table_name")
+        .where("contained.record_id IS NULL")
+      }
 
       def self.matching(object)
         keys = Array.wrap(object).collect {|entry| Stagehand::Key.generate(entry) }.compact

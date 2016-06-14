@@ -16,9 +16,10 @@ module Stagehand
           t.string :session
         end
 
-        add_index :stagehand_commit_entries, :commit_id
-        add_index :stagehand_commit_entries, :operation
-        add_index :stagehand_commit_entries, [:record_id, :table_name]
+        add_index :stagehand_commit_entries, :commit_id # Used for looking up all entries within a commit
+        add_index :stagehand_commit_entries, :operation # Mostly used for looking up start entries
+        add_index :stagehand_commit_entries, [:record_id, :table_name] # Used for 'matching' scope
+        add_index :stagehand_commit_entries, [:operation, :commit_id] # Used for 'not_in_progress' scope
 
         # Create trigger to initialize session using a function
         ActiveRecord::Base.connection.execute("DROP TRIGGER IF EXISTS stagehand_session_trigger;")
