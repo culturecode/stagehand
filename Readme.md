@@ -156,6 +156,9 @@ be reviewed before syncing.
   checklist.confirm_delete #=> Requires Confirmation records that will be deleted in the production database
 ```
 
+It is also possible to pass multiple subject records can be passed to the constructor. This will check the combined
+status of changes to all given records.
+
 To determine which records are related to the subject record, two methods of detection are used:
 
 #### Related Records
@@ -187,6 +190,21 @@ User, and one that points at the Vehicle. Both of those records are then used to
 ensures that if a record is published with a foreign key to another record, the association will not be orphaned if the
 associated record does not already exist in the production database.
 
+#### Options
+
+By default, the checklist will not include the subject_record as it is assumed that its changes are confirmed since the
+purpose of the checklist is to determine what _other_ changes need to be confirmed to sync the subject record. However,
+this preconfirmation can be skipped if desired by passing `:preconfirm_subject => true` to the constructor, causing the
+record lists to include the subject_record.
+
+For fine control over which records are returned by the `requires_confirmation` method, a filter block can be passed to
+the constructor. Any records for which the block returns `true` will be included.
+
+```ruby
+Stagehand::Staging::Checklist.new(subject_record) do |affected_record|
+  affected_record.published?
+end
+```
 
 ### Syncing Changes Manually
 
