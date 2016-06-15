@@ -17,8 +17,8 @@ namespace :stagehand do
 
   desc "Migrate both databases used by stagehand"
   task :migrate => :environment do
-    [Rails.configuration.x.stagehand.staging_connection_name,
-     Rails.configuration.x.stagehand.production_connection_name].each do |connection_name|
+    connections = [Stagehand.configuration.staging_connection_name, Stagehand.configuration.production_connection_name]
+    connections.compact.uniq.each do |connection_name|
       puts "Migrating #{connection_name}"
       Stagehand::Database.with_connection(connection_name) do
         ActiveRecord::Migrator.migrate('db/migrate')
