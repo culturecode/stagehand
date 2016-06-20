@@ -76,12 +76,16 @@ describe Stagehand::Staging::CommitEntry do
         source_record.delete
       end
 
-      it 'returns an object whose attributes are populated by the production record for delete operation entries' do
+      it 'returns an object with the same class as the production record' do
+        expect(subject.record).to be_a(source_record.class)
+      end
+
+      it 'returns an object whose attributes are populated by the production record' do
         expect(subject.record).to have_attributes(source_record.attributes)
       end
 
-      it 'returns the production record for delete operation entries' do
-        expect(subject.record).to be_a(source_record.class)
+      it 'responds correctly to destroyed?' do
+        expect(subject.record.destroyed?).to be(true)
       end
 
       it 'raises a read_only exception when saving' do

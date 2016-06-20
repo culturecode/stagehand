@@ -70,7 +70,7 @@ module Stagehand
       end
 
       def record
-        @record ||= delete_operation? ? build_production_record : record_class.find_by_id(record_id) if content_operation?
+        @record ||= delete_operation? ? build_deleted_record : record_class.find_by_id(record_id) if content_operation?
       end
 
       def control_operation?
@@ -119,14 +119,16 @@ module Stagehand
 
       private
 
-      def build_production_record
+      def build_deleted_record
         production_record = Stagehand::Production.find(record_id, table_name)
         return unless production_record
 
-        production_record = record_class.new(production_record.attributes)
-        production_record.readonly!
+        deleted_record = record_class.new(production_record.attributes)
+        deleted_record.readonly!
+        deleted_record.instance_variable_set(:@new_record, false)
+        deleted_record.instance_variable_set(:@destroyed, true)
 
-        return production_record
+        return deleted_record
       end
     end
   end
