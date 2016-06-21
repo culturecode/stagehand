@@ -15,13 +15,13 @@ ActiveRecord::Base.class_eval do
     super
 
     subclass.class_eval do
-      has_one :stagehand_sync_indicator,
+      has_one :stagehand_unsynced_indicator,
         lambda { where(:stagehand_commit_entries => {:table_name => subclass.table_name}).readonly },
         :class_name => Stagehand::Staging::CommitEntry,
         :foreign_key => :record_id
 
       def synced?
-        stagehand_sync_indicator.present?
+        stagehand_unsynced_indicator.blank?
       end
     end
   end

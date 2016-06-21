@@ -281,7 +281,7 @@ being synced, but instead are run on a new instance reloaded from the database.
 ### #synced?
 
 Stagehand also adds a `synced?` method to ActiveRecord models to make it easy to display the sync status of a record in
-the UI. The method uses the `stagehand_sync_indicator` association to detect if a CommitEntry exists for the record. The
+the UI. The method uses the `stagehand_unsynced_indicator` association to detect if a CommitEntry exists for the record. The
 association should be eager loaded to prevent n+1 queries whenever appropriate.
 
 
