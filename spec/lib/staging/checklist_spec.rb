@@ -428,5 +428,15 @@ describe Stagehand::Staging::Checklist do
       subject = Stagehand::Staging::Checklist.new(source_record, :preconfirm_subject => false)
       expect(subject.requires_confirmation).to include(source_record)
     end
+
+    it 'does not pass nil to the confirmation condition block for a delete operation entry whose record does not exist in production' do
+      Stagehand::Staging::Commit.capture { source_record.delete }
+
+      records = []
+      subject = Stagehand::Staging::Checklist.new(source_record, :preconfirm_subject => false) {|record| records << record }
+      subject.requires_confirmation
+
+      expect(records).not_to include(nil)
+    end
   end
 end

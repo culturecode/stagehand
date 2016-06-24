@@ -168,7 +168,8 @@ module Stagehand
       end
 
       def filter_entries(entries)
-        @confirmation_filter ? entries.select {|entry| @confirmation_filter.call(entry.record) } : entries
+        return entries unless @confirmation_filter
+        return entries.select {|entry| @confirmation_filter.call(entry.record) if entry.record }
       end
     end
   end
