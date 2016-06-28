@@ -25,7 +25,19 @@ namespace :stagehand do
       end
     end
   end
+
+  desc "Rollback both databases used by stagehand"
+  task :rollback => :environment do
+    connections = [Stagehand.configuration.staging_connection_name, Stagehand.configuration.production_connection_name]
+    connections.compact.uniq.each do |connection_name|
+      puts "Rolling back #{connection_name}"
+      Stagehand::Database.with_connection(connection_name) do
+        ActiveRecord::Migrator.rollback("db/migrate")
+      end
+    end
+  end
 end
 
-# Enhance the regular db:migrate task to run the stagehand migration task so both stagehand databases are migrated
+# Enhance the regular db:migrate/db:rollback tasks to run the stagehand migration/rollback tasks so both stagehand databases are migrated
 Rake::Task['db:migrate'].enhance(['stagehand:migrate'])
+Rake::Task['db:rollback'].enhance(['stagehand:rollback'])
