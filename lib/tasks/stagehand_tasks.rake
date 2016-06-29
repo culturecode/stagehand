@@ -17,7 +17,6 @@ namespace :stagehand do
 
   desc "Migrate both databases used by stagehand"
   task :migrate => :environment do
-    puts "Migrating"
     run_on_both_databases do
       ActiveRecord::Migrator.migrate('db/migrate')
     end
@@ -25,7 +24,6 @@ namespace :stagehand do
 
   desc "Rollback both databases used by stagehand"
   task :rollback => :environment do
-    puts "Rolling back"
     run_on_both_databases do
       ActiveRecord::Migrator.rollback("db/migrate")
     end
@@ -35,7 +33,7 @@ end
 def run_on_both_databases(&block)
   connections = [Stagehand.configuration.staging_connection_name, Stagehand.configuration.production_connection_name]
   connections.compact.uniq.each do |connection_name|
-    puts "The #{connection_name}"
+    puts "#{connection_name}"
     Stagehand::Database.with_connection(connection_name, &block)
   end
 end
