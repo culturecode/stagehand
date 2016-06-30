@@ -29,11 +29,11 @@ module Stagehand
     end
 
     def staging_database_versions
-      staging_versions = Stagehand::Database.staging_connection.select_values(versions_scope)
+      Stagehand::Database.staging_connection.select_values(versions_scope)
     end
 
     def production_database_versions
-      production_versions = Stagehand::Database.production_connection.select_values(versions_scope)
+      Stagehand::Database.production_connection.select_values(versions_scope)
     end
 
     def with_connection(connection_name)
