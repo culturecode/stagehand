@@ -1,7 +1,6 @@
 module Stagehand
   module Staging
     module Synchronizer
-
       extend self
       mattr_accessor :schemas_match
 
