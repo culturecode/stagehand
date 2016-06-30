@@ -6,7 +6,7 @@ RSpec.configure do |config|
 
       Stagehand::Database.with_connection(connection_name) do
 
-        ActiveRecord::Schema.define do
+        ActiveRecord::Schema.define(version: 0) do
           ActiveRecord::Base.connection.tables.each {|table_name| drop_table(table_name) }
 
           create_table :schema_migrations, :id => false do |t|

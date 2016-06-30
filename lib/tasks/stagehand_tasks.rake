@@ -18,14 +18,14 @@ namespace :stagehand do
   desc "Migrate both databases used by stagehand"
   task :migrate => :environment do
     run_on_both_databases do
-      ActiveRecord::Migrator.migrate('db/migrate')
+      ActiveRecord::Migrator.migrate("#{Rails.root}/db/migrate")
     end
   end
 
   desc "Rollback both databases used by stagehand"
   task :rollback => :environment do
     run_on_both_databases do
-      ActiveRecord::Migrator.rollback("db/migrate")
+      ActiveRecord::Migrator.rollback("#{Rails.root}/db/migrate")
     end
   end
 end

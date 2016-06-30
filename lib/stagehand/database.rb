@@ -28,6 +28,14 @@ module Stagehand
       database_name(Configuration.staging_connection_name)
     end
 
+    def staging_database_versions
+      staging_versions = Stagehand::Database.staging_connection.select_values(versions_scope)
+    end
+
+    def production_database_versions
+      production_versions = Stagehand::Database.production_connection.select_values(versions_scope)
+    end
+
     def with_connection(connection_name)
       different = current_connection_name != connection_name.to_sym
 
@@ -58,6 +66,10 @@ module Stagehand
 
     def database_name(connection_name)
       Rails.configuration.database_configuration[connection_name.to_s]['database']
+    end
+
+    def versions_scope
+      ActiveRecord::SchemaMigration.order(:version)
     end
 
     # CLASSES
