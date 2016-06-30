@@ -1,7 +1,6 @@
 module Stagehand
   module Staging
     module Synchronizer
-      include Stagehand::Database
 
       extend self
       mattr_accessor :schemas_match
@@ -126,7 +125,7 @@ module Stagehand
 
       def schemas_match?
         return schemas_match unless schemas_match.nil?
-        self.schemas_match = staging_database_versions == production_database_versions
+        self.schemas_match = Database.staging_database_versions == Database.production_database_versions
         return schemas_match
       end
 

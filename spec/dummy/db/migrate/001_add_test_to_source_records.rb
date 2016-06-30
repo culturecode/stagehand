@@ -1,7 +1,4 @@
 class AddTestToSourceRecords < ActiveRecord::Migration
-  def self.up
-  end
-
-  def self.down
+  def change
   end
 end
