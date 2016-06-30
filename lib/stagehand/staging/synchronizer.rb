@@ -60,6 +60,13 @@ module Stagehand
         sync_checklist(Checklist.new(record))
       end
 
+      def sync_checklist(checklist)
+        ActiveRecord::Base.transaction do
+          sync_entries(checklist.syncing_entries)
+          CommitEntry.delete(checklist.affected_entries)
+        end
+      end
+
       private
 
       # Lazily iterate through millions of commit entries
@@ -92,13 +99,6 @@ module Stagehand
         entries = CommitEntry.content_operations.not_in_progress.where(scope).order(:id => :desc)
         entries = entries.with_uncontained_keys unless Configuration.ghost_mode?
         return entries
-      end
-
-      def sync_checklist(checklist)
-        ActiveRecord::Base.transaction do
-          sync_entries(checklist.syncing_entries)
-          CommitEntry.delete(checklist.affected_entries)
-        end
       end
 
       def sync_entries(entries)
