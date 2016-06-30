@@ -129,7 +129,7 @@ module Stagehand
       end
 
       def affected_records
-        cache(:affected_records) { affected_entries.collect(&:record).uniq }
+        cache(:affected_records) { affected_entries.uniq(&:key).collect(&:record).compact }
       end
 
       def affected_entries

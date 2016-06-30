@@ -213,6 +213,11 @@ describe Stagehand::Staging::Checklist do
       expect { records.uniq! }.not_to change { records.length }
     end
 
+    it 'does not return nils' do
+      Stagehand::Staging::Commit.capture { source_record }
+      expect(subject.affected_records).not_to include(nil)
+    end
+
     it 'returns records from associated_records' do
       other_record
       commit_1 = Stagehand::Staging::Commit.capture { source_record.targets << other_record }
