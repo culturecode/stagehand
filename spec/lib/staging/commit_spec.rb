@@ -96,6 +96,26 @@ describe Stagehand::Staging::Commit do
     end
   end
 
+  describe '#commit_id' do
+    subject { klass.capture {} }
+
+    it 'matches the id of the start operation' do
+      subject
+      start_operation = Stagehand::Staging::CommitEntry.start_operations.last
+      expect(subject).to have_attributes(:id => start_operation.id)
+    end
+
+    it 'is not affected by the order the database returns commit entries' do
+      Stagehand::Staging::CommitEntry.order(:id => :asc).scoping do
+        subject
+      end
+
+      Stagehand::Staging::CommitEntry.order(:id => :desc).scoping do
+        expect(klass.new(subject.id)).to have_attributes(:id => subject.id)
+      end
+    end
+  end
+
   describe '#entries' do
     it 'returns insert operations' do
       commit = klass.capture { source_record }

@@ -59,8 +59,11 @@ module Stagehand
 
       def initialize(start_id)
         @start_id, @end_id = CommitEntry.control_operations
+          .limit(2)
           .where(:commit_id => start_id)
-          .where('id >= ?', start_id).limit(2).pluck(:id)
+          .where('id >= ?', start_id)
+          .reorder(:id => :asc)
+          .pluck(:id)
 
         raise CommitNotFound unless @start_id && @end_id
       end
