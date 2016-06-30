@@ -124,12 +124,7 @@ module Stagehand
 
       def schemas_match?
         return schemas_match unless schemas_match.nil?
-
-        versions_scope = ActiveRecord::SchemaMigration.order(:version)
-        staging_versions = Stagehand::Database.staging_connection.select_values(versions_scope)
-        production_versions = Stagehand::Database.production_connection.select_values(versions_scope)
-        self.schemas_match = staging_versions == production_versions
-
+        self.schemas_match = Database.staging_database_versions == Database.production_database_versions
         return schemas_match
       end
 
