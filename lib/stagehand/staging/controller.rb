@@ -17,6 +17,11 @@ module Stagehand
       def sync_record(record)
         Stagehand::Staging::Synchronizer.sync_record(record)
       end
+
+      # Syncs the checklist's affected records to the production database
+      def sync_checklist(checklist)
+        Stagehand::Staging::Synchronizer.sync_checklist(checklist)
+      end
     end
   end
 end
