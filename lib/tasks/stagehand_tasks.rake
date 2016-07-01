@@ -18,15 +18,19 @@ namespace :stagehand do
   desc "Migrate both databases used by stagehand"
   task :migrate => :environment do
     run_on_both_databases do
-      ActiveRecord::Migrator.migrate("#{Rails.root}/db/migrate")
+      Rake::Task['db:migrate'].reenable
+      Rake::Task['db:migrate'].invoke
     end
+    Rake::Task['db:migrate'].clear
   end
 
   desc "Rollback both databases used by stagehand"
   task :rollback => :environment do
     run_on_both_databases do
-      ActiveRecord::Migrator.rollback("#{Rails.root}/db/migrate")
+      Rake::Task['db:rollback'].reenable
+      Rake::Task['db:rollback'].invoke
     end
+    Rake::Task['db:rollback'].clear
   end
 end
 
@@ -39,5 +43,5 @@ def run_on_both_databases(&block)
 end
 
 # Enhance the regular db:migrate/db:rollback tasks to run the stagehand migration/rollback tasks so both stagehand databases are migrated
-Rake::Task['db:migrate'].clear.enhance(['stagehand:migrate'])
-Rake::Task['db:rollback'].clear.enhance(['stagehand:rollback'])
+Rake::Task['db:migrate'].enhance(['stagehand:migrate'])
+Rake::Task['db:rollback'].enhance(['stagehand:rollback'])
