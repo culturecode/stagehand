@@ -43,5 +43,7 @@ def run_on_both_databases(&block)
 end
 
 # Enhance the regular db:migrate/db:rollback tasks to run the stagehand migration/rollback tasks so both stagehand databases are migrated
-Rake::Task['db:migrate'].enhance(['stagehand:migrate'])
-Rake::Task['db:rollback'].enhance(['stagehand:rollback'])
+unless ENV['STAGEHAND_ENHANCE_MIGRATION'] == 'false'
+  Rake::Task['db:migrate'].enhance(['stagehand:migrate'])
+  Rake::Task['db:rollback'].enhance(['stagehand:rollback'])
+end
