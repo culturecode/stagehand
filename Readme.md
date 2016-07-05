@@ -315,9 +315,9 @@ Both staging and production databases need to be migrated to allow syncing to oc
 
 The default behaviour of `db:migrate` and `db:rollback` have been enhanced to migrate or rollback both the staging and production databases.
 
-This enhancement comes with a caveat, db:migrate/db:rollback can no longer take options (for example: `rake db:migrate VERSION=20080906120000`, or `rake db:rollback STEP=2`)
+This enhancement comes with a caveat, db:migrate/db:rollback can no longer take options (for example: `rake db:migrate VERSION=20080906120000`, or `rake db:rollback STEP=2` will run as `rake db:migrate` and `rake db:rollback`, respectively, and ignore the options defined).
 
-The migration enhancement behaviour can be disabled by setting ENV['STAGEHAND_ENHANCE_MIGRATION'] to false. (for example: `STAGEHAND_ENHANCE_MIGRATION=false rake db:migrate`)
+The migration enhancement behaviour can be disabled by setting ENV['STAGEHAND_ENHANCE_MIGRATION'] to false. (for example: `STAGEHAND_ENHANCE_MIGRATION=false rake db:migrate`, will run `rake db:migrate` on the current database but not the second one).
 
 ### create_table
 
