@@ -4,6 +4,11 @@ module Stagehand
 
     @@connection_name_stack = [Rails.env.to_sym]
 
+    def each(&block)
+      with_connection(Configuration.staging_connection_name, &block)
+      with_connection(Configuration.production_connection_name, &block) unless Configuration.single_connection?
+    end
+
     def connected_to_production?
       current_connection_name == Configuration.production_connection_name
     end
@@ -43,7 +48,7 @@ module Stagehand
       Rails.logger.debug "Connecting to #{current_connection_name}"
       connect_to(current_connection_name) if different
 
-      yield
+      yield connection_name
     ensure
       @@connection_name_stack.pop
       Rails.logger.debug "Restoring connection to #{current_connection_name}"
