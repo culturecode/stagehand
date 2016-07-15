@@ -50,14 +50,10 @@ module Stagehand
       connect_to(current_connection_name) if different
     end
 
-    def set_connection_for_model(model, connection_name)
-      connect_to(connection_name, model) unless Configuration.ghost_mode?
-    end
-
     private
 
-    def connect_to(connection_name, model = ActiveRecord::Base)
-      model.establish_connection(connection_name)
+    def connect_to(connection_name)
+      ActiveRecord::Base.establish_connection(connection_name)
     end
 
     def current_connection_name

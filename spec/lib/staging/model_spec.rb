@@ -7,15 +7,25 @@ describe Stagehand::Staging::Model do
   end
 
   context 'when included in a model' do
-    before { klass.establish_connection(Stagehand.configuration.production_connection_name) }
     let(:staging) { Rails.configuration.database_configuration[Stagehand.configuration.staging_connection_name.to_s] }
 
     it 'establishes a connection to the staging database' do
+      klass.establish_connection(Stagehand.configuration.production_connection_name)
       expect { klass.include(subject) }.to change { klass.connection.current_database }.to(staging['database'])
+    end
+
+    it 'does not get written if part of a failed transaction' do
+      klass.include(subject)
+      Stagehand::Database.with_connection(Stagehand.configuration.staging_connection_name) do
+        expect do
+          ActiveRecord::Base.transaction { Klass.create; raise(ActiveRecord::Rollback) }
+        end.not_to change { Klass.count }
+      end
     end
 
     in_ghost_mode do
       it 'does not change the connection' do
+        klass.establish_connection(Stagehand.configuration.production_connection_name)
         expect { klass.include(subject) }.not_to change { klass.connection.current_database }
       end
     end

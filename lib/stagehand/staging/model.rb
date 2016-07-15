@@ -3,8 +3,16 @@ module Stagehand
     module Model
       extend ActiveSupport::Concern
 
-      included do
-        Stagehand::Database.set_connection_for_model(self, Configuration.staging_connection_name)
+      class_methods do
+        def connection
+          return super if Configuration.ghost_mode?
+
+          if Stagehand::Database.connected_to_production?
+            Stagehand::Database::StagingProbe.connection
+          else
+            ActiveRecord::Base.connection
+          end
+        end
       end
     end
   end
