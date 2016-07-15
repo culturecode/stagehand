@@ -15,33 +15,21 @@ namespace :stagehand do
     Stagehand::Staging::Synchronizer.sync_all
   end
 
-  desc "Migrate both databases used by stagehand"
-  task :migrate => :environment do
-    run_on_both_databases do
-      Rake::Task['db:migrate'].reenable
-      Rake::Task['db:migrate'].invoke
+  # Enhance the regular tasks to run on both staging and production databases
+  def rake_both_databases(task, stagehand_task = task.gsub(':','_'))
+    task(stagehand_task => :environment) do
+      Stagehand::Database.each do |connection_name|
+        puts "#{connection_name}"
+        Rake::Task[task].reenable
+        Rake::Task[task].invoke
+      end
+      Rake::Task[task].clear
     end
-    Rake::Task['db:migrate'].clear
+
+    # Enhance the original task to run the stagehand_task as a prerequisite
+    Rake::Task[task].enhance(["stagehand:#{stagehand_task}"])
   end
 
-  desc "Rollback both databases used by stagehand"
-  task :rollback => :environment do
-    run_on_both_databases do
-      Rake::Task['db:rollback'].reenable
-      Rake::Task['db:rollback'].invoke
-    end
-    Rake::Task['db:rollback'].clear
-  end
+  rake_both_databases('db:migrate')
+  rake_both_databases('db:rollback')
 end
-
-def run_on_both_databases(&block)
-  connections = [Stagehand.configuration.staging_connection_name, Stagehand.configuration.production_connection_name]
-  connections.compact.uniq.each do |connection_name|
-    puts "#{connection_name}"
-    Stagehand::Database.with_connection(connection_name, &block)
-  end
-end
-
-# Enhance the regular db:migrate/db:rollback tasks to run the stagehand migration/rollback tasks so both stagehand databases are migrated
-Rake::Task['db:migrate'].enhance(['stagehand:migrate'])
-Rake::Task['db:rollback'].enhance(['stagehand:rollback'])
