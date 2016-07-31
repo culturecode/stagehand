@@ -57,7 +57,12 @@ describe Stagehand::Staging::CommitEntry do
 
       it 'raises an exception if the record class could not be determined from the table_name' do
         entry = klass.create(:record_id => 1, :table_name => 'fake_table', :operation => :insert)
-        expect { subject.record_class }.to raise_exception(Stagehand::IndeterminateRecordClass)
+        expect { subject.record_class }.to raise_exception(Stagehand::MissingTable)
+      end
+
+      it 'creates a dummy class if the record class could not be determined from the table_name but the table exists' do
+        subject = klass.create(:record_id => 1, :table_name => 'habtm_records', :operation => :insert)
+        expect(subject.record_class.name).to eq('HabtmRecord')
       end
     end
   end

@@ -27,6 +27,9 @@ RSpec.configure do |config|
             t.references :target
             t.timestamps :null => false
           end
+
+          create_table :habtm_records, :force => true do |t|
+          end
         end
       end
     end
