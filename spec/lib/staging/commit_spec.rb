@@ -53,6 +53,13 @@ describe Stagehand::Staging::Commit do
       expect{ begin klass.capture { raise }; rescue; end }
         .to change { Stagehand::Staging::CommitEntry.end_operations.count }.by(1)
     end
+
+    it 'allows the subject to be set during the block' do
+      commit = klass.capture do |commit|
+        commit.subject = source_record
+      end
+      expect(commit.subject).to eq(source_record)
+    end
   end
 
   describe '::find' do
@@ -140,6 +147,12 @@ describe Stagehand::Staging::Commit do
     it 'returns end operations' do
       commit = klass.capture { source_record.increment!(:counter) }
       expect(commit.entries).to include( be_end_operation )
+    end
+  end
+
+  describe '#subject' do
+    it 'returns the record of the start entry' do
+      expect(klass.capture(source_record) { }.subject).to eq(source_record)
     end
   end
 

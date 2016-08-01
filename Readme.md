@@ -119,12 +119,19 @@ necessary to perform more advanced syncing operations.
 
 To prevent modifications from being synced to the database without user confirmation, you can wrap blocks of changes in
 a Commit. This bundles the changes together and forces them to be synchronized manually. The typical usecase for this is
-in a controller action like create or update.
+to track changes made in a controller action like create or update.
 
 ```ruby
 # In an action in any controller that includes Stagehand::Staging::Controller
 def create
-  stage_changes do
+  stage_changes do |commit|
+    # database modifications to be confirmed before syncing
+    commit.subject = Record.create # Subject is set during the block, after it is created
+  end
+end
+
+def update
+  stage_changes(@subject_record) do # Subject can be set while opening the block since it already exists
     # database modifications to be confirmed before syncing
   end
 end
@@ -132,7 +139,7 @@ end
 
 ```ruby
 # ... or anywhere you want to ensure a set of changes are synchronized to the production database together
-Stagehand::Staging::Commit.capture do
+Stagehand::Staging::Commit.capture(subject_record) do
   # database modifications
 end
 ```
@@ -140,6 +147,11 @@ end
 Any database changes that take place within the block will logged as part of a Commit. Commits are used when determining
 what additional records to sync when syncing a specific record. For instance, if creating a record updates another
 record in the process, the commit will ensure that manual syncing copies both the new record and the updated record.
+
+Note, in these examples, the subject of the commit is being set. Doing so allows commits to be associated with each
+other, even if they do not modify the same records, e.g. if a commit only updated nested attributes, setting the commit
+subject will ensure the nested records are synced when the record is synced even if the record and its nested records
+are never modified together in the same commit.
 
 ### Previewing Changes
 

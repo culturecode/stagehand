@@ -7,7 +7,7 @@ module Stagehand
 
       def self.capture(subject_record = nil, &block)
         start_operation = start_commit(subject_record)
-        block.call
+        block.call(start_operation)
         return end_commit(start_operation)
       rescue => e
         end_commit(start_operation)
@@ -32,12 +32,12 @@ module Stagehand
       def self.start_commit(subject_record)
         start_operation = CommitEntry.start_operations.new
 
-        if subject_record
-          start_operation.record_id = subject_record.id
-          start_operation.table_name = subject_record.class.table_name
+        # Make it easy to set the subject for the duration of the commit block
+        def start_operation.subject=(record)
+          update_attributes!(:record_id => record.try(:id), :table_name => record.class.try(:table_name))
         end
 
-        start_operation.save
+        start_operation.subject = subject_record
 
         return start_operation.reload # Reload to ensure session is set
       end
@@ -90,6 +90,10 @@ module Stagehand
 
       def entries
         CommitEntry.where(:id => @start_id..@end_id).where(:commit_id => id)
+      end
+
+      def subject
+        entries.sort_by(&:id).first.record
       end
     end
   end

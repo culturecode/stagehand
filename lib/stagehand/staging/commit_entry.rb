@@ -70,7 +70,7 @@ module Stagehand
       end
 
       def record
-        @record ||= delete_operation? ? build_deleted_record : record_class.find_by_id(record_id) if content_operation?
+        @record ||= delete_operation? ? build_deleted_record : record_class.find_by_id(record_id) if record_id?
       end
 
       def control_operation?
