@@ -56,11 +56,16 @@ module Stagehand
     end
 
     def transaction
+      success = false
+      output = nil
       ActiveRecord::Base.transaction do
         Production::Record.transaction do
-          yield
+          output = yield
+          success = true
         end
+        raise ActiveRecord::Rollback unless success
       end
+      return output
     end
 
     private
