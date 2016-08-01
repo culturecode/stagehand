@@ -62,7 +62,7 @@ describe Stagehand::Staging::CommitEntry do
 
       it 'creates a dummy class if the record class could not be determined from the table_name but the table exists' do
         subject = klass.create(:record_id => 1, :table_name => 'habtm_records', :operation => :insert)
-        expect(subject.record_class.name).to eq('HabtmRecord')
+        expect(subject.record_class.name).to eq('StagehandHabtmRecord')
       end
     end
   end
