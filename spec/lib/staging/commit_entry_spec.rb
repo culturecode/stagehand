@@ -62,12 +62,18 @@ describe Stagehand::Staging::CommitEntry do
 
       it 'creates a dummy class if the record class could not be determined from the table_name but the table exists' do
         subject = klass.create(:record_id => 1, :table_name => 'habtm_records', :operation => :insert)
-        expect(subject.record_class.name).to eq('StagehandHabtmRecord')
+        expect(subject.record_class.name).to eq('Stagehand::DummyClass::HabtmRecord')
       end
     end
   end
 
   describe '#record' do
+    it 'can load records from dummy classes' do
+      ActiveRecord::Base.connection.execute('INSERT INTO habtm_records VALUES ()')
+      subject = Stagehand::Staging::CommitEntry.last
+      expect(subject.record).to be_a(Stagehand::DummyClass::HabtmRecord)
+    end
+
     context 'on an insert operation entry' do
       it 'returns the record represented by the row that triggered this entry' do
         expect(subject.record).to eq(source_record)
