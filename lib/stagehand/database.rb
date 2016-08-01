@@ -55,6 +55,14 @@ module Stagehand
       connect_to(current_connection_name) if different
     end
 
+    def transaction
+      ActiveRecord::Base.transaction do
+        Production::Record.transaction do
+          yield
+        end
+      end
+    end
+
     private
 
     def connect_to(connection_name)

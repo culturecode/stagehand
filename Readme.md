@@ -396,9 +396,14 @@ If you need to completely remove Stagehand from your app:
 
 
 ## Possible Caveats to double check when development is complete
-- Transactions blocks don't expect multiple connections to be operating within them, so if a transaction fails while
-writing content to multiple databases, only the connection that started the transaction will roll back. This could be
-corrected by starting a transaction using the ProductionRecord while writing.
+- A transaction is opened on the staging and production databases when syncing. This reduces the timing window where the
+sync process could be killed after the production database write, but before the staging database write had completed,
+resulting in a rollback of only the staging database.
+
+  Although this does not completely eliminate the issue, it can only occur if the process is killed exactly as
+the inner transaction is completing, but before the outer transaction has completed. Even if this happened, it would
+leave the system in a recoverable state, as the data would remain in an unsynced state in the staging database, and the
+sync can be re-run to completion.
 
 - Connections to each database are performed in an around filter that wraps each controller action. The filter is
 prepended to reduce the chance any other code accesses the database before a connection to the desired database is made.

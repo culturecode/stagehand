@@ -11,7 +11,7 @@ module Stagehand
       def sync_now(&block)
         raise SyncBlockRequired unless block_given?
 
-        ActiveRecord::Base.transaction do
+        Database.transaction do
           checklist = Checklist.new(Commit.capture(&block).entries, :preconfirm_subject => false)
           sync_checklist(checklist) unless checklist.requires_confirmation?
         end
@@ -61,7 +61,7 @@ module Stagehand
       end
 
       def sync_checklist(checklist)
-        ActiveRecord::Base.transaction do
+        Database.transaction do
           sync_entries(checklist.syncing_entries)
           CommitEntry.delete(checklist.affected_entries)
         end
@@ -87,9 +87,8 @@ module Stagehand
       # This confirmation is used to guard against writes to the record that occur after loading an initial list of
       # entries that are autosyncable, but before the record is actually synced. To prevent this, a lock on the record
       # is acquired and then the record's autosync eligibility is rechecked before calling the block.
-      # NOTE: This method must be called from within a transaction
       def with_confirmed_autosyncability(entry, &block)
-        ActiveRecord::Base.transaction do
+        Database.transaction do
           CommitEntry.connection.execute("SELECT 1 FROM #{entry.table_name} WHERE id = #{entry.record_id}")
           block.call(entry) if autosyncable_entries(:record_id => entry.record_id, :table_name => entry.table_name).exists?
         end
@@ -112,9 +111,9 @@ module Stagehand
             if Configuration.single_connection?
               next # Avoid deadlocking if the databases are the same
             elsif entry.delete_operation?
-              Stagehand::Production.delete(entry)
+              Production.delete(entry)
             elsif entry.save_operation?
-              Stagehand::Production.save(entry)
+              Production.save(entry)
             end
           end
         end

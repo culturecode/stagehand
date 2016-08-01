@@ -65,4 +65,17 @@ describe Stagehand::Database do
     end
   end
 
+  describe '::transaction' do
+    it 'rolls back changes in the staging database' do
+      expect { subject.transaction { SourceRecord.create; raise } rescue nil }
+        .not_to change { SourceRecord.count }
+    end
+
+    it 'rolls back changes in the production database' do
+      record = SourceRecord.create
+
+      expect { subject.transaction { Stagehand::Production.save(record); raise } rescue nil }
+        .not_to change { Stagehand::Production.status(record) }
+    end
+  end
 end
