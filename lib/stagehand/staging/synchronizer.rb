@@ -5,6 +5,7 @@ module Stagehand
       mattr_accessor :schemas_match
 
       BATCH_SIZE = 1000
+      SESSION_BATCH_SIZE = 30
 
       # Immediately attempt to sync the changes from the block if possible
       # The block is wrapped in a transaction to prevent changes to records while being synced
@@ -72,14 +73,16 @@ module Stagehand
       # Lazily iterate through millions of commit entries
       # Returns commit entries in ID descending order
       def iterate_autosyncable_entries(&block)
-        sessions = CommitEntry.order(:id => :desc).distinct.pluck(:session)
-        offset = 0
+        session_list = CommitEntry.order(:id => :desc).distinct.pluck(:session)
 
-        while sessions.present?
-          autosyncable_entries(:session => sessions.shift(30)).offset(offset).limit(BATCH_SIZE).uniq(&:id).each do |entry|
-            with_confirmed_autosyncability(entry, &block)
+        while sessions = session_list.shift(SESSION_BATCH_SIZE).presence
+          offset = 0
+          while entries = autosyncable_entries(:session => sessions).offset(offset).limit(BATCH_SIZE).uniq(&:id).presence
+            offset += BATCH_SIZE
+            entries.each do |entry|
+              with_confirmed_autosyncability(entry, &block)
+            end
           end
-          offset += BATCH_SIZE
         end
       end
 
