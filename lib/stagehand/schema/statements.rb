@@ -39,4 +39,4 @@ module Stagehand
 end
 
 ActiveRecord::Base.connection.class.include Stagehand::Schema::Statements
-ActiveRecord::SchemaDumper.include Stagehand::Schema::DumperExtensions
+ActiveRecord::SchemaDumper.prepend Stagehand::Schema::DumperExtensions
