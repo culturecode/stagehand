@@ -19,7 +19,24 @@ module Stagehand
         Staging::CommitEntry.where(:table_name => old_table_name).update_all(:table_name => new_table_name)
       end
     end
+
+    # Allow dumping of stagehand create_table directive
+    # e.g. create_table "comments", stagehand: true do |t|
+    module DumperExtensions
+      def table(table_name, stream)
+        stagehand = Stagehand::Schema.has_stagehand?(table_name)
+
+        table_stream = StringIO.new
+        table_stream = super(table_name, table_stream)
+        table_stream.rewind
+        table_schema = table_stream.read.gsub(/create_table (.+) do/, 'create_table \1' + ", stagehand: #{stagehand} do")
+        stream.puts table_schema
+
+        return stream
+      end
+    end
   end
 end
 
 ActiveRecord::Base.connection.class.include Stagehand::Schema::Statements
+ActiveRecord::SchemaDumper.include Stagehand::Schema::DumperExtensions
