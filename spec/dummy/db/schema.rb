@@ -13,10 +13,10 @@
 
 ActiveRecord::Schema.define(version: 0) do
 
-  create_table "habtm_records", force: :cascade do |t|
+  create_table "habtm_records", force: :cascade, stagehand: false do |t|
   end
 
-  create_table "source_records", force: :cascade do |t|
+  create_table "source_records", force: :cascade, stagehand: false do |t|
     t.string   "name",            limit: 255
     t.integer  "counter",         limit: 4
     t.string   "type",            limit: 255
@@ -27,7 +27,7 @@ ActiveRecord::Schema.define(version: 0) do
     t.datetime "updated_at"
   end
 
-  create_table "target_assignments", force: :cascade do |t|
+  create_table "target_assignments", force: :cascade, stagehand: false do |t|
     t.integer  "source_record_id", limit: 4
     t.integer  "target_id",        limit: 4
     t.datetime "created_at",                 null: false

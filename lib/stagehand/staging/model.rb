@@ -5,12 +5,12 @@ module Stagehand
 
       class_methods do
         def connection
-          return super if Configuration.ghost_mode?
-
-          if Stagehand::Database.connected_to_production?
-            Stagehand::Database::StagingProbe.connection
-          else
+          if Configuration.ghost_mode?
+            super
+          elsif Stagehand::Database.connected_to_staging?
             ActiveRecord::Base.connection
+          else
+            Stagehand::Database::StagingProbe.connection
           end
         end
       end
