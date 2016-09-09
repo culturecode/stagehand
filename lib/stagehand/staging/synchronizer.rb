@@ -9,11 +9,11 @@ module Stagehand
 
       # Immediately attempt to sync the changes from the block if possible
       # The block is wrapped in a transaction to prevent changes to records while being synced
-      def sync_now(&block)
+      def sync_now(subject_record = nil, &block)
         raise SyncBlockRequired unless block_given?
 
         Database.transaction do
-          checklist = Checklist.new(Commit.capture(&block).entries, :preconfirm_subject => false)
+          checklist = Checklist.new(Commit.capture(subject_record, &block).entries, :preconfirm_subject => false)
           sync_checklist(checklist) unless checklist.requires_confirmation?
         end
       end
