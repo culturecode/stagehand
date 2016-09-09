@@ -5,9 +5,10 @@ module Stagehand
       def create_table(table_name, options = {})
         super
 
+        return if Database.connected_to_production? && !Stagehand::Configuration.single_connection?
+        Schema.send(:create_session_trigger) if table_name == Staging::CommitEntry.table_name
         return if options.symbolize_keys[:stagehand] == false
         return if UNTRACKED_TABLES.include?(table_name)
-        return if Database.connected_to_production? && !Stagehand::Configuration.single_connection?
 
         Schema.add_stagehand! :only => table_name
       end
