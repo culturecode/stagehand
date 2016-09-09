@@ -57,7 +57,9 @@ module Stagehand
     end
 
     def has_stagehand?(table_name = nil)
-      if table_name
+      if UNTRACKED_TABLES.include?(table_name.to_s)
+        return false
+      elsif table_name
         trigger_exists?(table_name, 'insert')
       else
         ActiveRecord::Base.Connection.table_exists?(Stagehand::Staging::CommitEntry.table_name)
@@ -68,43 +70,40 @@ module Stagehand
 
     # Create trigger to initialize session using a function
     def create_session_trigger
-      drop_trigger(:stagehand_commit_entries, :session)
-      create_trigger(:stagehand_commit_entries, :session) do
-        <<-SQL
-          BEFORE INSERT ON stagehand_commit_entries FOR EACH ROW SET NEW.session = CONNECTION_ID();
-        SQL
-      end
+      drop_trigger(:stagehand_commit_entries, :insert)
+      create_trigger(:stagehand_commit_entries, :insert, :before, <<-SQL)
+        SET NEW.session = CONNECTION_ID();
+      SQL
     end
 
-    def create_operation_trigger(table_name, trigger_action, record)
-      return if trigger_exists?(table_name, trigger_action)
+    def create_operation_trigger(table_name, trigger_event, record)
+      return if trigger_exists?(table_name, trigger_event)
 
-      create_trigger(table_name, trigger_action) do
-        <<-SQL
-          AFTER #{trigger_action.upcase} ON #{table_name}
-          FOR EACH ROW
-          BEGIN
-            INSERT INTO stagehand_commit_entries (record_id, table_name, operation)
-            VALUES (#{record}.id, '#{table_name}', '#{trigger_action}');
-          END;
-        SQL
-      end
+      create_trigger(table_name, trigger_event, :after, <<-SQL)
+        BEGIN
+          INSERT INTO stagehand_commit_entries (record_id, table_name, operation)
+          VALUES (#{record}.id, '#{table_name}', '#{trigger_event}');
+        END;
+      SQL
     end
 
-    def create_trigger(table_name, trigger_action, &block)
-      ActiveRecord::Base.connection.execute("CREATE TRIGGER #{trigger_name(table_name, trigger_action)} #{block.call}")
+    def create_trigger(table_name, trigger_event, trigger_time, row_action)
+      ActiveRecord::Base.connection.execute <<-SQL
+        CREATE TRIGGER #{trigger_name(table_name, trigger_event)} #{trigger_time} #{trigger_event}
+        ON #{table_name} FOR EACH ROW #{row_action}
+      SQL
     end
 
-    def drop_trigger(table_name, trigger_action)
-      ActiveRecord::Base.connection.execute("DROP TRIGGER IF EXISTS #{trigger_name(table_name, trigger_action)};")
+    def drop_trigger(table_name, trigger_event)
+      ActiveRecord::Base.connection.execute("DROP TRIGGER IF EXISTS #{trigger_name(table_name, trigger_event)};")
     end
 
-    def trigger_exists?(table_name, trigger_action)
-      ActiveRecord::Base.connection.select_one("SHOW TRIGGERS where `trigger` = '#{trigger_name(table_name, trigger_action)}'").present?
+    def trigger_exists?(table_name, trigger_event)
+      ActiveRecord::Base.connection.select_one("SHOW TRIGGERS where `trigger` = '#{trigger_name(table_name, trigger_event)}'").present?
     end
 
-    def trigger_name(table_name, trigger_action)
-      "stagehand_#{trigger_action}_trigger_#{table_name}".downcase
+    def trigger_name(table_name, trigger_event)
+      "stagehand_#{trigger_event}_trigger_#{table_name}".downcase
     end
   end
 end

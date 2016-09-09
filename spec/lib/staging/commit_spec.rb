@@ -62,7 +62,7 @@ describe Stagehand::Staging::Commit do
     end
 
     context 'if the session trigger has not been created' do
-      before(:context) { Stagehand::Schema.send :drop_trigger, :stagehand_commit_entries, :session }
+      before(:context) { Stagehand::Schema.send :drop_trigger, :stagehand_commit_entries, :insert }
       after(:context) { Stagehand::Schema.send :create_session_trigger }
 
       it 'raises an exception if the commit session is not set' do
