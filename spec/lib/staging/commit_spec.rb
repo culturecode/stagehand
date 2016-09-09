@@ -60,6 +60,15 @@ describe Stagehand::Staging::Commit do
       end
       expect(commit.subject).to eq(source_record)
     end
+
+    context 'if the session trigger has not been created' do
+      before(:context) { Stagehand::Schema.send :drop_trigger, :stagehand_commit_entries, :session }
+      after(:context) { Stagehand::Schema.send :create_session_trigger }
+
+      it 'raises an exception if the commit session is not set' do
+        expect{ klass.capture { } }.to raise_exception(Stagehand::BlankCommitEntrySession)
+      end
+    end
   end
 
   describe '::find' do

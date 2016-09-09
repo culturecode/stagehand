@@ -20,11 +20,7 @@ module Stagehand
         add_index :stagehand_commit_entries, [:record_id, :table_name] # Used for 'matching' scope
         add_index :stagehand_commit_entries, [:operation, :commit_id] # Used for looking up start entries, and 'not_in_progress' scope
 
-        # Create trigger to initialize session using a function
-        ActiveRecord::Base.connection.execute("DROP TRIGGER IF EXISTS stagehand_session_trigger;")
-        ActiveRecord::Base.connection.execute("
-        CREATE TRIGGER stagehand_session_trigger BEFORE INSERT ON stagehand_commit_entries
-        FOR EACH ROW SET NEW.session = CONNECTION_ID();")
+        Stagehand::Schema.send :create_session_trigger
       end
 
       add_stagehand!(options)
@@ -38,9 +34,9 @@ module Stagehand
         table_names &= Array(options[:only]).collect(&:to_s) if options[:only].present?
 
         table_names.each do |table_name|
-          Stagehand::Schema.send :create_trigger, table_name, 'insert', 'NEW'
-          Stagehand::Schema.send :create_trigger, table_name, 'update', 'NEW'
-          Stagehand::Schema.send :create_trigger, table_name, 'delete', 'OLD'
+          Stagehand::Schema.send :create_operation_trigger, table_name, 'insert', 'NEW'
+          Stagehand::Schema.send :create_operation_trigger, table_name, 'update', 'NEW'
+          Stagehand::Schema.send :create_operation_trigger, table_name, 'delete', 'OLD'
         end
       end
     end
@@ -70,17 +66,33 @@ module Stagehand
 
     private
 
-    def create_trigger(table_name, trigger_action, record)
+    # Create trigger to initialize session using a function
+    def create_session_trigger
+      drop_trigger(:stagehand_commit_entries, :session)
+      create_trigger(:stagehand_commit_entries, :session) do
+        <<-SQL
+          BEFORE INSERT ON stagehand_commit_entries FOR EACH ROW SET NEW.session = CONNECTION_ID();
+        SQL
+      end
+    end
+
+    def create_operation_trigger(table_name, trigger_action, record)
       return if trigger_exists?(table_name, trigger_action)
 
-      ActiveRecord::Base.connection.execute("
-        CREATE TRIGGER #{trigger_name(table_name, trigger_action)} AFTER #{trigger_action.upcase} ON #{table_name}
-        FOR EACH ROW
-        BEGIN
-          INSERT INTO stagehand_commit_entries (record_id, table_name, operation)
-          VALUES (#{record}.id, '#{table_name}', '#{trigger_action}');
-        END;
-      ")
+      create_trigger(table_name, trigger_action) do
+        <<-SQL
+          AFTER #{trigger_action.upcase} ON #{table_name}
+          FOR EACH ROW
+          BEGIN
+            INSERT INTO stagehand_commit_entries (record_id, table_name, operation)
+            VALUES (#{record}.id, '#{table_name}', '#{trigger_action}');
+          END;
+        SQL
+      end
+    end
+
+    def create_trigger(table_name, trigger_action, &block)
+      ActiveRecord::Base.connection.execute("CREATE TRIGGER #{trigger_name(table_name, trigger_action)} #{block.call}")
     end
 
     def drop_trigger(table_name, trigger_action)

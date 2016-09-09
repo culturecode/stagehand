@@ -7,6 +7,7 @@ module Stagehand
 
       def self.capture(subject_record = nil, &block)
         start_operation = start_commit(subject_record)
+        init_session!(start_operation)
         block.call(start_operation)
         return end_commit(start_operation)
       rescue => e
@@ -39,7 +40,7 @@ module Stagehand
 
         start_operation.subject = subject_record
 
-        return start_operation.reload # Reload to ensure session is set
+        return start_operation
       end
 
       # Sets the commit_id on all the entries between the start and end op.
@@ -53,6 +54,12 @@ module Stagehand
           .update_all(:commit_id => start_operation.id)
 
         return new(start_operation.id)
+      end
+
+      # Reload to ensure session set by the database is read by ActiveRecord
+      def self.init_session!(entry)
+        entry.reload
+        raise BlankCommitEntrySession unless entry.session.present?
       end
 
       public
@@ -100,4 +107,5 @@ module Stagehand
 
   # EXCEPTIONS
   class CommitNotFound < StandardError; end
+  class BlankCommitEntrySession < StandardError; end
 end
