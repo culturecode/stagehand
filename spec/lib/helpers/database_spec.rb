@@ -1,19 +1,16 @@
 require 'rails_helper'
 
 describe Stagehand::Database do
-  let(:staging) { Stagehand.configuration.staging_connection_name }
-  let(:production) { Stagehand.configuration.production_connection_name }
-
   describe '::with_connection' do
     it 'restores the database connection specified in the Rails environment after the given block' do
-      expect { subject.with_connection(production) {} }.not_to change { ActiveRecord::Base.connection.current_database }
+      expect { subject.with_production_connection {} }.not_to change { ActiveRecord::Base.connection.current_database }
     end
 
     it 'sets and restores the correct database connections after nested blocks' do
-      subject.with_connection(production) do
+      subject.with_production_connection do
         outer_db = ActiveRecord::Base.connection.current_database
 
-        subject.with_connection(staging) do
+        subject.with_staging_connection do
           expect(ActiveRecord::Base.connection.current_database).not_to eq(outer_db)
         end
 
@@ -22,9 +19,9 @@ describe Stagehand::Database do
     end
 
     it 'does not reconnect if already connected to the desired database' do
-      subject.with_connection(production) do
+      subject.with_production_connection do
         connection = ActiveRecord::Base.connection
-        subject.with_connection(production) do
+        subject.with_production_connection do
           expect(connection.object_id).to eq(ActiveRecord::Base.connection.object_id)
         end
       end
@@ -34,7 +31,7 @@ describe Stagehand::Database do
   describe '::staging_connection' do
     without_transactional_fixtures
 
-    before { SourceRecord.establish_connection(staging) }
+    before { SourceRecord.establish_connection(Stagehand.configuration.staging_connection_name) }
     after { SourceRecord.remove_connection }
 
     it 'returns a connection object that uses the staging database' do
@@ -42,7 +39,7 @@ describe Stagehand::Database do
     end
 
     it 'ignores the effects of a `with_connection` block connected to a different database' do
-      subject.with_connection(production) do
+      subject.with_production_connection do
         expect { SourceRecord.create }.to change { subject.staging_connection.select_values(SourceRecord.all) }
       end
     end
@@ -51,7 +48,7 @@ describe Stagehand::Database do
   describe '::production_connection' do
     without_transactional_fixtures
 
-    before { SourceRecord.establish_connection(production) }
+    before { SourceRecord.establish_connection(Stagehand.configuration.production_connection_name) }
     after { SourceRecord.remove_connection }
 
     it 'returns a connection object that uses the staging database' do
@@ -59,7 +56,7 @@ describe Stagehand::Database do
     end
 
     it 'ignores the effects of a `with_connection` block connected to a different database' do
-      subject.with_connection(staging) do
+      subject.with_staging_connection do
         expect { SourceRecord.create }.to change { subject.production_connection.select_values(SourceRecord.all) }
       end
     end

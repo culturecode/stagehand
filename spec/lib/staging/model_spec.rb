@@ -16,7 +16,7 @@ describe Stagehand::Staging::Model do
 
     it 'does not get written if part of a failed transaction' do
       klass.include(subject)
-      Stagehand::Database.with_connection(Stagehand.configuration.staging_connection_name) do
+      Stagehand::Database.with_staging_connection do
         expect do
           ActiveRecord::Base.transaction { Klass.create; raise(ActiveRecord::Rollback) }
         end.not_to change { Klass.count }

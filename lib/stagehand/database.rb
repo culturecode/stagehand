@@ -5,8 +5,8 @@ module Stagehand
     @@connection_name_stack = [Rails.env.to_sym]
 
     def each(&block)
-      with_connection(Configuration.staging_connection_name, &block)
-      with_connection(Configuration.production_connection_name, &block) unless Configuration.single_connection?
+      with_staging_connection(&block)
+      with_production_connection(&block) unless Configuration.single_connection?
     end
 
     def connected_to_production?
@@ -39,6 +39,14 @@ module Stagehand
 
     def production_database_versions
       Stagehand::Database.production_connection.select_values(versions_scope)
+    end
+
+    def with_staging_connection(&block)
+      with_connection(Configuration.staging_connection_name, &block)
+    end
+
+    def with_production_connection(&block)
+      with_connection(Configuration.production_connection_name, &block)
     end
 
     def with_connection(connection_name)
