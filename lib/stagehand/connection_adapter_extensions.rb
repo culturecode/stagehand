@@ -61,7 +61,7 @@ module Stagehand
         elsif Configuration.allow_unsynced_production_writes?
           Rails.logger.warn "Writing directly to production database"
         else
-          raise(ProductionWrite, "Attempted to write directly to production database")
+          raise(UnsyncedProductionWrite, "Attempted to write directly to production database")
         end
       end
     end
@@ -70,7 +70,7 @@ module Stagehand
 
   # EXCEPTIONS
 
-  class ProductionWrite < StandardError; end
+  class UnsyncedProductionWrite < StandardError; end
 end
 
 ActiveRecord::Base.connection.class.prepend(Stagehand::Connection::AdapterExtensions)
