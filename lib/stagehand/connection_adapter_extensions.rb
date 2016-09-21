@@ -59,7 +59,7 @@ module Stagehand
         if !readonly?
           return
         elsif Configuration.allow_unsynced_production_writes?
-          puts "Writing directly to production database"
+          Rails.logger.warn "Writing directly to production database"
         else
           raise(ProductionWrite, "Attempted to write directly to production database")
         end
