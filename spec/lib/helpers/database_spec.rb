@@ -26,6 +26,12 @@ describe Stagehand::Database do
         end
       end
     end
+
+    it 'raises an exception if inserts are made while connected to production' do
+      subject.with_production_connection do
+        expect { SourceRecord.create! }.to raise_exception(Stagehand::ProductionWrite)
+      end
+    end
   end
 
   describe '::staging_connection' do
@@ -47,6 +53,7 @@ describe Stagehand::Database do
 
   describe '::production_connection' do
     without_transactional_fixtures
+    allow_unsynced_production_writes
 
     before { SourceRecord.establish_connection(Stagehand.configuration.production_connection_name) }
     after { SourceRecord.remove_connection }

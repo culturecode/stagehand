@@ -1,3 +1,7 @@
+def allow_unsynced_production_writes
+  use_configuration :allow_unsynced_production_writes => true
+end
+
 def in_ghost_mode(&block)
   context 'in ghost mode' do
     use_configuration(:ghost_mode => true)

@@ -2,6 +2,7 @@ require 'rails_helper'
 
 describe 'Stagehand::Staging::Controller', :type => :controller do
   without_transactional_fixtures
+  allow_unsynced_production_writes
 
   let(:staging) { Stagehand.configuration.staging_connection_name }
   let(:production) { Stagehand.configuration.production_connection_name }
