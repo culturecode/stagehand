@@ -48,7 +48,7 @@ module Stagehand
       private
 
       def update_readonly_state
-        readonly! if @config[:database] == Database.production_database_name
+        readonly! unless Configuration.single_connection? || @config[:database] != Database.production_database_name
       end
 
       def clear_readonly_state
