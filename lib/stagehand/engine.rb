@@ -12,6 +12,7 @@ module Stagehand
       require "stagehand/cache"
       require "stagehand/key"
       require "stagehand/database"
+      require "stagehand/connection_adapter_extensions"
       require "stagehand/controller_extensions"
       require "stagehand/active_record_extensions"
       require "stagehand/staging"

@@ -20,17 +20,21 @@ module Stagehand
 
       return unless attributes.present?
 
-      is_new = matching(staging_record, table_name).update_all(attributes).zero?
+      Connection.with_production_writes(Record) do
+        is_new = matching(staging_record, table_name).update_all(attributes).zero?
 
-      # Ensure we always return a record, even when updating instead of creating
-      Record.new.tap do |record|
-        record.assign_attributes(attributes)
-        record.save if is_new
+        # Ensure we always return a record, even when updating instead of creating
+        Record.new.tap do |record|
+          record.assign_attributes(attributes)
+          record.save if is_new
+        end
       end
     end
 
     def delete(staging_record, table_name = nil)
-      matching(staging_record, table_name).delete_all
+      Connection.with_production_writes(Record) do
+        matching(staging_record, table_name).delete_all
+      end
     end
 
     def exists?(staging_record, table_name = nil)

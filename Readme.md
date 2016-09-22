@@ -10,8 +10,8 @@ In a nutshell, the system is divided into two halves, Staging (where content is 
 (where content is viewed by visitors). These two halves are backed by their own separate databases in order to ensure
 that updates in the Staging area do not affect Production until they are ready.
 
-It is important to note that the Production database acts as a cache of the Staging database only, no changes are ever
-made to it except to sync changes that have occurred in the Staging database.
+It is important to note that the Production database acts as a cache of the staging database only, no changes are ever
+made to it except to sync changes that have occurred in the staging database.
 
 Key features:
 
@@ -31,9 +31,9 @@ triggers and session identification code.
   ```
 
 2. Make a copy of your existing database, this will serve as the Production database, while your current database will
-be used as the Staging database.
+be used as the staging database.
 
-3. Add stagehand to your Staging database by using the `Stagehand::Schema.add_stagehand!` method. Tables not needed to
+3. Add stagehand to your staging database by using the `Stagehand::Schema.add_stagehand!` method. Tables not needed to
 serve pages to site viewers can be ignored. This is useful if certain tables are only necessary in the
 staging environment.
 
@@ -338,6 +338,28 @@ the `rename_table` schema migration method is extended to automatically `remove_
 
 ## Error Detection
 
+### Unsynced Production Writes
+
+Unsynced production writes occur when data is written directly to the production database without first being written
+to the staging database. While models that are written while in a Production::Controller action can be designated as
+Staging::Models, causing them to read and write to the staging database, unexpected writes may still be written directly
+to the production database.
+
+Take the following example, imagine a FormSubmission model that captures forms submitted by visitors. This model, while
+created during a Production::Controller action, is designated as a Staging::Model because we always write to the Staging
+database. Consider what would happen if the FormSubmission belonged to a Form, and if the Form keeps a counter cache
+to of all its submissions. The Form model is not a Staging::Model because it is never saved during the
+Production::Controller action... or is it? When the FormSubmission is created, it will be saved to staging, but it will
+load and update the counter cache on the Form, causing an unsynced write to the production database.
+
+By default Stagehand will raise an `Stagehand::UnsyncedProductionWrite` exception when this occurs. You can enable
+unsynced production writes in the environment. Instead of raising an exception, warnings will be logged in Rails.
+
+```ruby
+# In your production.rb, development.rb, etc...
+config.x.stagehand.allow_unsynced_production_writes = true
+```
+
 ### Incomplete Commits
 
 In order to achieve minimal impact on the normal operation of the app, Stagehand does not wrap Commits in a transaction.
@@ -422,3 +444,6 @@ that record.
 are saved in the entry, so the actual record class is inferred from the table_name. If multiple classes share the same
 table_name, the first one is chosen. This may lead to unexpected behaviour if anything other than the record attributes
 are being used.
+
+- Usnynced write detection relies on the `exec_insert`, `exec_update`, `exec_delete` methods from
+ActiveRecord::AbstractAdapter. It will not detect writes using the `execute` method.

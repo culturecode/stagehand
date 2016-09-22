@@ -20,6 +20,11 @@ module Stagehand
       !!Rails.configuration.x.stagehand.ghost_mode
     end
 
+    # Allow unsynchronized writes directly to the production database? A warning will be logged if set to true.
+    def allow_unsynced_production_writes?
+      !!Rails.configuration.x.stagehand.allow_unsynced_production_writes
+    end
+
     # Returns true if the production and staging connections are the same.
     # Use case: Front-end devs may not have a second database set up as they are only concerned with the front end
     def single_connection?
