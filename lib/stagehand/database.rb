@@ -52,15 +52,19 @@ module Stagehand
     def with_connection(connection_name)
       different = current_connection_name != connection_name.to_sym
 
-      @@connection_name_stack.push(connection_name.to_sym)
-      Rails.logger.debug "Connecting to #{current_connection_name}"
-      connect_to(current_connection_name) if different
+      if different
+        @@connection_name_stack.push(connection_name.to_sym)
+        Rails.logger.debug "Connecting to #{current_connection_name}"
+        connect_to(current_connection_name)
+      end
 
       yield connection_name
     ensure
-      @@connection_name_stack.pop
-      Rails.logger.debug "Restoring connection to #{current_connection_name}"
-      connect_to(current_connection_name) if different
+      if different
+        @@connection_name_stack.pop
+        Rails.logger.debug "Restoring connection to #{current_connection_name}"
+        connect_to(current_connection_name)
+      end
     end
 
     def transaction
