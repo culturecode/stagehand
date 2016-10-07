@@ -5,8 +5,8 @@ module Stagehand
     @@connection_name_stack = [Rails.env.to_sym]
 
     def each(&block)
-      with_staging_connection(&block)
       with_production_connection(&block) unless Configuration.single_connection?
+      with_staging_connection(&block)
     end
 
     def connected_to_production?
