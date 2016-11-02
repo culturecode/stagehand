@@ -168,8 +168,11 @@ be reviewed before syncing.
   checklist.confirm_delete #=> Requires Confirmation records that will be deleted in the production database
 ```
 
-It is also possible to pass multiple subject records can be passed to the constructor. This will check the combined
-status of changes to all given records.
+The checklist automatically treats changes to the subject as preconfirmed, excluding them from the list of records requiring confirmation.
+Subjects can be your application's records, or Stagehand CommitEntry records. While passing a record to the checklist will confirm all
+its CommitEntries, passing a CommitEntry as the subject will only preconfirm that entry, requiring confirmation for the record if other
+entries for it exist. It is also possible to pass multiple subject records, making the checklist output the combined status of changes for
+each subject.
 
 To determine which records are related to the subject record, two methods of detection are used:
 
