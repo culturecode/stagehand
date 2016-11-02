@@ -5,7 +5,7 @@ describe Stagehand::Staging::Checklist do
   let(:source_record) { SourceRecord.create }
   let(:other_record) { SourceRecord.create }
 
-  subject { Stagehand::Staging::Checklist.new(source_record, preconfirm_subject: false) }
+  subject { Stagehand::Staging::Checklist.new(source_record) }
 
   describe '::new' do
     it 'raises an exception if no subject record is provided'
@@ -302,96 +302,94 @@ describe Stagehand::Staging::Checklist do
 
   describe '#confirm_create' do
     it 'returns affected_records that have create operation entries that are part of a commit' do
-      Stagehand::Staging::Commit.capture { source_record }
-      expect(subject.confirm_create).to include(source_record)
+      Stagehand::Staging::Commit.capture { source_record; other_record }
+      expect(subject.confirm_create).to include(other_record)
     end
 
     it 'returns affected_records that have create and update operation entries that are part of a commit' do
-      Stagehand::Staging::Commit.capture { source_record.increment!(:counter) }
-      expect(subject.confirm_create).to include(source_record)
+      Stagehand::Staging::Commit.capture { source_record.increment!(:counter); other_record.increment!(:counter) }
+      expect(subject.confirm_create).to include(other_record)
     end
 
     it 'does not return affected_records that have delete, create and update operation entries that are part of a commit' do
-      Stagehand::Staging::Commit.capture { source_record.increment!(:counter); source_record.destroy }
-      expect(subject.confirm_create).not_to include(source_record)
+      Stagehand::Staging::Commit.capture do
+        source_record.increment!(:counter); source_record.destroy
+        other_record.increment!(:counter); other_record.destroy
+      end
+      expect(subject.confirm_create).not_to include(other_record)
     end
 
     it 'does not return affected_records that have create operation entries that are part of a commit, and delete entries not part of a commit' do
-      Stagehand::Staging::Commit.capture { source_record }
-      source_record.destroy
-      expect(subject.confirm_create).not_to include(source_record)
+      Stagehand::Staging::Commit.capture { source_record; other_record }
+      source_record.destroy; other_record.destroy
+      expect(subject.confirm_create).not_to include(other_record)
     end
 
     it 'does not return affected_records that have create operation entries that are not part of a commit' do
-      expect(subject.confirm_create).not_to include(source_record)
+      source_record; other_record
+      expect(subject.confirm_create).not_to include(other_record)
     end
   end
 
   describe '#confirm_delete' do
-    before { Stagehand::Production.save(source_record) }
+    before { Stagehand::Production.save(source_record); Stagehand::Production.save(other_record) }
 
     it 'returns affected_records that have delete operation entries that are part of a commit' do
-      Stagehand::Staging::Commit.capture { source_record.destroy }
-      expect(subject.confirm_delete).to include(source_record)
+      Stagehand::Staging::Commit.capture { source_record.destroy; other_record.destroy }
+      expect(subject.confirm_delete).to include(other_record)
     end
 
     it 'returns affected_records that have delete, create and update operation entries' do
-      Stagehand::Staging::Commit.capture { source_record.increment!(:counter); source_record.destroy }
-      expect(subject.confirm_delete).to include(source_record)
+      Stagehand::Staging::Commit.capture do
+        source_record.increment!(:counter); source_record.destroy
+        other_record.increment!(:counter); other_record.destroy
+      end
+      expect(subject.confirm_delete).to include(other_record)
     end
 
     it 'does not include nil entries if delete operation entries include records that do not exist on production' do
-      Stagehand::Production.delete(source_record)
-      Stagehand::Staging::Commit.capture { source_record.destroy }
-      expect(subject.confirm_delete).not_to include(source_record)
+      Stagehand::Production.delete(other_record)
+      Stagehand::Staging::Commit.capture { source_record.destroy; other_record.destroy }
+      expect(subject.confirm_delete).not_to include(other_record)
     end
   end
 
   describe '#confirm_update' do
     it 'returns affected_records that have update operation entries that are part of a commit' do
-      source_record
-      Stagehand::Staging::Commit.capture { source_record.increment!(:counter) }
-      expect(subject.confirm_update).to include(source_record)
+      source_record; other_record
+      Stagehand::Staging::Commit.capture { source_record.increment!(:counter); other_record.increment!(:counter) }
+      expect(subject.confirm_update).to include(other_record)
     end
 
     it 'does not return affected_records that have update and create operation entries' do
-      Stagehand::Staging::Commit.capture { source_record.increment!(:counter) }
-      expect(subject.confirm_update).not_to include(source_record)
+      Stagehand::Staging::Commit.capture { source_record.increment!(:counter); other_record.increment!(:counter) }
+      expect(subject.confirm_update).not_to include(other_record)
     end
 
     it 'does not return affected_records that have update and delete operation entries' do
-      source_record
-      Stagehand::Staging::Commit.capture { source_record.increment!(:counter); source_record.destroy }
-      expect(subject.confirm_update).not_to include(source_record)
+      source_record; other_record
+      Stagehand::Staging::Commit.capture do
+        source_record.increment!(:counter); source_record.destroy
+        other_record.increment!(:counter); other_record.destroy
+      end
+      expect(subject.confirm_update).not_to include(other_record)
     end
   end
 
   describe '#requires_confirmation' do
-    it 'returns affected_records that appear in commits where the staging_record is not in the start_operation' do
-      Stagehand::Staging::Commit.capture { source_record.increment!(:counter) }
-      expect(subject.requires_confirmation).to include(source_record)
-    end
-
-    it 'does not return affected_records that only appear in commits where the staging_record is in the start_operation' do
-      Stagehand::Staging::Commit.capture(source_record) { source_record.increment!(:counter) }
-      expect(subject.requires_confirmation).not_to include(source_record)
-    end
-
-    it 'returns affected_records that appear in commits where the staging_record is not in the start_operation and other where it is' do
-      Stagehand::Staging::Commit.capture(source_record) { source_record.increment!(:counter) }
-      Stagehand::Staging::Commit.capture { source_record.increment!(:counter) }
-
-      expect(subject.requires_confirmation).to include(source_record)
+    it 'does not return affected_records that only appear in commits where the source_record is in the start_operation' do
+      Stagehand::Staging::Commit.capture(source_record) { source_record.increment!(:counter); other_record.increment!(:counter) }
+      expect(subject.requires_confirmation).not_to include(other_record)
     end
 
     it 'does not return affected_records that only appear in outside of commits' do
-      source_record
-      expect(subject.requires_confirmation).not_to include(source_record)
+      other_record
+      expect(subject.requires_confirmation).not_to include(other_record)
     end
 
     it 'does not return duplicate records' do
-      Stagehand::Staging::Commit.capture { source_record.increment!(:counter) }
-      Stagehand::Staging::Commit.capture { source_record.increment!(:counter) }
+      Stagehand::Staging::Commit.capture { source_record.increment!(:counter); other_record.increment!(:counter) }
+      Stagehand::Staging::Commit.capture { source_record.increment!(:counter); other_record.increment!(:counter) }
       records = subject.requires_confirmation
 
       expect { records.uniq! }.not_to change { records.count }
@@ -400,48 +398,50 @@ describe Stagehand::Staging::Checklist do
     it 'returns records that pass the condition in the block provided to the constructor' do
       other_record = SourceRecord.create
       Stagehand::Staging::Commit.capture { other_record.increment!(:counter); source_record.increment!(:counter) }
-      subject = Stagehand::Staging::Checklist.new(source_record, :preconfirm_subject => false) do |record|
-        record.id == source_record.id
+      subject = Stagehand::Staging::Checklist.new(source_record) do |record|
+        record.id == other_record.id
       end
 
-      expect(subject.requires_confirmation).to include(source_record)
+      expect(subject.requires_confirmation).to include(other_record)
     end
 
     it 'does not return records that do not pass the condition in the block provided to the constructor' do
       other_record = SourceRecord.create
       Stagehand::Staging::Commit.capture { other_record.increment!(:counter); source_record.increment!(:counter) }
-      subject = Stagehand::Staging::Checklist.new(source_record, :preconfirm_subject => false) do |record|
-        record.id != source_record.id
+      subject = Stagehand::Staging::Checklist.new(source_record) do |record|
+        record.id != other_record.id
       end
 
-      expect(subject.requires_confirmation).not_to include(source_record)
+      expect(subject.requires_confirmation).not_to include(other_record)
     end
 
     it 'does not include records that only appear in the start_operation' do
-      Stagehand::Staging::Commit.capture(source_record) { SourceRecord.create }
-      expect(subject.requires_confirmation).not_to include(source_record)
+      Stagehand::Staging::Commit.capture(other_record) { source_record }
+      expect(subject.requires_confirmation).not_to include(other_record)
     end
 
-    it 'does not return records that were passed in as the subject of the checklist if :preconfirm_subject => true' do
+    it 'does not return records that were passed in as the subject of the checklist' do
       Stagehand::Staging::Commit.capture { source_record.increment!(:counter) }
-      subject = Stagehand::Staging::Checklist.new(source_record, :preconfirm_subject => true)
       expect(subject.requires_confirmation).not_to include(source_record)
-    end
-
-    it 'returns records that were passed in as the subject of the checklist if :preconfirm_subject => false' do
-      Stagehand::Staging::Commit.capture { source_record.increment!(:counter) }
-      subject = Stagehand::Staging::Checklist.new(source_record, :preconfirm_subject => false)
-      expect(subject.requires_confirmation).to include(source_record)
     end
 
     it 'does not pass nil to the confirmation condition block for a delete operation entry whose record does not exist in production' do
-      Stagehand::Staging::Commit.capture { source_record.delete }
+      Stagehand::Staging::Commit.capture { source_record.delete; other_record.delete }
 
       records = []
-      subject = Stagehand::Staging::Checklist.new(source_record, :preconfirm_subject => false) {|record| records << record }
+      subject = Stagehand::Staging::Checklist.new(source_record) {|record| records << record }
       subject.requires_confirmation
 
       expect(records).not_to include(nil)
+    end
+
+    it 'returns the source_record if commit entries were passed in as the subject and other relevant commits exist' do
+      Stagehand::Staging::Commit.capture(source_record) { source_record.increment!(:counter) }
+
+      commit = Stagehand::Staging::Commit.capture { source_record.increment!(:counter) }
+      subject = Stagehand::Staging::Checklist.new(commit.entries)
+
+      expect(subject.requires_confirmation).to include(source_record)
     end
   end
 end
