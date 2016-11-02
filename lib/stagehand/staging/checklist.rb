@@ -95,10 +95,9 @@ module Stagehand
 
       public
 
-      def initialize(subject, preconfirm_subject: true, &confirmation_filter)
+      def initialize(subject, &confirmation_filter)
         @subject = subject
         @confirmation_filter = confirmation_filter
-        @preconfirm_subject = preconfirm_subject
         affected_entries # Init the affected_entries changes can be rolled back without affecting the checklist
       end
 
@@ -146,20 +145,23 @@ module Stagehand
 
       def grouped_required_confirmation_entries
         cache(:grouped_required_confirmation_entries) do
-          staging_record_start_operation_ids = affected_entries.select do |entry|
-            entry.start_operation? && entry.matches?(@subject)
-          end.collect(&:id)
-
           entries = affected_entries.dup
-
-          # Don't need to confirm entries that match the checklist subject
-          entries.reject! {|entry| entry.matches?(@subject) } if @preconfirm_subject
-
-          # Don't need to confirm entries that are part of a commits whose subject is the checklist subject
-          entries.reject! {|entry| staging_record_start_operation_ids.include?(entry.commit_id) }
+          subject_entries, subject_records = Array.wrap(@subject).partition {|model| model.is_a?(CommitEntry) }
 
           # Don't need to confirm entries that were not part of a commit
           entries.select!(&:commit_id)
+
+          # Don't need to confirm entries that exactly match a subject commit entry
+          entries -= subject_entries
+
+          # Don't need to confirm entries that match the checklist subject records
+          entries.reject! {|entry| entry.matches?(subject_records) }
+
+          # Don't need to confirm entries that are part of a commits whose subject is a checklist subject record
+          staging_record_start_operation_ids = affected_entries.select do |entry|
+            entry.start_operation? && entry.matches?(subject_records)
+          end.collect(&:id)
+          entries.reject! {|entry| staging_record_start_operation_ids.include?(entry.commit_id) }
 
           entries = self.class.compact_entries(entries)
           entries = filter_entries(entries)

@@ -204,11 +204,6 @@ associated record does not already exist in the production database.
 
 #### Options
 
-By default, the checklist will not include the subject_record as it is assumed that its changes are confirmed since the
-purpose of the checklist is to determine what _other_ changes need to be confirmed to sync the subject record. However,
-this preconfirmation can be skipped if desired by passing `:preconfirm_subject => true` to the constructor, causing the
-record lists to include the subject_record.
-
 For fine control over which records are returned by the `requires_confirmation` method, a filter block can be passed to
 the constructor. Any records for which the block returns `true` will be included.
 
