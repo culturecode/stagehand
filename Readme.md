@@ -153,6 +153,16 @@ other, even if they do not modify the same records, e.g. if a commit only update
 subject will ensure the nested records are synced when the record is synced even if the record and its nested records
 are never modified together in the same commit.
 
+The `:except` option can be passed to `stage_changes` to exclude certain tables from a commit. This is useful if
+inconsequential updates to a certain table (e.g. counter cache updates) are causing records to be linked together unnecessarily.
+Note that commit entries for changes to these tables are still created, just not included in the commit.
+
+```ruby
+Stagehand::Staging::Commit.capture(subject_record, except: :components) do
+  # updates to the components table will not be included in this commit
+end
+```
+
 ### Previewing Changes
 
 Before syncing changes to the production database, it's a good idea to review what records will be copied in order to

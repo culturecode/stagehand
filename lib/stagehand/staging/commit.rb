@@ -5,13 +5,13 @@ module Stagehand
         CommitEntry.start_operations.pluck(:id).collect {|id| find(id) }
       end
 
-      def self.capture(subject_record = nil, &block)
+      def self.capture(subject_record = nil, except: [], &block)
         start_operation = start_commit(subject_record)
         init_session!(start_operation)
         block.call(start_operation)
-        return end_commit(start_operation)
+        return end_commit(start_operation, except)
       rescue => e
-        end_commit(start_operation)
+        end_commit(start_operation, except)
         raise(e)
       end
 
@@ -45,13 +45,12 @@ module Stagehand
 
       # Sets the commit_id on all the entries between the start and end op.
       # Returns the commit object for those entries
-      def self.end_commit(start_operation)
+      def self.end_commit(start_operation, except)
         end_operation = CommitEntry.end_operations.create(:session => start_operation.session)
 
-        CommitEntry
-          .where(:id => start_operation.id..end_operation.id)
-          .where(:session => start_operation.session)
-          .update_all(:commit_id => start_operation.id)
+        scope = CommitEntry.where(:id => start_operation.id..end_operation.id, :session => start_operation.session)
+        scope = scope.where('table_name NOT IN (?) OR table_name IS NULL', except) if except.present?
+        scope.update_all(:commit_id => start_operation.id)
 
         return new(start_operation.id)
       end
