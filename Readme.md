@@ -400,8 +400,9 @@ many commits with seemingly unrelated subjects. The visualizer outputs an image 
 providing a starting point for debugging why those records were changed during each commit.
 
 ```ruby
-Stagehand::Auditor.visualize(Person.find(1), 'commit_visualization') #=> commit_visualization.png
-Stagehand::Auditor.visualize_checklist(Checklist.new(some_subject), 'commit_visualization') #=> commit_visualization.png
+Stagehand::Auditor.visualize(Person.find(1), 'commit_visualization.png') # Passing a record to create a checklist
+Stagehand::Auditor.visualize(Person.find(1), 'commit_visualization.png', :show_all_commits => true) # Show commits that don't connect to commits with other subjects
+Stagehand::Auditor.visualize_checklist(Checklist.new(some_subject), 'commit_visualization.png') # Passing a checklist
 ```
 
 ## Removing Stagehand
