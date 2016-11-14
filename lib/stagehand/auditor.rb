@@ -1,3 +1,5 @@
+require 'stagehand/auditor/checklist_visualizer'
+
 module Stagehand
   module Auditor
     extend self
@@ -62,6 +64,14 @@ module Stagehand
       end
 
       return output
+    end
+
+    def visualize(subject, output_file_name, options = {})
+      visualize_checklist(Staging::Checklist.new(subject), output_file_name, options)
+    end
+
+    def visualize_checklist(checklist, output_file_name, options = {})
+      ChecklistVisualizer.new(checklist, options).output(output_file_name)
     end
 
     private
