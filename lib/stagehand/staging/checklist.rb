@@ -137,7 +137,7 @@ module Stagehand
           associated = self.class.associated_records(related)
           associated_related = self.class.related_entries(associated)
 
-          related + associated_related
+          (related + associated_related).uniq
         end
       end
 
