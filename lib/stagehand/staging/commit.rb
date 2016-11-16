@@ -49,7 +49,9 @@ module Stagehand
         end_operation = CommitEntry.end_operations.create(:session => start_operation.session)
 
         scope = CommitEntry.where(:id => start_operation.id..end_operation.id, :session => start_operation.session)
-        scope = scope.where('table_name NOT IN (?) OR table_name IS NULL', except) if except.present?
+        if except.present? && Array(except).collect(&:to_s).exclude?(start_operation.table_name)
+          scope = scope.where('table_name NOT IN (?) OR table_name IS NULL', except)
+        end
         scope.update_all(:commit_id => start_operation.id)
 
         return new(start_operation.id)

@@ -66,6 +66,11 @@ describe Stagehand::Staging::Commit do
       expect(commit).not_to include(source_record)
     end
 
+    it 'contains entries from tables in the :except option if the table is the same as the subject' do
+      commit = klass.capture(source_record, :except => :source_records) { source_record.increment!(:counter) }
+      expect(commit).to include(source_record)
+    end
+
     context 'if the session trigger has not been created' do
       before(:context) { Stagehand::Schema.send :drop_trigger, :stagehand_commit_entries, :insert }
       after(:context) { Stagehand::Schema.send :create_session_trigger }
