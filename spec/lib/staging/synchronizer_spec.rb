@@ -195,6 +195,11 @@ describe Stagehand::Staging::Synchronizer do
       expect { subject.sync_now { source_record.increment!(:counter) } }.not_to change { Stagehand::Production.status(source_record) }
     end
 
+    it 'does sync records modified from within the block if they are the subject of an existing commit but that record is passed as the subject' do
+      Stagehand::Staging::Commit.capture(source_record) { source_record.increment!(:counter) }
+      expect { subject.sync_now(source_record) { source_record.increment!(:counter) } }.to change { Stagehand::Production.status(source_record) }
+    end
+
     it 'does not sync changes to records not modified in the block' do
       other_record = SourceRecord.create
       expect { subject.sync_now { source_record.increment!(:counter) } }.not_to change { Stagehand::Production.status(other_record) }
