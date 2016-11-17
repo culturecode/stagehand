@@ -217,13 +217,19 @@ associated record does not already exist in the production database.
 
 #### Options
 
-For fine control over which records are returned by the `requires_confirmation` method, a filter block can be passed to
-the constructor. Any records for which the block returns `true` will be included.
+For fine control over which records are returned by the `requires_confirmation` method, a :confirmation_filter proc
+can be passed to the constructor. Any records for which the block returns `true` will be included.
 
 ```ruby
-Stagehand::Staging::Checklist.new(subject_record) do |affected_record|
-  affected_record.published?
-end
+Stagehand::Staging::Checklist.new(subject_record, :confirmation_filter => lambda {|record| record.published? })
+```
+
+For control over which records are returned when checking belongs_to associations, an :association_filter proc can be
+passed to the constructor. Any records for which the block returns `true` will be included. This is useful when it isn't
+always necessary to sync the latest updates of an associated record.
+
+```ruby
+Stagehand::Staging::Checklist.new(subject_record, :association_filter => lambda {|record| !record.published? })
 ```
 
 ### Syncing Changes Manually
