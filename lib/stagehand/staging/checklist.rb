@@ -37,7 +37,7 @@ module Stagehand
         return related_entries
       end
 
-      def self.associated_records(entries)
+      def self.associated_records(entries, association_filter = nil)
         records = preload_records(compact_entries(entries)).select(&:record).flat_map do |entry|
           associated_associations(entry.record_class).flat_map do |association|
             entry.record.send(association)
@@ -47,6 +47,7 @@ module Stagehand
         records.uniq!
         records.compact!
         records.select! {|record| stagehand_class?(record.class) }
+        records.select! {|record| association_filter.call(record) } if association_filter.present?
 
         return records
       end
@@ -95,9 +96,10 @@ module Stagehand
 
       public
 
-      def initialize(subject, &confirmation_filter)
+      def initialize(subject, confirmation_filter: nil, association_filter: nil)
         @subject = subject
         @confirmation_filter = confirmation_filter
+        @association_filter = association_filter
         affected_entries # Init the affected_entries changes can be rolled back without affecting the checklist
       end
 
@@ -134,7 +136,7 @@ module Stagehand
       def affected_entries
         cache(:affected_entries) do
           related = self.class.related_entries(@subject)
-          associated = self.class.associated_records(related)
+          associated = self.class.associated_records(related, @association_filter)
           associated_related = self.class.related_entries(associated)
 
           (related + associated_related).uniq

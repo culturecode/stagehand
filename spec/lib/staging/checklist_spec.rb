@@ -405,12 +405,21 @@ describe Stagehand::Staging::Checklist do
       expect(subject.requires_confirmation).to include(other_record)
     end
 
-    it 'does not return records that do not pass the condition in the block provided to the constructor' do
+    it 'does not return records that do not pass the condition in the confirmation_filter proc' do
       other_record = SourceRecord.create
       Stagehand::Staging::Commit.capture { other_record.increment!(:counter); source_record.increment!(:counter) }
-      subject = Stagehand::Staging::Checklist.new(source_record) do |record|
-        record.id != other_record.id
-      end
+      confirmation_filter = ->(record) { record.id != other_record.id }
+      subject = Stagehand::Staging::Checklist.new(source_record, :confirmation_filter => confirmation_filter)
+
+      expect(subject.requires_confirmation).not_to include(other_record)
+    end
+
+    it 'does not return associated records that do not pass the condition in the association_filter proc' do
+      other_record = SourceRecord.create
+      Stagehand::Staging::Commit.capture { other_record.increment!(:counter) }
+      Stagehand::Staging::Commit.capture { source_record.targets << other_record }
+      association_filter = ->(record) { record.id != other_record.id }
+      subject = Stagehand::Staging::Checklist.new(source_record, :association_filter => association_filter)
 
       expect(subject.requires_confirmation).not_to include(other_record)
     end
