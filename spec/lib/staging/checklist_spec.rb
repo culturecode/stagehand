@@ -428,8 +428,8 @@ describe Stagehand::Staging::Checklist do
       source_record
       other_record = SourceRecord.create
       join = TargetAssignment.create(:source_record => source_record, :target => other_record)
-      Stagehand::Staging::Commit.capture { source_record.increment!(:counter); join.touch }
-      Stagehand::Staging::Commit.capture { other_record.increment!(:counter); join.touch }
+      Stagehand::Staging::Commit.capture { source_record.increment!(:counter); join.increment!(:counter) }
+      Stagehand::Staging::Commit.capture { other_record.increment!(:counter); join.increment!(:counter) }
 
       association_filter = ->(record) { record.id != other_record.id }
       relation_filter = ->(entry) { entry.table_name != 'target_assignments' }

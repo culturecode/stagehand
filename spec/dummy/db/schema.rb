@@ -42,6 +42,7 @@ ActiveRecord::Schema.define(version: 0) do
   create_table "target_assignments", force: :cascade, stagehand: true do |t|
     t.integer  "source_record_id", limit: 4
     t.integer  "target_id",        limit: 4
+    t.integer  "counter",          limit: 4
     t.datetime "created_at",                 null: false
     t.datetime "updated_at",                 null: false
   end

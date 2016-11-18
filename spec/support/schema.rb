@@ -25,6 +25,7 @@ RSpec.configure do |config|
           create_table :target_assignments, :force => true do |t|
             t.references :source_record
             t.references :target
+            t.integer :counter
             t.timestamps :null => false
           end
 
