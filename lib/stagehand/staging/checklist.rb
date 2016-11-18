@@ -12,13 +12,15 @@ module Stagehand
         related_entries(commit.entries).collect(&:commit_id).select(&:present?).uniq
       end
 
-      def self.related_entries(entries)
+      def self.related_entries(entries, relation_filter = nil)
         entries = Array.wrap(entries)
         related_entries = []
 
         entries_to_spider = Array.wrap(entries)
         while entries_to_spider.present?
           contained_matching = CommitEntry.contained.matching(entries_to_spider)
+          contained_matching = contained_matching.where(id: contained_matching.select(&relation_filter)) if relation_filter
+
           matching_commit_entries = CommitEntry.where(:commit_id => contained_matching.select(:commit_id))
 
           # Spider using content operations. Don't spider control operations to avoid extending the list of results unnecessarily
@@ -47,7 +49,7 @@ module Stagehand
         records.uniq!
         records.compact!
         records.select! {|record| stagehand_class?(record.class) }
-        records.select! {|record| association_filter.call(record) } if association_filter.present?
+        records.select!(&association_filter) if association_filter
 
         return records
       end
@@ -96,10 +98,11 @@ module Stagehand
 
       public
 
-      def initialize(subject, confirmation_filter: nil, association_filter: nil)
+      def initialize(subject, confirmation_filter: nil, association_filter: nil, relation_filter: nil)
         @subject = subject
         @confirmation_filter = confirmation_filter
         @association_filter = association_filter
+        @relation_filter = relation_filter
         affected_entries # Init the affected_entries changes can be rolled back without affecting the checklist
       end
 
@@ -135,9 +138,9 @@ module Stagehand
 
       def affected_entries
         cache(:affected_entries) do
-          related = self.class.related_entries(@subject)
+          related = self.class.related_entries(@subject, @relation_filter)
           associated = self.class.associated_records(related, @association_filter)
-          associated_related = self.class.related_entries(associated)
+          associated_related = self.class.related_entries(associated, @relation_filter)
 
           (related + associated_related).uniq
         end

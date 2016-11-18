@@ -232,6 +232,14 @@ always necessary to sync the latest updates of an associated record.
 Stagehand::Staging::Checklist.new(subject_record, :association_filter => lambda {|record| !record.published? })
 ```
 
+In order to avoid a commit entry forcing the inclusion of other commits with matching commit entries in a sync,
+a :relation_filter proc can be passed to the constructor. Related commits for any entry for which the block
+returns `false` will not be included. Note that this proc is passed commit entries, and not records like the other procs.
+
+```ruby
+Stagehand::Staging::Checklist.new(subject_record, :relation_filter => lambda {|entry| entry.table_name != 'news_assignments' })
+```
+
 ### Syncing Changes Manually
 
 Manual syncing typically takes place in a controller action where a user confirms the changes to records about to be
