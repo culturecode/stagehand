@@ -424,6 +424,20 @@ describe Stagehand::Staging::Checklist do
       expect(subject.requires_confirmation).not_to include(other_record)
     end
 
+    it "does not spider to other commits based on matches that don't satisfy the relation_filter proc" do
+      source_record
+      other_record = SourceRecord.create
+      join = TargetAssignment.create(:source_record => source_record, :target => other_record)
+      Stagehand::Staging::Commit.capture { source_record.increment!(:counter); join.touch }
+      Stagehand::Staging::Commit.capture { other_record.increment!(:counter); join.touch }
+
+      association_filter = ->(record) { record.id != other_record.id }
+      relation_filter = ->(entry) { entry.table_name != 'target_assignments' }
+      subject = Stagehand::Staging::Checklist.new(source_record, :association_filter => association_filter, :relation_filter => relation_filter)
+
+      expect(subject.requires_confirmation).not_to include(other_record)
+    end
+
     it 'does not include records that only appear in the start_operation' do
       Stagehand::Staging::Commit.capture(other_record) { source_record }
       expect(subject.requires_confirmation).not_to include(other_record)
