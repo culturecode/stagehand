@@ -234,7 +234,7 @@ Stagehand::Staging::Checklist.new(subject_record, :association_filter => lambda 
 
 ### Syncing Changes Manually
 
-Manual syncing typically takes place in a a controller action where a user confirms the changes to records about to be
+Manual syncing typically takes place in a controller action where a user confirms the changes to records about to be
 synced.
 
 ```ruby
