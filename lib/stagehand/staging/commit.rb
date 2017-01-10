@@ -73,7 +73,13 @@ module Stagehand
           .reorder(:id => :asc)
           .pluck(:id)
 
-        raise CommitNotFound unless @start_id && @end_id
+        return if @start_id && @end_id
+
+        missing = []
+        missing << CommitEntry::START_OPERATION unless @start_id
+        missing << CommitEntry::END_OPERATION unless @end_id
+
+        raise CommitNotFound, "Couldn't find #{missing.join(', ')} entry for Commit #{start_id}"
       end
 
       def id

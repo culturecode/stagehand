@@ -12,6 +12,7 @@ module Stagehand
       def sync_now(subject_record = nil, &block)
         raise SyncBlockRequired unless block_given?
 
+        Rails.logger.info "Syncing Now"
         Database.transaction do
           checklist = Checklist.new(Commit.capture(subject_record, &block).entries)
           sync_checklist(checklist) unless checklist.requires_confirmation?
@@ -20,6 +21,7 @@ module Stagehand
 
       def auto_sync(polling_delay = 5.seconds)
         loop do
+          Rails.logger.info "Autosyncing"
           sync(BATCH_SIZE)
           sleep(polling_delay) if polling_delay
         end
@@ -29,6 +31,7 @@ module Stagehand
         synced_count = 0
         deleted_count = 0
 
+        Rails.logger.info "Syncing"
         iterate_autosyncable_entries do |entry|
           sync_entries(entry)
           synced_count += 1
