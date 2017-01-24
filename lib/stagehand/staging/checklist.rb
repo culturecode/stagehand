@@ -146,6 +146,10 @@ module Stagehand
         end
       end
 
+      def subject_entries
+        cache(:subject_entries) { CommitEntry.matching(@subject) }
+      end
+
       private
 
       def grouped_required_confirmation_entries

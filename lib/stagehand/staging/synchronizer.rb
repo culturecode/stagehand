@@ -33,7 +33,7 @@ module Stagehand
 
         Rails.logger.info "Syncing"
         iterate_autosyncable_entries do |entry|
-          sync_entries(entry)
+          sync_entry(entry, :callbacks => :sync)
           synced_count += 1
           deleted_count += CommitEntry.matching(entry).delete_all
           break if synced_count == limit
@@ -51,7 +51,7 @@ module Stagehand
           break unless entries.present?
 
           latest_entries = entries.uniq(&:key)
-          sync_entries(latest_entries)
+          latest_entries.each {|entry| sync_entry(entry, :callbacks => :sync) }
           Rails.logger.info "Synced #{latest_entries.count} entries"
 
           deleted_count = CommitEntry.matching(latest_entries).delete_all
@@ -66,7 +66,14 @@ module Stagehand
 
       def sync_checklist(checklist)
         Database.transaction do
-          sync_entries(checklist.syncing_entries)
+          checklist.syncing_entries.each do |entry|
+            if checklist.subject_entries.include?(entry)
+              sync_entry(entry, :callbacks => [:sync, :sync_as_subject])
+            else
+              sync_entry(entry, :callbacks => [:sync, :sync_as_affected])
+            end
+          end
+
           CommitEntry.delete(checklist.affected_entries)
         end
       end
@@ -106,25 +113,19 @@ module Stagehand
         return entries
       end
 
-      def sync_entries(entries)
+      def sync_entry(entry, callbacks: [])
         raise SchemaMismatch unless schemas_match?
 
-        entries = Array.wrap(entries)
-
-        entries.each do |entry|
-          run_sync_callbacks(entry) do
-            Rails.logger.info "Synchronizing #{entry.table_name} #{entry.record_id}" if entry.content_operation?
-            if Configuration.single_connection?
-              next # Avoid deadlocking if the databases are the same
-            elsif entry.delete_operation?
-              Production.delete(entry)
-            elsif entry.save_operation?
-              Production.save(entry)
-            end
+        run_sync_callbacks(entry, callbacks) do
+          Rails.logger.info "Synchronizing #{entry.table_name} #{entry.record_id}" if entry.content_operation?
+          if Configuration.single_connection?
+            next # Avoid deadlocking if the databases are the same
+          elsif entry.delete_operation?
+            Production.delete(entry)
+          elsif entry.save_operation?
+            Production.save(entry)
           end
         end
-
-        return entries.length
       end
 
       def schemas_match?
@@ -133,8 +134,13 @@ module Stagehand
         return schemas_match
       end
 
-      def run_sync_callbacks(entry, &block)
-        entry.record.run_callbacks(:sync, &block) if entry.record
+      def run_sync_callbacks(entry, callbacks, &block)
+        callbacks = Array.wrap(callbacks).dup
+        return block.call unless entry.record && callbacks.present?
+
+        entry.record.run_callbacks(callbacks.shift) do
+          run_sync_callbacks(entry, callbacks, &block)
+        end
       end
     end
   end

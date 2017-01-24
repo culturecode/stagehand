@@ -307,8 +307,15 @@ end
 
 ### Sync Callbacks
 
-Stagehand extends ActiveRecord::Base with `before_sync` and `after_sync` callbacks. You can use these callbacks as you
-would `before_save` and `after_save` callbacks to run code related to a sync.
+Stagehand extends ActiveRecord::Base with `sync`, `sync_as_subject`, `sync_as_affected` callbacks. You can use these
+callbacks as you would `before_save` and `after_save` callbacks to run code related to a sync.
+
+```ruby
+  after_sync :my_method # Runs after syncing any record
+  before_sync_as_subject :my_method # Runs before syncing a checklist record that is the subject of that checklist
+  after_sync_as_affect :my_method # Runs before syncing a checklist record that is not subject of that checklist
+```
+
 NOTE: The only difference from typical ActiveRecord callbacks is that the callbacks are not run on the record instance
 being synced, but instead are run on a new instance reloaded from the database.
 

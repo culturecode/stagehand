@@ -277,9 +277,13 @@ describe Stagehand::Staging::Synchronizer do
     class SyncCallbackMock < SourceRecord
       before_sync :before_sync_callback
       after_sync :after_sync_callback
+      before_sync_as_subject :before_sync_as_subject_callback
+      after_sync_as_subject :after_sync_as_subject_callback
+      before_sync_as_affected :before_sync_as_affected_callback
+      after_sync_as_affected :after_sync_as_affected_callback
 
       def before_sync_callback
-        self.name = 'before'
+        self.name << 'before'
         save!
       end
 
@@ -287,9 +291,30 @@ describe Stagehand::Staging::Synchronizer do
         self.name << 'after'
         save!
       end
+
+      def before_sync_as_subject_callback
+        self.name << 'before_as_subject'
+        save!
+      end
+
+      def after_sync_as_subject_callback
+        self.name << 'after_as_subject'
+        save!
+      end
+
+      def before_sync_as_affected_callback
+        self.name << 'before_as_affected'
+        save!
+      end
+
+      def after_sync_as_affected_callback
+        self.name << 'after_as_affected'
+        save!
+      end
     end
 
-    let(:record) { SyncCallbackMock.create(:name => 'mock') }
+    let(:record) { SyncCallbackMock.create(:name => '') }
+    let(:other) { SyncCallbackMock.create(:name => '') }
 
     it 'runs :before_sync callback' do
       subject.sync_record(record)
@@ -299,6 +324,52 @@ describe Stagehand::Staging::Synchronizer do
     it 'runs :after_sync callback' do
       subject.sync_record(record)
       expect(record.reload.name).to include('after')
+    end
+
+    it 'runs :before_sync_as_subject callback if the record is the subject of the checklist' do
+      subject.sync_checklist(Stagehand::Staging::Checklist.new(record))
+      expect(record.reload.name).to include('before_as_subject')
+    end
+
+    it 'does not run :before_sync_as_subject callback if the record is not the subject of the checklist' do
+      Stagehand::Staging::Commit.capture { record; other }
+      subject.sync_checklist(Stagehand::Staging::Checklist.new(record))
+      expect(other.reload.name).not_to include('before_as_subject')
+    end
+
+    it 'runs :after_sync_as_subject callback if the record is the subject of the checklist' do
+      subject.sync_checklist(Stagehand::Staging::Checklist.new(record))
+      expect(record.reload.name).to include('after_as_subject')
+    end
+
+    it 'does not run :after_sync_as_subject callback if the record is not the subject of the checklist' do
+      Stagehand::Staging::Commit.capture { record; other }
+      subject.sync_checklist(Stagehand::Staging::Checklist.new(record))
+      expect(other.reload.name).not_to include('after_as_subject')
+    end
+
+    it 'runs :before_sync_as_affected callback if the record is not the subject of the checklist' do
+      Stagehand::Staging::Commit.capture { record; other }
+      subject.sync_checklist(Stagehand::Staging::Checklist.new(record))
+      expect(other.reload.name).to include('before_as_affected')
+    end
+
+    it 'does not run :before_sync_as_affected callback if the record is the subject of the checklist' do
+      Stagehand::Staging::Commit.capture { record; other }
+      subject.sync_checklist(Stagehand::Staging::Checklist.new(record))
+      expect(record.reload.name).not_to include('before_as_affected')
+    end
+
+    it 'runs :after_sync_as_affected callback if the record is not the subject of the checklist' do
+      Stagehand::Staging::Commit.capture { record; other }
+      subject.sync_checklist(Stagehand::Staging::Checklist.new(record))
+      expect(other.reload.name).to include('after_as_affected')
+    end
+
+    it 'does not run :after_sync_as_affected callback if the record is the subject of the checklist' do
+      Stagehand::Staging::Commit.capture { record; other }
+      subject.sync_checklist(Stagehand::Staging::Checklist.new(record))
+      expect(record.reload.name).not_to include('after_as_affected')
     end
   end
 
