@@ -1,14 +1,6 @@
 ActiveRecord::Base.class_eval do
   # SYNC CALLBACKS
-  define_callbacks :sync
-
-  def self.before_sync(method, options = {})
-    set_callback :sync, :before, method, options
-  end
-
-  def self.after_sync(method, options = {})
-    set_callback :sync, :after, method, options
-  end
+  define_model_callbacks :sync
 
   # SYNC STATUS
   def self.inherited(subclass)
