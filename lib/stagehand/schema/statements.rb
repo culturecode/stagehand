@@ -15,6 +15,8 @@ module Stagehand
       end
 
       def rename_table(old_table_name, new_table_name, *)
+        return super unless Schema.has_stagehand?(old_table_name)
+
         Schema.remove_stagehand!(:only => old_table_name)
         super
         Schema.add_stagehand!(:only => new_table_name)
