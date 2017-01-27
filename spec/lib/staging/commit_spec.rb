@@ -69,6 +69,10 @@ describe Stagehand::Staging::Commit do
 
     it 'ends the commit when the block raises an exception' do
       expect{ begin klass.capture { raise }; rescue; end }
+
+    it 'does not create duplicate end entries if an exception is raised while ending the commit' do
+      allow(klass).to receive(:new).and_raise('an error')
+      expect { klass.capture { } rescue nil }
         .to change { Stagehand::Staging::CommitEntry.end_operations.count }.by(1)
     end
 

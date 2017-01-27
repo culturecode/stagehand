@@ -12,11 +12,15 @@ module Stagehand
       def self.capture(subject_record = nil, except: [], &block)
         start_operation = start_commit(subject_record)
         init_session!(start_operation)
-        block.call(start_operation)
-        return end_commit(start_operation, except)
-      rescue => e
-        end_commit(start_operation, except)
-        raise(e)
+
+        begin
+          block.call(start_operation)
+        rescue => e
+          end_commit(start_operation, except)
+          raise(e)
+        else
+          return end_commit(start_operation, except)
+        end
       end
 
       def self.containing(record)
