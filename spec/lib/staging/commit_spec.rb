@@ -64,11 +64,13 @@ describe Stagehand::Staging::Commit do
     end
 
     it 'does not swallow exceptions from the given block' do
-      expect{ klass.capture { raise('test') } }.to raise_exception('test')
+      expect { klass.capture { raise('test') } }.to raise_exception('test')
     end
 
     it 'ends the commit when the block raises an exception' do
-      expect{ begin klass.capture { raise }; rescue; end }
+      expect { klass.capture { raise } rescue nil }
+        .to change { Stagehand::Staging::CommitEntry.end_operations.count }.by(1)
+    end
 
     it 'does not create duplicate end entries if an exception is raised while ending the commit' do
       allow(klass).to receive(:new).and_raise('an error')
@@ -98,7 +100,7 @@ describe Stagehand::Staging::Commit do
       after(:context) { Stagehand::Schema.send :create_session_trigger }
 
       it 'raises an exception if the commit session is not set' do
-        expect{ klass.capture { } }.to raise_exception(Stagehand::BlankCommitEntrySession)
+        expect { klass.capture { } }.to raise_exception(Stagehand::BlankCommitEntrySession)
       end
     end
   end
