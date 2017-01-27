@@ -362,7 +362,12 @@ is extended to automatically call `add_stagehand!` on the new table.
 ### rename_table
 
 In order to ensure that change tracking triggers are not left recording the wrong table name after the table is renamed,
-the `rename_table` schema migration method is extended to automatically `remove_stagehand!``
+the `rename_table` schema migration method is extended to automatically `remove_stagehand!`
+
+### drop_table
+
+In order to ensure that commit entries referencing the deleted table are not left behind, the `drop_table` schema
+migration method is extended to automatically delete all commit entries for that table.
 
 
 ## Error Detection

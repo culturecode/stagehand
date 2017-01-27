@@ -191,6 +191,19 @@ describe Stagehand::Staging::Commit do
     end
   end
 
+  describe '#empty?' do
+    subject { klass.capture { source_record } }
+
+    it 'is empty if the commit has no content operatings' do
+      subject.entries.content_operations.delete_all
+      expect(subject).to be_empty
+    end
+
+    it 'is not empty if the commit has content operations' do
+      expect(subject).not_to be_empty
+    end
+  end
+
   describe 'equality' do
     subject { klass.capture { } }
     let(:other) { klass.capture { } }

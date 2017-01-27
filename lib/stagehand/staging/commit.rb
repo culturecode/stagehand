@@ -4,6 +4,9 @@ module Stagehand
       def self.all
         CommitEntry.end_operations.pluck(:commit_id).collect {|id| find(id) }
       end
+
+      def self.empty
+        all.select(&:empty?)
       end
 
       def self.capture(subject_record = nil, except: [], &block)
@@ -109,6 +112,14 @@ module Stagehand
 
       def subject
         entries.sort_by(&:id).first.record
+      end
+
+      def empty?
+        entries.content_operations.empty?
+      end
+
+      def destroy
+        entries.delete_all
       end
     end
   end

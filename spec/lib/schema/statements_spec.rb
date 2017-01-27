@@ -27,4 +27,27 @@ describe Stagehand::Schema::Statements do
       ActiveRecord::Schema.define { create_table(*args, :force => true, **options) }
     end
   end
+
+  describe '#drop_table' do
+    without_transactional_fixtures
+
+    before do
+      ActiveRecord::Schema.define { create_table('widgets') }
+    end
+
+    let(:entry) { Stagehand::Staging::CommitEntry.where(:table_name => 'widgets').save_operations.create }
+
+    it 'automatically removes entries with the given table name' do
+      expect { ActiveRecord::Schema.define { drop_table('widgets') } }
+        .to change { entry.class.exists?(entry.id) }
+        .to(false)
+    end
+
+    it 'deletes empty commits' do
+      commit = Stagehand::Staging::Commit.capture { }
+      expect { ActiveRecord::Schema.define { drop_table('widgets') } }
+        .to change { Stagehand::Staging::Commit.all.include?(commit) }
+        .to(false)
+    end
+  end
 end
