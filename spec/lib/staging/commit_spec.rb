@@ -4,6 +4,22 @@ describe Stagehand::Staging::Commit do
   let(:klass) { Stagehand::Staging::Commit }
   let(:source_record) { SourceRecord.create }
 
+  describe ':all' do
+    it 'returns all commits' do
+      commit_1 = klass.capture { }
+      commit_2 = klass.capture { }
+      expect(klass.all).to contain_exactly(commit_1, commit_2)
+    end
+
+    it 'does not return incomplete commits' do
+      commit_1 = klass.capture { }
+      commit_2 = klass.capture { }
+      commit_2.entries.end_operations.delete_all
+
+      expect(klass.all).to contain_exactly(commit_1)
+    end
+  end
+
   describe '::capture' do
     it 'commits records that were created' do
       commit = klass.capture { source_record }

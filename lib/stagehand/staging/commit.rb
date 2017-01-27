@@ -2,7 +2,8 @@ module Stagehand
   module Staging
     class Commit
       def self.all
-        CommitEntry.start_operations.pluck(:id).collect {|id| find(id) }
+        CommitEntry.end_operations.pluck(:commit_id).collect {|id| find(id) }
+      end
       end
 
       def self.capture(subject_record = nil, except: [], &block)
