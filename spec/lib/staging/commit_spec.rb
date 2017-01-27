@@ -14,7 +14,9 @@ describe Stagehand::Staging::Commit do
     it 'does not return incomplete commits' do
       commit_1 = klass.capture { }
       commit_2 = klass.capture { }
+      commit_3 = klass.capture { }
       commit_2.entries.end_operations.delete_all
+      commit_3.entries.start_operations.delete_all
 
       expect(klass.all).to contain_exactly(commit_1)
     end

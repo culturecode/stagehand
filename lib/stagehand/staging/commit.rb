@@ -2,7 +2,7 @@ module Stagehand
   module Staging
     class Commit
       def self.all
-        CommitEntry.end_operations.pluck(:commit_id).collect {|id| find(id) }
+        CommitEntry.end_operations.pluck(:commit_id).collect {|id| find(id) }.compact
       end
 
       def self.empty
