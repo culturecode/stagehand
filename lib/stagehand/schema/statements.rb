@@ -23,7 +23,7 @@ module Stagehand
         Staging::CommitEntry.where(:table_name => old_table_name).update_all(:table_name => new_table_name)
       end
 
-      def drop_table(table_name)
+      def drop_table(table_name, *)
         return super unless Schema.has_stagehand?(table_name) && table_exists?(Staging::CommitEntry.table_name)
 
         super
