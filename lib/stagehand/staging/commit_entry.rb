@@ -29,7 +29,8 @@ module Stagehand
                ON active_starts.session = #{table_name}.session AND active_starts.start_id <= #{table_name}.id")
        .where("active_starts.start_id IS NULL") }
       scope :with_uncontained_keys, lambda {
-        joins("LEFT OUTER JOIN (#{ unscoped.contained.select('record_id, table_name').distinct.to_sql}) AS contained
+        uncontained
+        .joins("LEFT OUTER JOIN (#{ unscoped.contained.select('record_id, table_name').distinct.to_sql}) AS contained
                ON contained.record_id = #{table_name}.record_id AND contained.table_name = #{table_name}.table_name")
         .where("contained.record_id IS NULL")
       }
