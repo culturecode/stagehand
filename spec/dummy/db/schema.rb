@@ -28,11 +28,12 @@ ActiveRecord::Schema.define(version: 0) do
   end
 
   create_table "stagehand_commit_entries", force: :cascade, stagehand: :commit_entries do |t|
-    t.integer "record_id",  limit: 4
-    t.string  "table_name", limit: 255
-    t.string  "operation",  limit: 255, null: false
-    t.integer "commit_id",  limit: 4
-    t.string  "session",    limit: 255
+    t.integer  "record_id",  limit: 4
+    t.string   "table_name", limit: 255
+    t.string   "operation",  limit: 255, null: false
+    t.integer  "commit_id",  limit: 4
+    t.string   "session",    limit: 255
+    t.datetime "created_at"
   end
 
   add_index "stagehand_commit_entries", ["commit_id"], name: "index_stagehand_commit_entries_on_commit_id", using: :btree

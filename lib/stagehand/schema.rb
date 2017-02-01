@@ -14,6 +14,7 @@ module Stagehand
           t.string :operation, :null => false
           t.integer :commit_id
           t.string :session
+          t.datetime :created_at
         end
 
         add_index :stagehand_commit_entries, :commit_id # Used for looking up all entries within a commit

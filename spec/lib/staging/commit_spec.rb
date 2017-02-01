@@ -103,6 +103,14 @@ describe Stagehand::Staging::Commit do
         expect { klass.capture { } }.to raise_exception(Stagehand::BlankCommitEntrySession)
       end
     end
+
+    it 'sets the start timestamp' do
+      expect(klass.capture { }.entries.first).to have_attributes(:created_at => be_present)
+    end
+
+    it 'sets the end timestamp' do
+      expect(klass.capture { }.entries.last).to have_attributes(:created_at => be_present)
+    end
   end
 
   describe '::find' do
