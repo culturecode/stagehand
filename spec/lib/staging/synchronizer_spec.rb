@@ -116,6 +116,17 @@ describe Stagehand::Staging::Synchronizer do
       expect(statuses.count(:not_modified)).to eq(1)
     end
 
+    it 'can handle many autosyncable commit entries' do
+      count = 100_000
+      table_name = SourceRecord.table_name
+      operation = Stagehand::Staging::CommitEntry::INSERT_OPERATION
+      values = count.times.collect {|index| "(#{index},'#{table_name}','#{operation}')" }.join(',')
+      insert = "INSERT INTO #{Stagehand::Staging::CommitEntry.table_name} (record_id,table_name,operation) VALUES#{values};"
+      ActiveRecord::Base.connection.execute(insert)
+
+      expect { subject.sync(1000) }.to take_less_than(10).seconds
+    end
+
     in_ghost_mode do
       it 'syncs records with only entries that do not belong to a commit ' do
         source_record.increment!(:counter)
@@ -387,4 +398,13 @@ describe Stagehand::Staging::Synchronizer do
   in_ghost_mode do
     it_behaves_like 'sync callbacks'
   end
+end
+
+
+def benchmark(heading, &block)
+  puts heading if heading
+  time = Time.now
+  output = block.call
+  puts "Finished #{heading} in #{Time.now - time} seconds"
+  return output
 end

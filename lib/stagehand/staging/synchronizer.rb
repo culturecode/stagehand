@@ -83,15 +83,13 @@ module Stagehand
       # Lazily iterate through millions of commit entries
       # Returns commit entries in ID descending order
       def iterate_autosyncable_entries(&block)
-        session_list = CommitEntry.order(:id => :desc).distinct.pluck(:session)
+        max = CommitEntry.maximum(:id)
+        min = CommitEntry.minimum(:id)
 
-        while sessions = session_list.shift(SESSION_BATCH_SIZE).presence
-          offset = 0
-          while entries = autosyncable_entries(:session => sessions).offset(offset).limit(BATCH_SIZE).uniq(&:id).presence
-            offset += BATCH_SIZE
-            entries.each do |entry|
-              with_confirmed_autosyncability(entry, &block)
-            end
+        max.step(min, -BATCH_SIZE).each do |current|
+          range = [current - BATCH_SIZE, min].max..current
+          autosyncable_entries(:id => range).uniq(&:id).each do |entry|
+            with_confirmed_autosyncability(entry, &block)
           end
         end
       end
