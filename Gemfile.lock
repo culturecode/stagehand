@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    culturecode_stagehand (0.12.4)
+    culturecode_stagehand (0.12.7)
       mysql2
       rails (~> 4.2)
       ruby-graphviz
