@@ -403,12 +403,3 @@ describe Stagehand::Staging::Synchronizer do
     it_behaves_like 'sync callbacks'
   end
 end
-
-
-def benchmark(heading, &block)
-  puts heading if heading
-  time = Time.now
-  output = block.call
-  puts "Finished #{heading} in #{Time.now - time} seconds"
-  return output
-end
