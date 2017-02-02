@@ -88,9 +88,7 @@ module Stagehand
 
         max.step(min, -BATCH_SIZE).each do |current|
           range = [current - BATCH_SIZE, min].max..current
-          autosyncable_entries(:id => range).uniq(&:id).each do |entry|
-            with_confirmed_autosyncability(entry, &block)
-          end
+          with_confirmed_autosyncability(autosyncable_entries(:id => range).order(:id => :desc), &block)
         end
       end
 
@@ -98,15 +96,25 @@ module Stagehand
       # This confirmation is used to guard against writes to the record that occur after loading an initial list of
       # entries that are autosyncable, but before the record is actually synced. To prevent this, a lock on the record
       # is acquired and then the record's autosync eligibility is rechecked before calling the block.
-      def with_confirmed_autosyncability(entry, &block)
+      def with_confirmed_autosyncability(entries, &block)
+        entries = Array.wrap(entries)
+        return unless entries.present?
+
         Database.transaction do
-          CommitEntry.connection.execute("SELECT 1 FROM #{entry.table_name} WHERE id = #{entry.record_id}")
-          block.call(entry) if autosyncable_entries(:record_id => entry.record_id, :table_name => entry.table_name).exists?
+          # Lock the records so nothing can update them
+          CommitEntry.connection.execute(CommitEntry.where(:id => entries).lock.to_sql)
+
+          # Execute the block for each entry we've confirm autosyncability
+          confirmed_ids = Set.new(autosyncable_entries.where(:id => entries).pluck(:id))
+
+          entries.each do |entry|
+            block.call(entry) if confirmed_ids.include?(entry.id)
+          end
         end
       end
 
       def autosyncable_entries(scope = nil)
-        entries = CommitEntry.content_operations.not_in_progress.where(scope).order(:id => :desc)
+        entries = CommitEntry.content_operations.not_in_progress.where(scope)
         entries = entries.with_uncontained_keys unless Configuration.ghost_mode?
         return entries
       end
