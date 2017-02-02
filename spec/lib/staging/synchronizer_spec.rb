@@ -127,6 +127,10 @@ describe Stagehand::Staging::Synchronizer do
       expect { subject.sync(1000) }.to take_less_than(10).seconds
     end
 
+    it 'does not raise an exception if there are no records to sync' do
+      expect { subject.sync }.not_to raise_exception
+    end
+
     in_ghost_mode do
       it 'syncs records with only entries that do not belong to a commit ' do
         source_record.increment!(:counter)
