@@ -240,6 +240,11 @@ returns `false` will not be included. Note that this proc is passed commit entri
 Stagehand::Staging::Checklist.new(subject_record, :relation_filter => lambda {|entry| entry.table_name != 'news_assignments' })
 ```
 
+All three of these filters can be set globally in `Stagehand.configuration` as `checklist_confirmation_filter`,
+`checklist_association_filter`, and `checklist_relation_filter`. Setting these filters globally instead of passing them
+to each Checklist can prevent unintended sync consistency effects stemming from inconsistently applying filters
+throughout your code.
+
 ### Syncing Changes Manually
 
 Manual syncing typically takes place in a controller action where a user confirms the changes to records about to be

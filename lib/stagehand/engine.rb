@@ -1,3 +1,5 @@
+require "stagehand/configuration"
+
 module Stagehand
   class Engine < ::Rails::Engine
     isolate_namespace Stagehand
@@ -8,7 +10,6 @@ module Stagehand
 
     # These require the rails application to be intialized because configuration variables are used
     initializer "stagehand.load_modules" do
-      require "stagehand/configuration"
       require "stagehand/cache"
       require "stagehand/key"
       require "stagehand/database"

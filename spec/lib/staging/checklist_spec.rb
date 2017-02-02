@@ -9,6 +9,9 @@ describe Stagehand::Staging::Checklist do
 
   describe '::new' do
     it 'raises an exception if no subject record is provided'
+    it 'defaults confirmation_filter to Configuration.checklist_confirmation_filter'
+    it 'defaults association_filter to Configuration.checklist_association_filter'
+    it 'defaults relation_filter to Configuration.checklist_relation_filter'
   end
 
   describe '::related_entries' do

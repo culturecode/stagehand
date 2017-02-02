@@ -98,7 +98,7 @@ module Stagehand
 
       public
 
-      def initialize(subject, confirmation_filter: nil, association_filter: nil, relation_filter: nil)
+      def initialize(subject, confirmation_filter: Configuration.checklist_confirmation_filter, association_filter: Configuration.checklist_association_filter, relation_filter: Configuration.checklist_relation_filter)
         @subject = subject
         @confirmation_filter = confirmation_filter
         @association_filter = association_filter
