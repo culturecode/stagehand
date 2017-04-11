@@ -80,6 +80,7 @@ module Stagehand
 
     class Record < Stagehand::Database::ProductionProbe
       self.record_timestamps = false
+      self.inheritance_column = nil
     end
   end
 end

@@ -37,6 +37,12 @@ describe Stagehand::Production do
     it 'does not return records that have not been saved to the production database' do
       expect(subject.matching(source_record)).to be_empty
     end
+
+    it 'ignores STI columns and returns Production::Records' do
+      source_record.update_column(:type, STISourceRecord)
+      subject.save(source_record)
+      expect(subject.matching(source_record)).to all(be_a Stagehand::Production::Record)
+    end
   end
 
   shared_examples_for 'a saved record' do
