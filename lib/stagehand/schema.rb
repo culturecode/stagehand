@@ -29,12 +29,7 @@ module Stagehand
 
     def add_stagehand!(options = {})
       ActiveRecord::Schema.define do
-        table_names = ActiveRecord::Base.connection.tables
-        table_names -= UNTRACKED_TABLES
-        table_names -= Array(options[:except]).collect(&:to_s)
-        table_names &= Array(options[:only]).collect(&:to_s) if options[:only].present?
-
-        table_names.each do |table_name|
+        Stagehand::Schema.send :each_table, options do |table_name|
           Stagehand::Schema.send :create_operation_trigger, table_name, 'insert', 'NEW'
           Stagehand::Schema.send :create_operation_trigger, table_name, 'update', 'NEW'
           Stagehand::Schema.send :create_operation_trigger, table_name, 'delete', 'OLD'
@@ -44,10 +39,7 @@ module Stagehand
 
     def remove_stagehand!(options = {})
       ActiveRecord::Schema.define do
-        table_names = ActiveRecord::Base.connection.tables
-        table_names &= Array(options[:only]).collect(&:to_s) if options[:only].present?
-
-        table_names.each do |table_name|
+        Stagehand::Schema.send :each_table, options do |table_name|
           Stagehand::Schema.send :drop_trigger, table_name, 'insert'
           Stagehand::Schema.send :drop_trigger, table_name, 'update'
           Stagehand::Schema.send :drop_trigger, table_name, 'delete'
@@ -68,6 +60,17 @@ module Stagehand
     end
 
     private
+
+    def each_table(options = {})
+      table_names = ActiveRecord::Base.connection.tables
+      table_names -= UNTRACKED_TABLES
+      table_names -= Array(options[:except]).collect(&:to_s)
+      table_names &= Array(options[:only]).collect(&:to_s) if options[:only].present?
+
+      table_names.each do |table_name|
+        yield table_name
+      end
+    end
 
     # Create trigger to initialize session using a function
     def create_session_trigger
