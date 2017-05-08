@@ -20,12 +20,17 @@ module Stagehand
 
       return unless attributes.present?
 
+      write(staging_record, attributes, table_name)
+    end
+
+    def write(staging_record, attributes, table_name = nil)
       Connection.with_production_writes(Record) do
         is_new = matching(staging_record, table_name).update_all(attributes).zero?
 
         # Ensure we always return a record, even when updating instead of creating
         Record.new.tap do |record|
           record.assign_attributes(attributes)
+          record.id = Stagehand::Key.generate(staging_record, :table_name => table_name).last unless record.id
           record.save if is_new
         end
       end

@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    culturecode_stagehand (0.13.1)
+    culturecode_stagehand (0.13.2)
       mysql2
       rails (~> 4.2)
       ruby-graphviz
@@ -51,8 +51,8 @@ GEM
     concurrent-ruby (1.0.4)
     diff-lcs (1.2.5)
     erubis (2.7.0)
-    globalid (0.3.7)
-      activesupport (>= 4.1.0)
+    globalid (0.4.0)
+      activesupport (>= 4.2.0)
     i18n (0.7.0)
     json (1.8.3)
     loofah (2.0.3)
@@ -144,4 +144,4 @@ DEPENDENCIES
   rspec-rails (~> 3.0)
 
 BUNDLED WITH
-   1.13.6
+   1.14.4

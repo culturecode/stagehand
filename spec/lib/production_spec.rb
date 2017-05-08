@@ -45,66 +45,79 @@ describe Stagehand::Production do
     end
   end
 
-  shared_examples_for 'a saved record' do
-    it 'returns the new record' do
-      expect(subject.save(source_record)).to be_a(Stagehand::Production::Record)
+  shared_examples_for 'a record' do
+    describe '::save' do
+      it 'returns the new record' do
+        expect(subject.save(source_record)).to be_a(Stagehand::Production::Record)
+      end
+
+      it 'saves the new record to the production database' do
+        expect(subject.save(source_record).class.connection).not_to eq(source_record.class.connection)
+      end
+
+      it 'persists the record' do
+        expect(subject.save(source_record).reload).to be_persisted
+      end
+
+      it 'uses the same id as the source record' do
+        expect(subject.save(source_record).id).to eq(source_record.id)
+      end
+
+      it 'makes an exact copy of the attributes' do
+        source_record.update_attributes(:name => 'test')
+        source_record.reload # reload ensures timestamps are only as accurate as the database can store
+        expect(subject.save(source_record).attributes).to eq(source_record.attributes)
+      end
+
+      it 'writes the new record to the same table in the production database' do
+        expect(subject.save(source_record).class.table_name).to eq(source_record.class.table_name)
+      end
+
+      it 'does set timestamps' do
+        source_record.update_attributes(:created_at => nil, :updated_at => nil)
+        expect(subject.save(source_record)).to have_attributes(:created_at => nil, :updated_at => nil)
+      end
+
+      it 'does not change timestamps' do
+        source_record.update_attributes(:created_at => 1.day.ago, :updated_at => 0.5.days.ago)
+        expect(subject.save(source_record)).to have_attributes(source_record.attributes.slice(:created_at, :updated_at))
+      end
+
+      it 'does not attempt to save a record that no longer exists in the staging database' do
+        source_record.destroy
+        expect { subject.save(source_record) }.not_to change { Stagehand::Production::Record.count }
+      end
+
+      it 'returns a production record when saving an STI record' do
+        source_record.becomes!(STISourceRecord)
+        expect(subject.save(source_record)).to be_a(Stagehand::Production::Record)
+      end
     end
 
-    it 'saves the new record to the production database' do
-      expect(subject.save(source_record).class.connection).not_to eq(source_record.class.connection)
-    end
+    describe '#write' do
+      it 'returns a Stagehand::Production::Record' do
+        expect(subject.write(source_record, source_record.attributes)).to be_a(Stagehand::Production::Record)
+      end
 
-    it 'persists the record' do
-      expect(subject.save(source_record).reload).to be_persisted
-    end
+      it 'writes the given data to the production record' do
+        expect(subject.write(source_record, :name => 'changed')).to have_attributes(:name => 'changed')
+      end
 
-    it 'uses the same id as the source record' do
-      expect(subject.save(source_record).id).to eq(source_record.id)
-    end
-
-    it 'makes an exact copy of the attributes' do
-      source_record.update_attributes(:name => 'test')
-      source_record.reload # reload ensures timestamps are only as accurate as the database can store
-      expect(subject.save(source_record).attributes).to eq(source_record.attributes)
-    end
-
-    it 'writes the new record to the same table in the production database' do
-      expect(subject.save(source_record).class.table_name).to eq(source_record.class.table_name)
-    end
-
-    it 'does set timestamps' do
-      source_record.update_attributes(:created_at => nil, :updated_at => nil)
-      expect(subject.save(source_record)).to have_attributes(:created_at => nil, :updated_at => nil)
-    end
-
-    it 'does not change timestamps' do
-      source_record.update_attributes(:created_at => 1.day.ago, :updated_at => 0.5.days.ago)
-      expect(subject.save(source_record)).to have_attributes(source_record.attributes.slice(:created_at, :updated_at))
-    end
-
-    it 'does not attempt to save a record that no longer exists in the staging database' do
-      source_record.destroy
-      expect { subject.save(source_record) }.not_to change { Stagehand::Production::Record.count }
-    end
-
-    it 'returns a production record when saving an STI record' do
-      source_record.becomes!(STISourceRecord)
-      expect(subject.save(source_record)).to be_a(Stagehand::Production::Record)
+      it 'retains the id of the source_record when none is given' do
+        expect(subject.write(source_record, :name => 'changed')).to have_attributes(:id => source_record.id)
+      end
     end
   end
 
   context 'when the record does not yet exist in the production database' do
-    describe '::save' do
-      it_behaves_like 'a saved record'
-    end
+    it_behaves_like 'a record'
   end
 
   context 'when the record exists in the production database' do
     let!(:live_record) { subject.save(source_record) }
+    it_behaves_like 'a record'
 
     describe '::save' do
-      it_behaves_like 'a saved record'
-
       it 'can update the existing record' do
         source_record.update_attributes(:name => 'changed')
         expect { subject.save(source_record) }.to change { live_record.reload.name }.to('changed')
@@ -123,5 +136,4 @@ describe Stagehand::Production do
       end
     end
   end
-
 end
