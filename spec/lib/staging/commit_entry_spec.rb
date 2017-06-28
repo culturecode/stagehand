@@ -37,6 +37,16 @@ describe Stagehand::Staging::CommitEntry do
     end
   end
 
+  describe '#valid?' do
+    it 'is false if an record_id is present without a table_name' do
+      expect { subject.table_name = nil }.to change { subject.valid? }.to(false)
+    end
+
+    it 'is false if an table_name is present without a record_id' do
+      expect { subject.record_id = nil }.to change { subject.valid? }.to(false)
+    end
+  end
+
   describe '#record_class' do
     subject { klass.last }
     context 'on an entry referencing a table used by multiple models' do

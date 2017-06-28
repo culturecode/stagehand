@@ -60,7 +60,39 @@ describe Stagehand::Staging::Commit do
 
     it 'accepts a "subject" record to indicate which record kicked off the changes in the commit' do
       commit = klass.capture(source_record) { }
+      expect(commit.subject).to eq(source_record)
+    end
+
+    it 'does not record the subject if it does not have an id' do
+      source_record.id = nil
+      commit = klass.capture(source_record) { }
+      expect(commit.subject).to be_nil
+    end
+
+    it 'includes the subject record' do
+      commit = klass.capture(source_record) { }
       expect(commit).to include(source_record)
+    end
+
+    it 'does not include the subject record if it does not have an id' do
+      source_record.id = nil
+      commit = klass.capture(source_record) { }
+      expect(commit).not_to include(source_record)
+    end
+
+    it 'allows the subject to be set during the block' do
+      commit = klass.capture do |commit|
+        commit.subject = source_record
+      end
+      expect(commit.subject).to eq(source_record)
+    end
+
+    it 'does not set the subject if during the block if the subject does not have an id' do
+      commit = klass.capture do |commit|
+        source_record.id = nil
+        commit.subject = source_record
+      end
+      expect(commit.subject).to be_nil
     end
 
     it 'does not swallow exceptions from the given block' do
@@ -76,13 +108,6 @@ describe Stagehand::Staging::Commit do
       allow(klass).to receive(:new).and_raise('an error')
       expect { klass.capture { } rescue nil }
         .to change { Stagehand::Staging::CommitEntry.end_operations.count }.by(1)
-    end
-
-    it 'allows the subject to be set during the block' do
-      commit = klass.capture do |commit|
-        commit.subject = source_record
-      end
-      expect(commit.subject).to eq(source_record)
     end
 
     it 'does not contain entries from tables in the :except option' do

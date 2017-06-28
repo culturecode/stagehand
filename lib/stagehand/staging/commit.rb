@@ -43,7 +43,8 @@ module Stagehand
 
         # Make it easy to set the subject for the duration of the commit block
         def start_operation.subject=(record)
-          update_attributes!(:record_id => record.try(:id), :table_name => record.class.try(:table_name))
+          self.assign_attributes :record_id => record.id, :table_name => record.class.table_name if record && record.id
+          save!
         end
 
         start_operation.subject = subject_record

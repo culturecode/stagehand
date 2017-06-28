@@ -70,6 +70,9 @@ module Stagehand
         raise(IndeterminateRecordClass, "Can't determine class from table name: #{table_name}")
       end
 
+      validates_presence_of :record_id, :if => :table_name
+      validates_presence_of :table_name, :if => :record_id
+
       def record
         @record ||= delete_operation? ? build_deleted_record : record_class.find_by_id(record_id) if record_id?
       end
