@@ -28,11 +28,22 @@ module Stagehand
         print "\nChecking #{table_name} "
         mismatched = {}
         limit = 1000
-        index = 0
+
+        min_id = [
+          Database.staging_connection.select_value("SELECT MIN(id) FROM #{table_name}").to_i,
+          Database.production_connection.select_value("SELECT MIN(id) FROM #{table_name}").to_i
+        ].min
+
+        index = min_id / limit
+
+        max_id = [
+          Database.staging_connection.select_value("SELECT MAX(id) FROM #{table_name}").to_i,
+          Database.production_connection.select_value("SELECT MAX(id) FROM #{table_name}").to_i
+        ].max
 
         loop do
-          production_records = Database.production_connection.select_all("SELECT * FROM #{table_name} LIMIT #{limit} OFFSET #{limit * index}")
-          staging_records = Database.staging_connection.select_all("SELECT * FROM #{table_name} LIMIT #{limit} OFFSET #{limit * index}")
+          production_records = Database.production_connection.select_all("SELECT * FROM #{table_name} WHERE id BETWEEN #{limit * index} AND #{limit * (index + 1)}")
+          staging_records = Database.staging_connection.select_all("SELECT * FROM #{table_name} WHERE id BETWEEN #{limit * index} AND #{limit * (index + 1)}")
           id_column = production_records.columns.index('id')
 
           production_differences = production_records.rows - staging_records.rows
@@ -54,7 +65,8 @@ module Stagehand
           end
 
           index += 1
-          break unless staging_records.present? || production_records.present?
+
+          break if index * limit > max_id
         end
 
         if mismatched.present?
