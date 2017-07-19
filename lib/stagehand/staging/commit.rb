@@ -9,7 +9,12 @@ module Stagehand
         all.select(&:empty?)
       end
 
+      def self.capturing?
+        !!@capturing
+      end
+
       def self.capture(subject_record = nil, except: [], &block)
+        @capturing = true
         start_operation = start_commit(subject_record)
         init_session!(start_operation)
 
@@ -21,6 +26,8 @@ module Stagehand
         else
           return end_commit(start_operation, except)
         end
+      ensure
+        @capturing = false
       end
 
       def self.containing(record)

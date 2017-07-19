@@ -22,6 +22,18 @@ describe Stagehand::Staging::Commit do
     end
   end
 
+  describe '::capturing?' do
+    it 'is false while not capturing' do
+      expect(klass).not_to be_capturing
+    end
+
+    it 'is true while capturing' do
+      klass.capture do
+        expect(klass).to be_capturing
+      end
+    end
+  end
+
   describe '::capture' do
     it 'commits records that were created' do
       commit = klass.capture { source_record }

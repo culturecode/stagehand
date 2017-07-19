@@ -163,6 +163,15 @@ Stagehand::Staging::Commit.capture(subject_record, except: :components) do
 end
 ```
 
+You can also check to see if a Commit is being captured. This can be useful if there are certain operations you want to do differently while in a commit, e.g. counter cache upkeep
+```ruby
+Stagehand::Commit.capturing? #=> false
+
+Stagehand::Staging::Commit.capture do
+  delay_counter_updates if Stagehand::Commit.capturing? #=> true
+end
+```
+
 ### Previewing Changes
 
 Before syncing changes to the production database, it's a good idea to review what records will be copied in order to
