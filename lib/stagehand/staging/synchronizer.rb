@@ -30,13 +30,14 @@ module Stagehand
       def sync(limit = nil)
         synced_count = 0
         deleted_count = 0
+        in_progress = nil
 
         Rails.logger.info "Syncing"
 
-        in_progress = CommitEntry.in_progress.pluck(:id)
         iterate_autosyncable_entries do |entry|
           sync_entry(entry, :callbacks => :sync)
           synced_count += 1
+          in_progress ||= CommitEntry.in_progress.pluck(:id)
           deleted_count += CommitEntry.matching(entry).no_newer_than(entry).where.not(:id => in_progress).delete_all
           break if synced_count == limit
         end
