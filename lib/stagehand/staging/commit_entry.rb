@@ -24,16 +24,22 @@ module Stagehand
       scope :with_record,        lambda { where.not(:record_id => nil) }
       scope :uncontained,        lambda { where(:commit_id => nil) }
       scope :contained,          lambda { where.not(:commit_id => nil) }
+      scope :no_newer_than,      lambda {|entry| where("id <= ?", entry) }
+
+      scope :in_progress,        lambda {
+        joins("JOIN (#{ unscoped.select('session, MAX(id) AS start_id').uncontained.start_operations.group('session').to_sql }) AS active_starts
+               ON active_starts.session = #{table_name}.session AND active_starts.start_id <= #{table_name}.id") }
+
       scope :not_in_progress,    lambda {
         joins("LEFT OUTER JOIN (#{ unscoped.select('session, MAX(id) AS start_id').uncontained.start_operations.group('session').to_sql }) AS active_starts
                ON active_starts.session = #{table_name}.session AND active_starts.start_id <= #{table_name}.id")
        .where("active_starts.start_id IS NULL") }
+
       scope :with_uncontained_keys, lambda {
         uncontained
         .joins("LEFT OUTER JOIN (#{ unscoped.contained.select('record_id, table_name').distinct.to_sql}) AS contained
                ON contained.record_id = #{table_name}.record_id AND contained.table_name = #{table_name}.table_name")
-        .where("contained.record_id IS NULL")
-      }
+        .where("contained.record_id IS NULL") }
 
       def self.matching(object)
         keys = Array.wrap(object).collect {|entry| Stagehand::Key.generate(entry) }.compact
