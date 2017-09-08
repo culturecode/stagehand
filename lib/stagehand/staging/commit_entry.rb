@@ -15,31 +15,29 @@ module Stagehand
       CONTENT_OPERATIONS = [INSERT_OPERATION, UPDATE_OPERATION, DELETE_OPERATION]
       SAVE_OPERATIONS = [INSERT_OPERATION, UPDATE_OPERATION]
 
-      scope :start_operations,   lambda { where(:operation => START_OPERATION) }
-      scope :end_operations,     lambda { where(:operation => END_OPERATION) }
-      scope :control_operations, lambda { where(:operation => CONTROL_OPERATIONS) }
-      scope :content_operations, lambda { where(:operation => CONTENT_OPERATIONS) }
-      scope :save_operations,    lambda { where(:operation => SAVE_OPERATIONS) }
-      scope :delete_operations,  lambda { where(:operation => DELETE_OPERATION) }
-      scope :with_record,        lambda { where.not(:record_id => nil) }
-      scope :uncontained,        lambda { where(:commit_id => nil) }
-      scope :contained,          lambda { where.not(:commit_id => nil) }
-      scope :no_newer_than,      lambda {|entry| where("id <= ?", entry) }
+      scope :start_operations,      lambda { where(:operation => START_OPERATION) }
+      scope :end_operations,        lambda { where(:operation => END_OPERATION) }
+      scope :control_operations,    lambda { where(:operation => CONTROL_OPERATIONS) }
+      scope :content_operations,    lambda { where(:operation => CONTENT_OPERATIONS) }
+      scope :save_operations,       lambda { where(:operation => SAVE_OPERATIONS) }
+      scope :delete_operations,     lambda { where(:operation => DELETE_OPERATION) }
+      scope :with_record,           lambda { where.not(:record_id => nil) }
+      scope :uncontained,           lambda { where(:commit_id => nil) }
+      scope :contained,             lambda { where.not(:commit_id => nil) }
+      scope :no_newer_than,         lambda {|entry| where("id <= ?", entry) }
+      scope :in_progress,           lambda { joins_active_commits }
+      scope :not_in_progress,       lambda { joins_active_commits("LEFT OUTER").where("active_commits.commit_id IS NULL") }
+      scope :with_uncontained_keys, lambda { uncontained.joins_contained("LEFT OUTER").where("contained.record_id IS NULL") }
 
-      scope :in_progress,        lambda {
-        joins("JOIN (#{ unscoped.select('session, MAX(id) AS start_id').uncontained.start_operations.group('session').to_sql }) AS active_starts
-               ON active_starts.session = #{table_name}.session AND active_starts.start_id <= #{table_name}.id") }
+      def self.joins_active_commits(type = "INNER")
+        joins("#{type} JOIN (#{ unscoped.select('session, MAX(id) AS commit_id').uncontained.start_operations.group('session').to_sql }) AS active_commits
+               ON active_commits.session = #{table_name}.session AND active_commits.commit_id <= #{table_name}.id")
+      end
 
-      scope :not_in_progress,    lambda {
-        joins("LEFT OUTER JOIN (#{ unscoped.select('session, MAX(id) AS start_id').uncontained.start_operations.group('session').to_sql }) AS active_starts
-               ON active_starts.session = #{table_name}.session AND active_starts.start_id <= #{table_name}.id")
-       .where("active_starts.start_id IS NULL") }
-
-      scope :with_uncontained_keys, lambda {
-        uncontained
-        .joins("LEFT OUTER JOIN (#{ unscoped.contained.select('record_id, table_name').distinct.to_sql}) AS contained
+      def self.joins_contained(type = "INNER")
+        joins("#{type} JOIN (#{ unscoped.contained.select('record_id, table_name').distinct.to_sql}) AS contained
                ON contained.record_id = #{table_name}.record_id AND contained.table_name = #{table_name}.table_name")
-        .where("contained.record_id IS NULL") }
+      end
 
       def self.matching(object)
         keys = Array.wrap(object).collect {|entry| Stagehand::Key.generate(entry) }.compact
