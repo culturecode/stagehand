@@ -20,11 +20,11 @@ module Stagehand
       return incomplete.to_h
     end
 
-    def mismatched_records
+    def mismatched_records(options = {})
       output = {}
 
-      tables = Database.staging_connection.tables.select {|table_name| Schema::has_stagehand?(table_name) }
-      tables.each do |table_name|
+      tables = options[:tables] || Database.staging_connection.tables.select {|table_name| Schema::has_stagehand?(table_name) }
+      Array(tables).each do |table_name|
         print "\nChecking #{table_name} "
         mismatched = {}
         limit = 1000
