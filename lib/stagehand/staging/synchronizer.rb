@@ -149,7 +149,7 @@ module Stagehand
 
       def run_sync_callbacks(entry, callbacks, &block)
         callbacks = Array.wrap(callbacks).dup
-        return block.call unless entry.record && callbacks.present?
+        return block.call unless callbacks.present? && entry.record
 
         entry.record.run_callbacks(callbacks.shift) do
           run_sync_callbacks(entry, callbacks, &block)
