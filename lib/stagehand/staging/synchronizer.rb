@@ -102,8 +102,8 @@ module Stagehand
         return unless entries.present?
 
         Database.transaction do
-          # Lock the records so nothing can update them
-          CommitEntry.connection.execute(CommitEntry.where(:id => entries).lock.to_sql)
+          # Lock the records so nothing can update them after we confirm autosyncability
+          acquire_record_locks(entries)
 
           # Execute the block for each entry we've confirm autosyncability
           confirmed_ids = Set.new(autosyncable_entries.where(:id => entries).pluck(:id))
@@ -112,6 +112,12 @@ module Stagehand
             block.call(entry) if confirmed_ids.include?(entry.id)
           end
         end
+      end
+
+      # Does not actually acquire a lock, instead it triggers a 'first read' so the transaction will ensure subsequent
+      # reads of the locked rows return the same value, even if modified outside of the transaction
+      def acquire_record_locks(entries)
+        entries.each(&:record)
       end
 
       def autosyncable_entries(scope = nil)
