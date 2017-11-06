@@ -18,7 +18,7 @@ describe Stagehand::Database do
       end
     end
 
-    it 'does not reconnect if already connected to the desired database' do
+    it 'does not reconnect if already connected to the desired connection' do
       subject.with_production_connection do
         connection = ActiveRecord::Base.connection
         subject.with_production_connection do
