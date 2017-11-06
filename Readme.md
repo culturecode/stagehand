@@ -67,27 +67,28 @@ staging environment.
   end
   ```
 
-4. Modify the environment configuration file to specify which database to use for staging and which to use for
-production. The connection name should match whatever names you've used in `database.yml`.
+4. Modify the environment configuration file to specify which database to use for production. The connection name
+corresponds to a connection in `database.yml`. Keep in mind, Rails requires an entry for the current environment, so the
+staging connection name is always set to the current environment name.
 
   ```yaml
   # In your database.yml
-  staging:
-    adapter: mysql2
-    database: admin_staging
-
   production:
     adapter: mysql2
-    database: production_live  
+    database: staged
+
+  public_production:
+    adapter: mysql2
+    database: published
   ```
 
   ```ruby
   # In your production.rb, development.rb, etc...
-  config.x.stagehand.staging_connection_name = :staging
-  config.x.stagehand.production_connection_name = :production
+  config.x.stagehand.production_connection_name = :public_production
   ```
 
-5. Include the `Stagehand::Production::Controller` and `Stagehand::Staging::Controller` modules to set which controllers use the production and staging databases, respectively.
+5. Include the `Stagehand::Production::Controller` and `Stagehand::Staging::Controller` modules to set which controllers
+use the production and staging databases, respectively.
 
   ```ruby
   class ApplicationController < ActionController::Base
@@ -99,7 +100,8 @@ production. The connection name should match whatever names you've used in `data
   end
   ```
 
-  If there are writes to the database that are triggered in a "Production" controller, be sure to direct them to the staging database if   necessary.
+  If there are writes to the database that are triggered in a "Production" controller, be sure to direct them to the
+  staging database if necessary.
 
   ```ruby
   class MyModel
