@@ -12,7 +12,7 @@ module Stagehand
     mattr_accessor :checklist_confirmation_filter, :checklist_association_filter, :checklist_relation_filter
 
     def staging_connection_name
-      Rails.configuration.x.stagehand.staging_connection_name || Rails.env.to_sym
+      Rails.env.to_sym
     end
 
     def production_connection_name

@@ -56,6 +56,8 @@ module Stagehand
         @@connection_name_stack.push(connection_name.to_sym)
         Rails.logger.debug "Connecting to #{current_connection_name}"
         connect_to(current_connection_name)
+      else
+        Rails.logger.debug "Already connected to #{connection_name}"
       end
 
       yield connection_name

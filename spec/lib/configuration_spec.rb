@@ -21,21 +21,13 @@ describe Stagehand::Configuration do
   end
 
   describe 'staging_connection_name' do
-    around do |example|
-      name = Rails.configuration.x.stagehand.staging_connection_name
-      example.run
-      Rails.configuration.x.stagehand.staging_connection_name = name
-    end
-
-    it 'returns the value from the Rails custom configuration variable stagehand.staging_connection_name' do
+    it 'cannot be changed' do
       expect { Rails.configuration.x.stagehand.staging_connection_name = :bob }
-        .to change { subject.staging_connection_name }.to(:bob)
+        .not_to change { subject.staging_connection_name }
     end
 
-    it 'defaults to the database.yml connection for the current Rails.env' do
-      Rails.configuration.x.stagehand.staging_connection_name = :bob
-      expect { Rails.configuration.x.stagehand.staging_connection_name = nil }
-        .to change { subject.staging_connection_name }.to(:test)
+    it 'returns the Rails.env name as a symbol' do
+      expect(subject.staging_connection_name).to eq(Rails.env.to_sym)
     end
   end
 
