@@ -21,7 +21,7 @@ module Stagehand
         begin
           block.call(start_operation)
         rescue => e
-          end_commit(start_operation, except)
+          end_commit(start_operation, except) unless e.is_a?(CommitError)
           raise(e)
         else
           return end_commit(start_operation, except)
@@ -50,7 +50,10 @@ module Stagehand
 
         # Make it easy to set the subject for the duration of the commit block
         def start_operation.subject=(record)
-          self.assign_attributes :record_id => record.id, :table_name => record.class.table_name if record && record.id
+          if record&.id
+            raise NonStagehandSubject unless record.has_stagehand?
+            self.assign_attributes :record_id => record.id, :table_name => record.class.table_name
+          end
           save!
         end
 
@@ -137,6 +140,8 @@ module Stagehand
   end
 
   # EXCEPTIONS
-  class CommitNotFound < StandardError; end
-  class BlankCommitEntrySession < StandardError; end
+  class CommitError < StandardError; end
+  class CommitNotFound < CommitError; end
+  class BlankCommitEntrySession < CommitError; end
+  class NonStagehandSubject < CommitError; end
 end

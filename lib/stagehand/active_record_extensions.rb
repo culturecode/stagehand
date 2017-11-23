@@ -17,4 +17,10 @@ ActiveRecord::Base.class_eval do
       end
     end
   end
+
+  # SCHEMA
+  delegate :has_stagehand?, to: :class
+  def self.has_stagehand?
+    @has_stagehand ||= Stagehand::Schema.has_stagehand?(table_name)
+  end
 end

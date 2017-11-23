@@ -92,6 +92,11 @@ describe Stagehand::Staging::Commit do
       expect(commit).not_to include(source_record)
     end
 
+    it 'raises an exception if the subject record does not have stagehand' do
+      allow(source_record).to receive(:has_stagehand?).and_return(false)
+      expect { klass.capture(source_record) { } }.to raise_exception(Stagehand::NonStagehandSubject)
+    end
+
     it 'allows the subject to be set during the block' do
       commit = klass.capture do |commit|
         commit.subject = source_record
@@ -114,6 +119,11 @@ describe Stagehand::Staging::Commit do
     it 'ends the commit when the block raises an exception' do
       expect { klass.capture { raise } rescue nil }
         .to change { Stagehand::Staging::CommitEntry.end_operations.count }.by(1)
+    end
+
+    it 'does not end the commit when the block raises a Stagehand::CommitError exception' do
+      expect { klass.capture { raise Stagehand::CommitError } rescue nil }
+        .not_to change { Stagehand::Staging::CommitEntry.end_operations.count }
     end
 
     it 'does not create duplicate end entries if an exception is raised while ending the commit' do
