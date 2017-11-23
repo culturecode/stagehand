@@ -21,6 +21,7 @@ ActiveRecord::Base.class_eval do
   # SCHEMA
   delegate :has_stagehand?, to: :class
   def self.has_stagehand?
-    @has_stagehand ||= Stagehand::Schema.has_stagehand?(table_name)
+    @has_stagehand = Stagehand::Schema.has_stagehand?(table_name) unless defined?(@has_stagehand)
+    return @has_stagehand
   end
 end
