@@ -17,35 +17,6 @@ describe Stagehand::Staging::Checklist do
   describe '::related_entries' do
     let(:commit) { Stagehand::Staging::Commit.capture { source_record.increment!(:counter) } }
 
-    it "accepts a single entry" do
-      source_record.increment!(:counter)
-      commit_entry = Stagehand::Staging::CommitEntry.last
-      checklist = klass.new(commit_entry)
-
-      expect(checklist.affected_records).to include(source_record)
-    end
-
-    it "accepts multiple entries" do
-      source_record.increment!(:counter)
-      commit_entry = Stagehand::Staging::CommitEntry.last
-      other_record
-      other_commit_entry = Stagehand::Staging::CommitEntry.last
-      checklist = klass.new([commit_entry, other_commit_entry])
-
-      expect(checklist.affected_records).to include(source_record)
-    end
-
-    it "accepts a record" do
-      checklist = klass.new(source_record)
-      expect(checklist.affected_records).to include(source_record)
-    end
-
-    it "accepts multiple records" do
-      checklist = klass.new([source_record, other_record])
-      expect(checklist.affected_records).to include(source_record, other_record)
-    end
-
-
     it 'returns all entries from commits that contain entries matching the given entries' do
       source_record.increment!(:counter)
       commit_entry = Stagehand::Staging::CommitEntry.last
@@ -173,6 +144,34 @@ describe Stagehand::Staging::Checklist do
   end
 
   describe '#affected_records' do
+    it "works with a single entry as a checklist subject" do
+      source_record.increment!(:counter)
+      commit_entry = Stagehand::Staging::CommitEntry.last
+      checklist = klass.new(commit_entry)
+
+      expect(checklist.affected_records).to include(source_record)
+    end
+
+    it "works with multiple entries as a checklist subject" do
+      source_record.increment!(:counter)
+      commit_entry = Stagehand::Staging::CommitEntry.last
+      other_record
+      other_commit_entry = Stagehand::Staging::CommitEntry.last
+      checklist = klass.new([commit_entry, other_commit_entry])
+
+      expect(checklist.affected_records).to include(source_record)
+    end
+
+    it "works with a record as a checklist subject" do
+      checklist = klass.new(source_record)
+      expect(checklist.affected_records).to include(source_record)
+    end
+
+    it "works with multiple records as a checklist subject" do
+      checklist = klass.new([source_record, other_record])
+      expect(checklist.affected_records).to include(source_record, other_record)
+    end
+
     it 'returns the given record with commit entries even if it has no related commits' do
       expect(subject.affected_records).to include(source_record)
     end
@@ -300,6 +299,15 @@ describe Stagehand::Staging::Checklist do
       other_record.destroy
 
       expect(subject.affected_entries).not_to include(Stagehand::Staging::CommitEntry.matching other_record)
+    end
+
+    it 'includes the subject entries even if they would be excluded by the relation_filter' do
+      Stagehand::Staging::Commit.capture { source_record }
+
+      relation_filter = ->(entry) { entry.record != source_record }
+      subject = Stagehand::Staging::Checklist.new(source_record, :relation_filter => relation_filter)
+
+      expect(subject.affected_entries).to include(*subject.subject_entries)
     end
   end
 

@@ -138,11 +138,13 @@ module Stagehand
 
       def affected_entries
         cache(:affected_entries) do
-          related = self.class.related_entries(@subject, @relation_filter)
+          from_subject = subject_entries
+          from_subject |= CommitEntry.where(commit_id: subject_entries.select(:commit_id))
+          related = self.class.related_entries(from_subject, @relation_filter)
           associated = self.class.associated_records(related, @association_filter)
           associated_related = self.class.related_entries(associated, @relation_filter)
 
-          (related + associated_related).uniq
+          (from_subject + related + associated_related).uniq
         end
       end
 
