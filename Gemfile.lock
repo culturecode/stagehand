@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    culturecode_stagehand (0.15.1)
+    culturecode_stagehand (0.15.2)
       mysql2
       rails (~> 4.2)
       ruby-graphviz
@@ -142,4 +142,4 @@ DEPENDENCIES
   rspec-rails (~> 3.0)
 
 BUNDLED WITH
-   1.15.4
+   1.16.0

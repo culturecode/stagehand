@@ -122,21 +122,36 @@ module Stagehand
       end
 
       def record_class
-        @record_class ||= self.class.infer_class(table_name, record_id)
+        @record_class ||= infer_class
       rescue IndeterminateRecordClass
         @record_class ||= self.class.build_missing_model(table_name)
       end
 
+      def production_record
+        @production_record ||= Stagehand::Production.find(record_id, table_name)
+      end
+
       private
 
+      def infer_class
+        inferred_class = self.class.infer_class(table_name, record_id)
+        sti_inferred_class = production_record.read_attribute(inferred_class.inheritance_column) if delete_operation?
+        sti_inferred_class ? sti_inferred_class.constantize : inferred_class
+      end
+
       def build_deleted_record
-        production_record = Stagehand::Production.find(record_id, table_name)
         return unless production_record
 
-        deleted_record = record_class.new(production_record.attributes)
+        deleted_record = record_class.new
         deleted_record.readonly!
         deleted_record.instance_variable_set(:@new_record, false)
         deleted_record.instance_variable_set(:@destroyed, true)
+
+        # Write raw values so serialized values are cast correctly
+        attribute_set = deleted_record.instance_variable_get(:@attributes)
+        production_record.attributes_before_type_cast.each do |attribute, value|
+          attribute_set.write_from_database(attribute.to_s, value)
+        end
 
         return deleted_record
       end

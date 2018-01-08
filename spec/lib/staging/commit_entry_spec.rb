@@ -112,6 +112,22 @@ describe Stagehand::Staging::CommitEntry do
       it 'raises a read_only exception when saving' do
         expect { subject.record.save }.to raise_exception(ActiveRecord::ReadOnlyRecord)
       end
+
+      context 'when the record has a serialized data column' do
+        let(:source_record) { SerializedColumnRecord.create!(tags: %w(big red truck)) }
+
+        it 'populates serialized attributes correctly' do
+          expect(subject.record).to have_attributes(source_record.attributes)
+        end
+      end
+
+      context 'when the record is an STI subclass' do
+        let(:source_record) { STISourceRecord.create! }
+
+        it 'populates serialized attributes correctly' do
+          expect(subject.record).to be_a(source_record.class)
+        end
+      end
     end
   end
 end

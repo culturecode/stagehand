@@ -31,6 +31,10 @@ RSpec.configure do |config|
 
           create_table :habtm_records, :force => true do |t|
           end
+
+          create_table :serialized_column_records, :force => true do |t|
+            t.text :tags
+          end
         end
       end
     end
@@ -64,6 +68,10 @@ class STISourceRecord < SourceRecord; end
 class TargetAssignment < ActiveRecord::Base
   belongs_to :source_record
   belongs_to :target, class_name: 'SourceRecord'
+end
+
+class SerializedColumnRecord < ActiveRecord::Base
+  serialize :name
 end
 
 class User < ActiveRecord::Base; end

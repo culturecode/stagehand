@@ -16,6 +16,10 @@ ActiveRecord::Schema.define(version: 0) do
   create_table "habtm_records", force: :cascade, stagehand: true do |t|
   end
 
+  create_table "serialized_column_records", force: :cascade, stagehand: true do |t|
+    t.text "tags", limit: 65535
+  end
+
   create_table "source_records", force: :cascade, stagehand: true do |t|
     t.string   "name",            limit: 255
     t.integer  "counter",         limit: 4
