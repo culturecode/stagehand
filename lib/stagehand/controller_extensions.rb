@@ -4,12 +4,12 @@ module Stagehand
 
     class_methods do
       def use_staging_database(options = {})
-        skip_action_callback :use_production_database, options
+        skip_around_action :use_production_database, raise: false, **options
         prepend_around_action :use_staging_database, options
       end
 
       def use_production_database(options = {})
-        skip_action_callback :use_staging_database, options
+        skip_around_action :use_staging_database, raise: false, **options
         prepend_around_action :use_production_database, options
       end
     end
