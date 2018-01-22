@@ -4,7 +4,7 @@ module Stagehand
   module Schema
     extend self
 
-    UNTRACKED_TABLES = ['schema_migrations', Stagehand::Staging::CommitEntry.table_name]
+    UNTRACKED_TABLES = ['ar_internal_metadata', 'schema_migrations', Stagehand::Staging::CommitEntry.table_name]
 
     def init_stagehand!(options = {})
       ActiveRecord::Schema.define do

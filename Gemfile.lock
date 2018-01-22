@@ -3,7 +3,7 @@ PATH
   specs:
     culturecode_stagehand (0.15.3)
       mysql2
-      rails (~> 4.2)
+      rails (>= 4.2)
       ruby-graphviz
 
 GEM
@@ -141,4 +141,4 @@ DEPENDENCIES
   rspec-rails (~> 3.0)
 
 BUNDLED WITH
-   1.16.0
+   1.16.1
