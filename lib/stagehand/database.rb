@@ -106,7 +106,7 @@ module Stagehand
       self.abstract_class = true
 
       def self.init_connection
-        establish_connection(Configuration.staging_connection_name)
+        establish_connection(Configuration.staging_connection_name) unless Configuration.single_connection?
       end
 
       init_connection
@@ -116,7 +116,7 @@ module Stagehand
       self.abstract_class = true
 
       def self.init_connection
-        establish_connection(Configuration.production_connection_name)
+        establish_connection(Configuration.production_connection_name) unless Configuration.single_connection?
       end
 
       init_connection
