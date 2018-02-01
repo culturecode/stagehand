@@ -1,11 +1,7 @@
 module Stagehand
   module Connection
     def self.with_production_writes(model, &block)
-      state = model.connection.readonly?
-      model.connection.readonly!(false)
-      return block.call
-    ensure
-      model.connection.readonly!(state)
+      model.connection.allow_writes(&block)
     end
 
     module AdapterExtensions
@@ -31,7 +27,7 @@ module Stagehand
 
       def allow_writes(&block)
         state = readonly?
-        readonly!(true)
+        readonly!(false)
         return block.call
       ensure
         readonly!(state)
