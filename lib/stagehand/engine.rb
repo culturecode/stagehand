@@ -16,6 +16,7 @@ module Stagehand
       require "stagehand/connection_adapter_extensions"
       require "stagehand/controller_extensions"
       require "stagehand/active_record_extensions"
+      require "stagehand/schema_extensions"
       require "stagehand/staging"
       require "stagehand/production"
       require "stagehand/schema"
