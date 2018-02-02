@@ -506,5 +506,5 @@ are saved in the entry, so the actual record class is inferred from the table_na
 table_name, the first one is chosen. This may lead to unexpected behaviour if anything other than the record attributes
 are being used.
 
-- Usnynced write detection relies on the `exec_insert`, `exec_update`, `exec_delete` methods from
+- Unsynced write detection relies on the `exec_insert`, `exec_update`, `exec_delete` methods from
 ActiveRecord::AbstractAdapter. It will not detect writes using the `execute` method.
