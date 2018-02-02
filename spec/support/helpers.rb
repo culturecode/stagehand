@@ -39,7 +39,6 @@ def without_transactional_fixtures
   # Transactions hide changes from other connections. Disable transactional fixtures so it's easier to detect changes
   # across connections. In practice, this won't be an issue because connections will be modified at the beginning of
   # the controller action.
-  before(:context) do
-    @db_cleaner_strategy = :truncation
-  end
+  #
+  # This is now just a no-op to indicate which tests would require this since we no longer use transactional fixtures
 end

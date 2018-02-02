@@ -46,6 +46,7 @@ describe Stagehand::Staging::Synchronizer do
       subject.schemas_match = nil
       Stagehand::Database.staging_connection.execute('INSERT INTO schema_migrations VALUES (1234)')
       expect { subject.sync_record(source_record) }.to raise_exception(Stagehand::SchemaMismatch)
+      Stagehand::Database.staging_connection.execute('DELETE FROM schema_migrations WHERE version = 1234')
       subject.schemas_match = nil
     end
 
