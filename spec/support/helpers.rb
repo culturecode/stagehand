@@ -40,27 +40,6 @@ def without_transactional_fixtures
   # across connections. In practice, this won't be an issue because connections will be modified at the beginning of
   # the controller action.
   before(:context) do
-    Stagehand::Compatibility.rails(less_than: 5) do
-      config.use_transactional_fixtures = true
-    end
-    Stagehand::Compatibility.rails(min: 5) do
-      binding.pry
-
-      config.use_transactional_tests = true
-    end
-  end
-
-  after(:context) do
-    tables = ActiveRecord::Base.connection.tables
-    tables -= ['schema_migrations']
-    tables.each do |table_name|
-      ActiveRecord::Base.connection.execute("DELETE FROM #{table_name}")
-    end
-    Stagehand::Compatibility.rails(less_than: 5) do
-      config.use_transactional_fixtures = true
-    end
-    Stagehand::Compatibility.rails(min: 5) do
-      config.use_transactional_tests = true
-    end
+    @db_cleaner_strategy = :truncation
   end
 end
