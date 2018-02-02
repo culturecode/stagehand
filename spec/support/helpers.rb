@@ -40,7 +40,14 @@ def without_transactional_fixtures
   # across connections. In practice, this won't be an issue because connections will be modified at the beginning of
   # the controller action.
   before(:context) do
-    self.use_transactional_fixtures = false
+    Stagehand::Compatibility.rails(less_than: 5) do
+      config.use_transactional_fixtures = true
+    end
+    Stagehand::Compatibility.rails(min: 5) do
+      binding.pry
+
+      config.use_transactional_tests = true
+    end
   end
 
   after(:context) do
@@ -49,6 +56,11 @@ def without_transactional_fixtures
     tables.each do |table_name|
       ActiveRecord::Base.connection.execute("DELETE FROM #{table_name}")
     end
-    self.use_transactional_fixtures = true
+    Stagehand::Compatibility.rails(less_than: 5) do
+      config.use_transactional_fixtures = true
+    end
+    Stagehand::Compatibility.rails(min: 5) do
+      config.use_transactional_tests = true
+    end
   end
 end
