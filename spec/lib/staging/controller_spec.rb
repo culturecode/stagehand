@@ -24,7 +24,7 @@ describe 'Stagehand::Staging::Controller', :type => :controller do
       use_production_database                      :if => proc {|c| c.params[:override_staging_callback] }
 
       def index
-        SourceRecord.create; render :nothing => true
+        SourceRecord.create; head :ok
       end
 
       def preceeding_callback
@@ -56,13 +56,13 @@ describe 'Stagehand::Staging::Controller', :type => :controller do
 
     it 'resets to the previous connection when the filter chain is halted' do
       record = SourceRecord.create!(:name => 'reset after halt test')
-      get :index, :halt_filter_chain => true
+      get :index, params: { :halt_filter_chain => true }
       expect(SourceRecord.last).to eq(record)
     end
 
     it 'resets to the previous connection if the action raises an exception' do
       record = SourceRecord.create!(:name => 'reset after raise test')
-      begin get :index, :explode => true; rescue; end
+      begin get :index, params: { :explode => true }; rescue; end
       expect(SourceRecord.last).to eq(record)
     end
 
@@ -79,19 +79,19 @@ describe 'Stagehand::Staging::Controller', :type => :controller do
     end
 
     it 'can override database connection behaviour by calling use_production_database' do
-      expect { get :index, :override_staging_callback => true }.not_to change { StagingSourceRecord.count }
+      expect { get :index, params: { :override_staging_callback => true } }.not_to change { StagingSourceRecord.count }
     end
 
     it 'overrides the database connection behaviour of Stagehand::Production::Controller' do
-      expect { get :index, :use_production_callback => true }.to change { StagingSourceRecord.count }.by(1)
+      expect { get :index, params: { :use_production_callback => true } }.to change { StagingSourceRecord.count }.by(1)
     end
 
     it 'enables the database connection behaviour before preceeding around filters are run' do
-      expect { get :index, :preceeding_callback => true }.to change { StagingSourceRecord.count }.by(2)
+      expect { get :index, params: { :preceeding_callback => true } }.to change { StagingSourceRecord.count }.by(2)
     end
 
     it 'enables the database connection behaviour before subsequent around filters are run' do
-      expect { get :index, :subsequent_callback => true }.to change { StagingSourceRecord.count }.by(2)
+      expect { get :index, params: { :subsequent_callback => true } }.to change { StagingSourceRecord.count }.by(2)
     end
 
     in_ghost_mode do
