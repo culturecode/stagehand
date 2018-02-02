@@ -1,5 +1,3 @@
-require 'rails_helper'
-
 describe Stagehand::Production do
   subject { Stagehand::Production }
   let(:source_record) { SourceRecord.create }
