@@ -1,5 +1,3 @@
-require 'rails_helper'
-
 describe Stagehand::Staging::CommitEntry do
   let(:klass) { Stagehand::Staging::CommitEntry }
   let(:source_record) { SourceRecord.create }

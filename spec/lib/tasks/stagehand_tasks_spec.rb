@@ -1,10 +1,8 @@
 require 'rake'
-require 'rails_helper'
 
 Rails.application.load_tasks
 
 describe "Stagehand Tasks" do
-
   describe "stagehand:migration" do
     without_transactional_fixtures
 

@@ -9,7 +9,7 @@ ActiveRecord::Base.class_eval do
     subclass.class_eval do
       has_one :stagehand_unsynced_indicator,
         lambda { where(:stagehand_commit_entries => {:table_name => subclass.table_name}).readonly },
-        :class_name => Stagehand::Staging::CommitEntry,
+        :class_name => 'Stagehand::Staging::CommitEntry',
         :foreign_key => :record_id
 
       def synced?

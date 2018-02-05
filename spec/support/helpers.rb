@@ -39,16 +39,6 @@ def without_transactional_fixtures
   # Transactions hide changes from other connections. Disable transactional fixtures so it's easier to detect changes
   # across connections. In practice, this won't be an issue because connections will be modified at the beginning of
   # the controller action.
-  before(:context) do
-    self.use_transactional_fixtures = false
-  end
-
-  after(:context) do
-    tables = ActiveRecord::Base.connection.tables
-    tables -= ['schema_migrations']
-    tables.each do |table_name|
-      ActiveRecord::Base.connection.execute("DELETE FROM #{table_name}")
-    end
-    self.use_transactional_fixtures = true
-  end
+  #
+  # This is now just a no-op to indicate which tests would require this since we no longer use transactional fixtures
 end

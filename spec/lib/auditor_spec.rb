@@ -1,5 +1,3 @@
-require 'rails_helper'
-
 describe Stagehand::Auditor do
   describe '::incomplete_commits' do
     let(:ce) { Stagehand::Staging::CommitEntry }

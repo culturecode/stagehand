@@ -1,5 +1,3 @@
-require 'rails_helper'
-
 describe 'ActiveRecordExtensions' do
   let(:source_record) { SourceRecord.create }
 

@@ -1,5 +1,3 @@
-require 'rails_helper'
-
 describe Stagehand::Staging::Checklist do
   let(:klass) { Stagehand::Staging::Checklist }
   let(:source_record) { SourceRecord.create }
