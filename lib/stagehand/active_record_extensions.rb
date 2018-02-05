@@ -40,7 +40,6 @@ ActiveRecord::Base.class_eval do
 
   def self.connection_specification_name=(connection_name)
     load_stagehand_connection_specification_name
-    ActiveRecord::Base.logger.debug "setting connection name #{Thread.current.object_id} #{Thread.current['Stagehand:connection_specification_name'][self.name]} => #{connection_name}"
     Thread.current['Stagehand:connection_specification_name'][self.name] = connection_name
   end
 
