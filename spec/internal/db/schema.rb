@@ -16,42 +16,42 @@ ActiveRecord::Schema.define(version: 0) do
   end
 
   create_table "serialized_column_records", force: :cascade, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci", stagehand: true do |t|
-    t.text "tags", limit: 65535
+    t.text "tags"
   end
 
   create_table "source_records", force: :cascade, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci", stagehand: true do |t|
-    t.string   "name"
-    t.integer  "counter"
-    t.string   "type"
-    t.integer  "user_id"
-    t.string   "attachable_type"
-    t.integer  "attachable_id"
+    t.string "name"
+    t.integer "counter"
+    t.string "type"
+    t.bigint "user_id"
+    t.string "attachable_type"
+    t.bigint "attachable_id"
     t.datetime "created_at"
     t.datetime "updated_at"
-    t.index ["attachable_type", "attachable_id"], name: "index_source_records_on_attachable_type_and_attachable_id", using: :btree
-    t.index ["user_id"], name: "index_source_records_on_user_id", using: :btree
+    t.index ["attachable_type", "attachable_id"], name: "index_source_records_on_attachable_type_and_attachable_id"
+    t.index ["user_id"], name: "index_source_records_on_user_id"
   end
 
   create_table "stagehand_commit_entries", force: :cascade, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci", stagehand: :commit_entries do |t|
-    t.integer  "record_id"
-    t.string   "table_name"
-    t.string   "operation",  null: false
-    t.integer  "commit_id"
-    t.string   "session"
+    t.integer "record_id"
+    t.string "table_name"
+    t.string "operation", null: false
+    t.integer "commit_id"
+    t.string "session"
     t.datetime "created_at"
-    t.index ["commit_id"], name: "index_stagehand_commit_entries_on_commit_id", using: :btree
-    t.index ["operation", "commit_id"], name: "index_stagehand_commit_entries_on_operation_and_commit_id", using: :btree
-    t.index ["record_id", "table_name"], name: "index_stagehand_commit_entries_on_record_id_and_table_name", using: :btree
+    t.index ["commit_id"], name: "index_stagehand_commit_entries_on_commit_id"
+    t.index ["operation", "commit_id"], name: "index_stagehand_commit_entries_on_operation_and_commit_id"
+    t.index ["record_id", "table_name"], name: "index_stagehand_commit_entries_on_record_id_and_table_name"
   end
 
   create_table "target_assignments", force: :cascade, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci", stagehand: true do |t|
-    t.integer  "source_record_id"
-    t.integer  "target_id"
-    t.integer  "counter"
-    t.datetime "created_at",       null: false
-    t.datetime "updated_at",       null: false
-    t.index ["source_record_id"], name: "index_target_assignments_on_source_record_id", using: :btree
-    t.index ["target_id"], name: "index_target_assignments_on_target_id", using: :btree
+    t.bigint "source_record_id"
+    t.bigint "target_id"
+    t.integer "counter"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["source_record_id"], name: "index_target_assignments_on_source_record_id"
+    t.index ["target_id"], name: "index_target_assignments_on_target_id"
   end
 
   create_table "users", force: :cascade, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci", stagehand: false do |t|

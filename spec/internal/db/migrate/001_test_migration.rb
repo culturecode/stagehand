@@ -1,4 +1,4 @@
-class TestMigration < ActiveRecord::Migration
+class TestMigration < ActiveRecord::Migration[5.1]
   def change
   end
 end
