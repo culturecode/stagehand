@@ -4,27 +4,6 @@ module Stagehand
   module Database
     extend self
 
-    # Threadsafe tracking of the connection stack
-    module ConnectionStack
-      @@connection_name_stack = Hash.new { |h,k| h[k] = [ Rails.env.to_sym ] }
-
-      def self.push(connection_name)
-        current_stack.push connection_name
-      end
-
-      def self.pop
-        current_stack.pop
-      end
-
-      def self.last
-        current_stack.last
-      end
-
-      def self.current_stack
-        @@connection_name_stack[Thread.current.object_id]
-      end
-    end
-
     def each(&block)
       with_production_connection(&block) unless Configuration.single_connection?
       with_staging_connection(&block)
@@ -155,6 +134,27 @@ module Stagehand
       end
 
       init_connection
+    end
+
+    # Threadsafe tracking of the connection stack
+    module ConnectionStack
+      @@connection_name_stack = Hash.new { |h,k| h[k] = [ Rails.env.to_sym ] }
+
+      def self.push(connection_name)
+        current_stack.push connection_name
+      end
+
+      def self.pop
+        current_stack.pop
+      end
+
+      def self.last
+        current_stack.last
+      end
+
+      def self.current_stack
+        @@connection_name_stack[Thread.current.object_id]
+      end
     end
   end
 end

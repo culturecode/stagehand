@@ -1,3 +1,5 @@
+require 'thread'
+
 ActiveRecord::Base.class_eval do
   # SYNC CALLBACKS
   ([self] + ActiveSupport::DescendantsTracker.descendants(self)).each do |klass|
@@ -41,16 +43,27 @@ ActiveRecord::Base.class_eval do
   end
 
   def self.connection_specification_name=(connection_name)
-    load_stagehand_connection_specification_name
-    Thread.current['Stagehand:connection_specification_name'][self.name] = connection_name
+    StagehandConnectionMap.set(self, connection_name)
   end
 
   def self.connection_specification_name
-    load_stagehand_connection_specification_name
-    Thread.current['Stagehand:connection_specification_name'][self.name] || super
+    StagehandConnectionMap.get(self) || super
   end
 
-  def self.load_stagehand_connection_specification_name
-    Thread.current['Stagehand:connection_specification_name'] ||= {}
+  # Keep track of the current connection name per-model, per-thread so multithreaded webservers don't overwrite it
+  module StagehandConnectionMap
+    def self.set(klass, connection_name)
+      currentMap[klass.name] = connection_name
+    end
+
+    def self.get(klass)
+      currentMap[klass.name]
+    end
+
+    def self.currentMap
+      map = Thread.current.thread_variable_get('StagehandConnectionMap')
+      map = Thread.current.thread_variable_set('StagehandConnectionMap', {}) unless map
+      return map
+    end
   end
 end
