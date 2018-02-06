@@ -50,27 +50,23 @@ module Stagehand
     end
 
     def with_connection(connection_name)
-      # @@semaphore.synchronize do
-        begin
-          different = current_connection_name != connection_name.to_sym
+      different = current_connection_name != connection_name.to_sym
 
-          if different
-            ConnectionStack.push(connection_name.to_sym)
-            Rails.logger.debug "Connecting to #{current_connection_name}"
-            connect_to(current_connection_name)
-          else
-            Rails.logger.debug "Already connected to #{connection_name}"
-          end
+      if different
+        ConnectionStack.push(connection_name.to_sym)
+        Rails.logger.debug "Connecting to #{current_connection_name}"
+        connect_to(current_connection_name)
+      else
+        Rails.logger.debug "Already connected to #{connection_name}"
+      end
 
-          yield connection_name
-        ensure
-          if different
-            ConnectionStack.pop
-            Rails.logger.debug "Restoring connection to #{current_connection_name}"
-            connect_to(current_connection_name)
-          end
-        end
-      # end
+      yield connection_name
+    ensure
+      if different
+        ConnectionStack.pop
+        Rails.logger.debug "Restoring connection to #{current_connection_name}"
+        connect_to(current_connection_name)
+      end
     end
 
     def transaction
