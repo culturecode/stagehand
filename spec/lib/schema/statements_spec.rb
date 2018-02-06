@@ -1,5 +1,3 @@
-require 'rails_helper'
-
 describe Stagehand::Schema::Statements do
   describe '#rename_table' do
     without_transactional_fixtures

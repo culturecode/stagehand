@@ -1,5 +1,3 @@
-require 'rails_helper'
-
 describe Stagehand::Staging::Model do
   let(:klass) do
     Object.send(:remove_const, :Klass) if Object.const_defined?(:Klass)

@@ -1,5 +1,3 @@
-require 'rails_helper'
-
 describe Stagehand::Staging::Synchronizer do
   let(:source_record) { SourceRecord.create }
 

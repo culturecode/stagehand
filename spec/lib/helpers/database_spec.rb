@@ -1,5 +1,3 @@
-require 'rails_helper'
-
 describe Stagehand::Database do
   describe '::with_connection' do
     it 'restores the database connection specified in the Rails environment after the given block' do

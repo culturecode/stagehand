@@ -1,5 +1,3 @@
-require 'rails_helper'
-
 describe Stagehand::Configuration do
   describe 'production_connection_name' do
     around do |example|
