@@ -1,6 +1,8 @@
 ActiveRecord::Base.class_eval do
   # SYNC CALLBACKS
-  define_model_callbacks :sync, :sync_as_subject, :sync_as_affected
+  ([self] + ActiveSupport::DescendantsTracker.descendants(self)).each do |klass|
+    klass.define_model_callbacks :sync, :sync_as_subject, :sync_as_affected
+  end
 
   # SYNC STATUS
   def self.inherited(subclass)
