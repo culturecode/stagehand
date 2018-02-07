@@ -102,33 +102,32 @@ module Stagehand
 
     # CLASSES
 
-    class StagingProbe < ActiveRecord::Base
+    class Probe < ActiveRecord::Base
       self.abstract_class = true
+      class_attribute :connection_name
 
+      # We fake the class name so we can create a connection pool with the desired connection name instead of the name of the class
       def self.init_connection
-        establish_connection(name)
+        @probe_name = connection_name
+        establish_connection(connection_name)
+      ensure
+        @probe_name = nil
       end
 
-      # Ensure the connection pool is named after the desired connection, not "StagingProbe"
       def self.name
-        Configuration.staging_connection_name
+        @probe_name || super
       end
+    end
 
+    class StagingProbe < Probe
+      self.abstract_class = true
+      self.connection_name = Configuration.staging_connection_name
       init_connection
     end
 
-    class ProductionProbe < ActiveRecord::Base
+    class ProductionProbe < Probe
       self.abstract_class = true
-
-      def self.init_connection
-        establish_connection(name) unless Configuration.single_connection?
-      end
-
-      # Ensure the connection pool is named after the desired connection, not "ProductionProbe"
-      def self.name
-        Configuration.production_connection_name
-      end
-
+      self.connection_name = Configuration.production_connection_name
       init_connection
     end
 
