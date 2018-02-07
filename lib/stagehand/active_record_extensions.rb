@@ -34,15 +34,14 @@ ActiveRecord::Base.class_eval do
   # The original implementation of remove_connection uses @connection_specification_name, which is shared across Threads.
   # We have overridden writes to that variable so they are stored in Thread.current, but we need to swap it in when a
   # connection is removed.
-  def self.remove_connection(name = nil)
-    old = @connection_specification_name
-    @connection_specification_name = connection_specification_name
+  def self.remove_connection(name = StagehandConnectionMap.get(self))
     super
-  ensure
-    @connection_specification_name = old
   end
 
   def self.connection_specification_name=(connection_name)
+    # We want to keep track of the @connection_specification_name as a fallback shared across threads in case we
+    # haven't set the connection on more than one thread.
+    super
     StagehandConnectionMap.set(self, connection_name)
   end
 
