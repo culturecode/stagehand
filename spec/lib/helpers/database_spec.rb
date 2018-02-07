@@ -49,49 +49,47 @@ describe Stagehand::Database do
     end
   end
 
-  context 'dsf' do
-    describe '::production_connection' do
-      without_transactional_fixtures
-      allow_unsynced_production_writes
+  describe '::production_connection' do
+    without_transactional_fixtures
+    allow_unsynced_production_writes
 
-      before { SourceRecord.establish_connection(Stagehand.configuration.production_connection_name) }
-      after { SourceRecord.remove_connection }
+    before { SourceRecord.establish_connection(Stagehand.configuration.production_connection_name) }
+    after { SourceRecord.remove_connection }
 
-      it 'returns a connection object that uses the staging database' do
-        expect { SourceRecord.create }.to change { subject.production_connection.select_values(SourceRecord.all) }
-      end
-
-      it 'ignores the effects of a `with_connection` block connected to a different database' do
-        subject.with_staging_connection do
-          expect { SourceRecord.create }.to change { subject.production_connection.select_values(SourceRecord.all) }
-        end
-      end
+    it 'returns a connection object that uses the staging database' do
+      expect { SourceRecord.create }.to change { subject.production_connection.select_values(SourceRecord.all) }
     end
 
-    describe '::transaction' do
-      it 'rolls back changes in the staging database on exception' do
-        expect { subject.transaction { SourceRecord.create; raise } rescue nil }
-          .not_to change { SourceRecord.count }
+    it 'ignores the effects of a `with_connection` block connected to a different database' do
+      subject.with_staging_connection do
+        expect { SourceRecord.create }.to change { subject.production_connection.select_values(SourceRecord.all) }
       end
+    end
+  end
 
-      it 'rolls back changes in the staging database on ActiveRecord::Rollback' do
-        expect { subject.transaction { SourceRecord.create; raise ActiveRecord::Rollback } rescue nil }
-          .not_to change { SourceRecord.count }
-      end
+  describe '::transaction' do
+    it 'rolls back changes in the staging database on exception' do
+      expect { subject.transaction { SourceRecord.create; raise } rescue nil }
+        .not_to change { SourceRecord.count }
+    end
 
-      it 'rolls back changes in the production database on exception' do
-        record = SourceRecord.create
+    it 'rolls back changes in the staging database on ActiveRecord::Rollback' do
+      expect { subject.transaction { SourceRecord.create; raise ActiveRecord::Rollback } rescue nil }
+        .not_to change { SourceRecord.count }
+    end
 
-        expect { subject.transaction { Stagehand::Production.save(record); raise } rescue nil }
-          .not_to change { Stagehand::Production.status(record) }
-      end
+    it 'rolls back changes in the production database on exception' do
+      record = SourceRecord.create
 
-      it 'rolls back changes in the production database on ActiveRecord::Rollback' do
-        record = SourceRecord.create
+      expect { subject.transaction { Stagehand::Production.save(record); raise } rescue nil }
+        .not_to change { Stagehand::Production.status(record) }
+    end
 
-        expect { subject.transaction { Stagehand::Production.save(record); raise ActiveRecord::Rollback } rescue nil }
-          .not_to change { Stagehand::Production.status(record) }
-      end
+    it 'rolls back changes in the production database on ActiveRecord::Rollback' do
+      record = SourceRecord.create
+
+      expect { subject.transaction { Stagehand::Production.save(record); raise ActiveRecord::Rollback } rescue nil }
+        .not_to change { Stagehand::Production.status(record) }
     end
   end
 end
