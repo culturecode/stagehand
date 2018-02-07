@@ -121,7 +121,7 @@ module Stagehand
       self.abstract_class = true
 
       def self.init_connection
-        establish_connection(name)
+        establish_connection(name) unless Configuration.single_connection?
       end
 
       # Ensure the connection pool is named after the desired connection, not "ProductionProbe"
