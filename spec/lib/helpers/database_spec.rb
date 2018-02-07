@@ -30,6 +30,18 @@ describe Stagehand::Database do
         expect { SourceRecord.create! }.to raise_exception(Stagehand::UnsyncedProductionWrite)
       end
     end
+
+    it "does not affect the connection of a Stagehand::Staging::Model" do
+      class StagingModelDatabaseMock < SourceRecord
+        include Stagehand::Staging::Model
+      end
+
+      old = StagingModelDatabaseMock.connection.current_database
+
+      subject.with_production_connection do
+        expect(StagingModelDatabaseMock.connection.current_database).to eq(old)
+      end
+    end
   end
 
   describe '::staging_connection' do
