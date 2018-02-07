@@ -32,8 +32,7 @@ ActiveRecord::Base.class_eval do
   # MULTITHREADED CONNECTION HANDLING
 
   # The original implementation of remove_connection uses @connection_specification_name, which is shared across Threads.
-  # We have overridden writes to that variable so they are stored in Thread.current, but we need to swap it in when a
-  # connection is removed.
+  # We need to pass in the connection that model in the current thread is using if we call remove_connection.
   def self.remove_connection(name = StagehandConnectionMap.get(self))
     super
   end
