@@ -346,9 +346,9 @@ association should be eager loaded to prevent n+1 queries whenever appropriate.
 
 Before rolling out the system to you users, it's a good idea to test that everything works as you'd expect. You can
 enable the system "behind the scenes" by enabling Ghost Mode. In this mode database changes are still logged
-but database connection swapping is disabled, so all controllers connect the database specified in your database.yml as
-usual. The database connections used for auto synchronization will not be affected by Ghost Mode, allowing changes to be
-previewed in the stagehand production database. Instead of only copying changes that don't require confirmation, in
+but database connection swapping is disabled, so all controllers connect to the database specified in your database.yml
+as usual. The database connections used for auto synchronization will not be affected by Ghost Mode, allowing changes to
+be previewed in the stagehand production database. Instead of only copying changes that don't require confirmation, in
 Ghost Mode, auto synchronization will simulate immediate user confirmation of all changes and copy everything to the
 production database.
 

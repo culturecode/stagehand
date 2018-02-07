@@ -1,6 +1,10 @@
+require 'thread'
+
 ActiveRecord::Base.class_eval do
   # SYNC CALLBACKS
-  define_model_callbacks :sync, :sync_as_subject, :sync_as_affected
+  ([self] + ActiveSupport::DescendantsTracker.descendants(self)).each do |klass|
+    klass.define_model_callbacks :sync, :sync_as_subject, :sync_as_affected
+  end
 
   # SYNC STATUS
   def self.inherited(subclass)
@@ -23,5 +27,42 @@ ActiveRecord::Base.class_eval do
   def self.has_stagehand?
     @has_stagehand = Stagehand::Schema.has_stagehand?(table_name) unless defined?(@has_stagehand)
     return @has_stagehand
+  end
+
+  # MULTITHREADED CONNECTION HANDLING
+
+  # The original implementation of remove_connection uses @connection_specification_name, which is shared across Threads.
+  # We have overridden writes to that variable so they are stored in Thread.current, but we need to swap it in when a
+  # connection is removed.
+  def self.remove_connection(name = StagehandConnectionMap.get(self))
+    super
+  end
+
+  def self.connection_specification_name=(connection_name)
+    # We want to keep track of the @connection_specification_name as a fallback shared across threads in case we
+    # haven't set the connection on more than one thread.
+    super
+    StagehandConnectionMap.set(self, connection_name)
+  end
+
+  def self.connection_specification_name
+    StagehandConnectionMap.get(self) || super
+  end
+
+  # Keep track of the current connection name per-model, per-thread so multithreaded webservers don't overwrite it
+  module StagehandConnectionMap
+    def self.set(klass, connection_name)
+      currentMap[klass.name] = connection_name
+    end
+
+    def self.get(klass)
+      currentMap[klass.name]
+    end
+
+    def self.currentMap
+      map = Thread.current.thread_variable_get('StagehandConnectionMap')
+      map = Thread.current.thread_variable_set('StagehandConnectionMap', {}) unless map
+      return map
+    end
   end
 end

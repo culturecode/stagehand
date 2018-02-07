@@ -55,9 +55,9 @@ module Stagehand
         if !readonly?
           return
         elsif Configuration.allow_unsynced_production_writes?
-          Rails.logger.warn "Writing directly to production database"
+          Rails.logger.warn "Writing directly to #{@config[:database]} database using readonly connection"
         else
-          raise(UnsyncedProductionWrite, "Attempted to write directly to production database")
+          raise(UnsyncedProductionWrite, "Attempted to write directly to #{@config[:database]} database using readonly connection")
         end
       end
     end

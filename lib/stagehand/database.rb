@@ -1,8 +1,8 @@
+require 'thread'
+
 module Stagehand
   module Database
     extend self
-
-    @@connection_name_stack = [Rails.env.to_sym]
 
     def each(&block)
       with_production_connection(&block) unless Configuration.single_connection?
@@ -53,7 +53,7 @@ module Stagehand
       different = current_connection_name != connection_name.to_sym
 
       if different
-        @@connection_name_stack.push(connection_name.to_sym)
+        ConnectionStack.push(connection_name.to_sym)
         Rails.logger.debug "Connecting to #{current_connection_name}"
         connect_to(current_connection_name)
       else
@@ -63,7 +63,7 @@ module Stagehand
       yield connection_name
     ensure
       if different
-        @@connection_name_stack.pop
+        ConnectionStack.pop
         Rails.logger.debug "Restoring connection to #{current_connection_name}"
         connect_to(current_connection_name)
       end
@@ -85,11 +85,11 @@ module Stagehand
     private
 
     def connect_to(connection_name)
-      ActiveRecord::Base.establish_connection(connection_name)
+      ActiveRecord::Base.connection_specification_name = connection_name
     end
 
     def current_connection_name
-      @@connection_name_stack.last
+      ConnectionStack.last
     end
 
     def database_name(connection_name)
@@ -106,7 +106,12 @@ module Stagehand
       self.abstract_class = true
 
       def self.init_connection
-        establish_connection(Configuration.staging_connection_name) unless Configuration.single_connection?
+        establish_connection(name)
+      end
+
+      # Ensure the connection pool is named after the desired connection, not "StagingProbe"
+      def self.name
+        Configuration.staging_connection_name
       end
 
       init_connection
@@ -116,10 +121,36 @@ module Stagehand
       self.abstract_class = true
 
       def self.init_connection
-        establish_connection(Configuration.production_connection_name) unless Configuration.single_connection?
+        establish_connection(name) unless Configuration.single_connection?
+      end
+
+      # Ensure the connection pool is named after the desired connection, not "ProductionProbe"
+      def self.name
+        Configuration.production_connection_name
       end
 
       init_connection
+    end
+
+    # Threadsafe tracking of the connection stack
+    module ConnectionStack
+      @@connection_name_stack = Hash.new { |h,k| h[k] = [ Rails.env.to_sym ] }
+
+      def self.push(connection_name)
+        current_stack.push connection_name
+      end
+
+      def self.pop
+        current_stack.pop
+      end
+
+      def self.last
+        current_stack.last
+      end
+
+      def self.current_stack
+        @@connection_name_stack[Thread.current.object_id]
+      end
     end
   end
 end
