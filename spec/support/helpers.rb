@@ -9,6 +9,14 @@ def in_ghost_mode(&block)
   end
 end
 
+def in_single_connection_mode(&block)
+  context 'in a single database configuration' do
+    connection = Stagehand.configuration.staging_connection_name
+    use_configuration(:staging_connection_name => connection, :production_connection_name => connection)
+    instance_exec(&block)
+  end
+end
+
 def use_configuration(new_configuration)
   around do |example|
     with_configuration(new_configuration) do
