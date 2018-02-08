@@ -77,5 +77,14 @@ describe 'ActiveRecordExtensions' do
       thread1.join
       thread2.join
     end
+
+    it 'unsets connection_specification_name for the given class' do
+      config = ActiveRecord::Base.configurations[Stagehand::Configuration.staging_connection_name]
+      ConnectionTestMock.establish_connection(config)
+
+      expect { ConnectionTestMock.remove_connection }
+        .to change { ConnectionTestMock.connection_specification_name }
+        .to(ConnectionTestMock.superclass.connection_specification_name)
+    end
   end
 end

@@ -34,6 +34,7 @@ ActiveRecord::Base.class_eval do
   # The original implementation of remove_connection uses @connection_specification_name, which is shared across Threads.
   # We need to pass in the connection that model in the current thread is using if we call remove_connection.
   def self.remove_connection(name = StagehandConnectionMap.get(self))
+    StagehandConnectionMap.set(self, nil)
     super
   end
 
