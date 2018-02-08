@@ -38,10 +38,11 @@ ActiveRecord::Base.class_eval do
   end
 
   def self.connection_specification_name=(connection_name)
+    StagehandConnectionMap.set(self, connection_name)
+
     # We want to keep track of the @connection_specification_name as a fallback shared across threads in case we
     # haven't set the connection on more than one thread.
     super
-    StagehandConnectionMap.set(self, connection_name)
   end
 
   def self.connection_specification_name
