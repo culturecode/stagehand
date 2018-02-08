@@ -34,14 +34,20 @@ ActiveRecord::Base.class_eval do
   # The original implementation of remove_connection uses @connection_specification_name, which is shared across Threads.
   # We need to pass in the connection that model in the current thread is using if we call remove_connection.
   def self.remove_connection(name = StagehandConnectionMap.get(self))
+    StagehandConnectionMap.set(self, nil)
     super
   end
 
   def self.connection_specification_name=(connection_name)
+    # ActiveRecord sets the connection pool to 'primary' by default, so we want to reuse that connection for staging
+    # in order to avoid using a different connection pool after our first swap back to the staging connection.
+    connection_name == 'primary' if connection_name == Stagehand::Configuration.staging_connection_name
+
+    StagehandConnectionMap.set(self, connection_name)
+
     # We want to keep track of the @connection_specification_name as a fallback shared across threads in case we
     # haven't set the connection on more than one thread.
     super
-    StagehandConnectionMap.set(self, connection_name)
   end
 
   def self.connection_specification_name

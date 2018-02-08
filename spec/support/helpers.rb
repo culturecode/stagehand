@@ -9,6 +9,14 @@ def in_ghost_mode(&block)
   end
 end
 
+def in_single_connection_mode(&block)
+  context 'in a single database configuration' do
+    connection = Stagehand.configuration.staging_connection_name
+    use_configuration(:staging_connection_name => connection, :production_connection_name => connection)
+    instance_exec(&block)
+  end
+end
+
 def use_configuration(new_configuration)
   around do |example|
     with_configuration(new_configuration) do
@@ -41,4 +49,19 @@ def without_transactional_fixtures
   # the controller action.
   #
   # This is now just a no-op to indicate which tests would require this since we no longer use transactional fixtures
+end
+
+def use_then_clear_connection_for_class(klass, connection_name)
+  around do |example|
+    set_then_clear_connection_for_class(klass, connection_name) do
+      example.run
+    end
+  end
+end
+
+def set_then_clear_connection_for_class(klass, connection_name, &block)
+  klass.connection_specification_name = connection_name
+  block.call
+ensure
+  klass.connection_specification_name = nil
 end

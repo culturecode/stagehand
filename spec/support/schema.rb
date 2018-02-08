@@ -39,19 +39,17 @@ RSpec.configure do |config|
       end
     end
 
-    ActiveRecord::Base.establish_connection(Stagehand.configuration.staging_connection_name)
+    Stagehand::Database.with_connection(Stagehand.configuration.staging_connection_name) do
+      # Add stagehand to the staging database
+      Stagehand::Schema.init_stagehand!
 
-    # Add stagehand to the staging database
-    Stagehand::Schema.init_stagehand!
-
-    # Add a table to the staging side that doesn't appear on the production side and doesn't have stagehand
-    ActiveRecord::Schema.define do
-      create_table :users, :force => true, :stagehand => false do |t|
-        t.timestamps :null => false
+      # Add a table to the staging side that doesn't appear on the production side and doesn't have stagehand
+      ActiveRecord::Schema.define do
+        create_table :users, :force => true, :stagehand => false do |t|
+          t.timestamps :null => false
+        end
       end
     end
-
-    ActiveRecord::Base.establish_connection(:test)
   end
 end
 

@@ -411,10 +411,7 @@ describe Stagehand::Staging::Synchronizer do
     it_behaves_like 'sync callbacks'
   end
 
-  context 'in a single database configuration' do
-    connection = Stagehand.configuration.staging_connection_name
-    use_configuration(:staging_connection_name => connection, :production_connection_name => connection)
-
+  in_single_connection_mode do
     it_behaves_like 'sync callbacks'
   end
 

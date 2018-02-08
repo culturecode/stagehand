@@ -55,7 +55,7 @@ module Stagehand
       if different
         ConnectionStack.push(connection_name.to_sym)
         Rails.logger.debug "Connecting to #{current_connection_name}"
-        connect_to(current_connection_name)
+        ActiveRecord::Base.connection_specification_name = current_connection_name
       else
         Rails.logger.debug "Already connected to #{connection_name}"
       end
@@ -65,7 +65,7 @@ module Stagehand
       if different
         ConnectionStack.pop
         Rails.logger.debug "Restoring connection to #{current_connection_name}"
-        connect_to(current_connection_name)
+        ActiveRecord::Base.connection_specification_name = current_connection_name
       end
     end
 
@@ -84,10 +84,6 @@ module Stagehand
 
     private
 
-    def connect_to(connection_name)
-      ActiveRecord::Base.connection_specification_name = connection_name
-    end
-
     def current_connection_name
       ConnectionStack.last
     end
@@ -104,10 +100,9 @@ module Stagehand
 
     class Probe < ActiveRecord::Base
       self.abstract_class = true
-      class_attribute :connection_name
 
       # We fake the class name so we can create a connection pool with the desired connection name instead of the name of the class
-      def self.init_connection
+      def self.init_connection(connection_name)
         @probe_name = connection_name
         establish_connection(connection_name)
       ensure
@@ -121,14 +116,22 @@ module Stagehand
 
     class StagingProbe < Probe
       self.abstract_class = true
-      self.connection_name = Configuration.staging_connection_name
+
+      def self.init_connection
+        super(Configuration.staging_connection_name)
+      end
+
       init_connection
     end
 
     class ProductionProbe < Probe
       self.abstract_class = true
-      self.connection_name = Configuration.production_connection_name
-      init_connection
+
+      def self.init_connection
+        super(Configuration.production_connection_name)
+      end
+
+      init_connection unless Configuration.single_connection?
     end
 
     # Threadsafe tracking of the connection stack
