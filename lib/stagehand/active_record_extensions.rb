@@ -39,6 +39,10 @@ ActiveRecord::Base.class_eval do
   end
 
   def self.connection_specification_name=(connection_name)
+    # ActiveRecord sets the connection pool to 'primary' by default, so we want to reuse that connection for staging
+    # in order to avoid using a different connection pool after our first swap back to the staging connection.
+    connection_name == 'primary' if connection_name == Stagehand::Configuration.staging_connection_name
+
     StagehandConnectionMap.set(self, connection_name)
 
     # We want to keep track of the @connection_specification_name as a fallback shared across threads in case we

@@ -60,8 +60,8 @@ def use_then_clear_connection_for_class(klass, connection_name)
 end
 
 def set_then_clear_connection_for_class(klass, connection_name, &block)
-  Stagehand::Database.set_connection(klass, connection_name)
+  klass.connection_specification_name = connection_name
   block.call
 ensure
-  Stagehand::Database.set_connection(klass, nil)
+  klass.connection_specification_name = nil
 end

@@ -71,8 +71,8 @@ describe 'Stagehand::Staging::Controller', :type => :controller do
     end
 
     it 'once again affects the connection of models that have had their connection removed' do
-      Stagehand::Database.set_connection(SourceRecord, production)
-      Stagehand::Database.set_connection(SourceRecord, nil)
+      SourceRecord.connection_specification_name = production
+      SourceRecord.connection_specification_name = nil
       expect { get :index }.to change { StagingSourceRecord.count }.by(1)
     end
 
