@@ -55,7 +55,7 @@ module Stagehand
       if different
         ConnectionStack.push(connection_name.to_sym)
         Rails.logger.debug "Connecting to #{current_connection_name}"
-        set_connection(current_connection_name)
+        set_connection(ActiveRecord::Base, current_connection_name)
       else
         Rails.logger.debug "Already connected to #{connection_name}"
       end
@@ -65,7 +65,7 @@ module Stagehand
       if different
         ConnectionStack.pop
         Rails.logger.debug "Restoring connection to #{current_connection_name}"
-        set_connection(current_connection_name)
+        set_connection(ActiveRecord::Base, current_connection_name)
       end
     end
 
@@ -82,15 +82,18 @@ module Stagehand
       return output
     end
 
-    def set_connection(connection_name, klass = ActiveRecord::Base)
-      connection_name = 'primary' if connection_name == Configuration.staging_connection_name
-      klass.connection_specification_name = connection_name
+    def set_connection(klass, connection_name)
+      klass.connection_specification_name = connection_pool_name(connection_name)
     end
 
     private
 
     def current_connection_name
       ConnectionStack.last
+    end
+
+    def connection_pool_name(connection_name)
+      connection_name == Configuration.staging_connection_name ? 'primary' : connection_name.to_s if connection_name
     end
 
     def database_name(connection_name)
@@ -108,7 +111,7 @@ module Stagehand
 
       # We fake the class name so we can create a connection pool with the desired connection name instead of the name of the class
       def self.init_connection(connection_name)
-        Stagehand::Database.set_connection(connection_name, self)
+        Stagehand::Database.set_connection(self, connection_name)
         @probe_name = connection_specification_name
         establish_connection(connection_name)
       ensure

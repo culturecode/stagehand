@@ -50,3 +50,18 @@ def without_transactional_fixtures
   #
   # This is now just a no-op to indicate which tests would require this since we no longer use transactional fixtures
 end
+
+def use_then_clear_connection_for_class(klass, connection_name)
+  around do |example|
+    set_then_clear_connection_for_class(klass, connection_name) do
+      example.run
+    end
+  end
+end
+
+def set_then_clear_connection_for_class(klass, connection_name, &block)
+  Stagehand::Database.set_connection(klass, connection_name)
+  block.call
+ensure
+  Stagehand::Database.set_connection(klass, nil)
+end

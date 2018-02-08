@@ -8,7 +8,7 @@ describe Stagehand::Staging::Model do
     let(:staging) { Rails.configuration.database_configuration[Stagehand.configuration.staging_connection_name.to_s] }
 
     it 'establishes a connection to the staging database' do
-      klass.establish_connection(Stagehand.configuration.production_connection_name)
+      Stagehand::Database.set_connection(klass, Stagehand.configuration.production_connection_name)
       expect { klass.include(subject) }.to change { klass.connection.current_database }.to(staging['database'])
     end
 
@@ -23,7 +23,7 @@ describe Stagehand::Staging::Model do
 
     in_ghost_mode do
       it 'does not change the connection' do
-        klass.establish_connection(Stagehand.configuration.production_connection_name)
+        Stagehand::Database.set_connection(klass, Stagehand.configuration.production_connection_name)
         expect { klass.include(subject) }.not_to change { klass.connection.current_database }
       end
     end

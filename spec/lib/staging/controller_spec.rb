@@ -64,15 +64,15 @@ describe 'Stagehand::Staging::Controller', :type => :controller do
       expect(SourceRecord.last).to eq(record)
     end
 
-    it 'does not affect the connection of models that have specifically called establish_connection' do
-      SourceRecord.establish_connection(production)
-      expect { get :index }.not_to change { StagingSourceRecord.count }
-      SourceRecord.remove_connection
+    it 'does not affect the connection of models that have specifically defined a connection' do
+      set_then_clear_connection_for_class(SourceRecord, production) do
+        expect { get :index }.not_to change { StagingSourceRecord.count }
+      end
     end
 
     it 'once again affects the connection of models that have had their connection removed' do
-      SourceRecord.establish_connection(production)
-      SourceRecord.remove_connection
+      Stagehand::Database.set_connection(SourceRecord, production)
+      Stagehand::Database.set_connection(SourceRecord, nil)
       expect { get :index }.to change { StagingSourceRecord.count }.by(1)
     end
 
