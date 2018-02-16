@@ -16,8 +16,17 @@ ActiveRecord::Base.class_eval do
         :class_name => 'Stagehand::Staging::CommitEntry',
         :foreign_key => :record_id
 
+      has_one :stagehand_unsynced_commit_indicator,
+        lambda { where(:stagehand_commit_entries => {:table_name => subclass.table_name}).where.not(commit_id: nil).readonly },
+        :class_name => 'Stagehand::Staging::CommitEntry',
+        :foreign_key => :record_id
+
       def synced?
         stagehand_unsynced_indicator.blank?
+      end
+
+      def synced_all_commits?
+        stagehand_unsynced_commit_indicator.blank?
       end
     end
   end

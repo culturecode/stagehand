@@ -335,11 +335,13 @@ callbacks as you would `before_save` and `after_save` callbacks to run code rela
 NOTE: The only difference from typical ActiveRecord callbacks is that the callbacks are not run on the record instance
 being synced, but instead are run on a new instance reloaded from the database.
 
-### #synced?
+### #synced? and #synced_all_commits?
 
-Stagehand also adds a `synced?` method to ActiveRecord models to make it easy to display the sync status of a record in
+Stagehand adds a `synced?` method to ActiveRecord models to make it easy to display the sync status of a record in
 the UI. The method uses the `stagehand_unsynced_indicator` association to detect if a CommitEntry exists for the record. The
 association should be eager loaded to prevent n+1 queries whenever appropriate.
+
+To only consider operations that won't be autosynced, you can use the `synced_all_commits?` method and the `stagehand_unsynced_commit_indicator` association in place of `synced?` and `stagehand_unsynced_indicator`.
 
 
 ## Ghost Mode
