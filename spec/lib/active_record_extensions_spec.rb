@@ -13,6 +13,18 @@ describe 'ActiveRecordExtensions' do
     end
   end
 
+  describe '#synced_all_commits?' do
+    it 'returns false when there are unsynced commits' do
+      Stagehand::Staging::Commit.capture { source_record.touch }
+      expect(source_record.synced_all_commits?).to be(false)
+    end
+
+    it 'returns true when there are unsynced commit entries without a commit' do
+      source_record.touch
+      expect(source_record.synced_all_commits?).to be(true)
+    end
+  end
+
   describe '::connection_specification_name=' do
     it 'set independent value for the same class per thread' do
       thread1_ready = false
