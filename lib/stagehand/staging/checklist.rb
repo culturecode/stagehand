@@ -55,10 +55,10 @@ module Stagehand
       end
 
       # Returns a list of entries that only includes a single entry for each record.
-      # The type of entry chosen prioritizes creates over updates, and deletes over creates.
-      def self.compact_entries(entries)
+      # The type of entry chosen prioritizes operations as given by priority.
+      def self.compact_entries(entries, priority: [:delete, :update, :insert])
         compact_entries = group_entries(entries)
-        compact_entries = compact_entries[:delete] + compact_entries[:insert] + compact_entries[:update]
+        compact_entries = compact_entries.values_at(*priority).flatten
         compact_entries.uniq!(&:key)
 
         return compact_entries
@@ -129,7 +129,7 @@ module Stagehand
       end
 
       def syncing_entries
-        cache(:syncing_entries) { self.class.compact_entries(affected_entries) }
+        cache(:syncing_entries) { self.class.compact_entries(affected_entries, priority: Synchronizer::ENTRY_SYNC_ORDER) }
       end
 
       def affected_records
@@ -174,7 +174,7 @@ module Stagehand
           end.collect(&:id)
           entries.reject! {|entry| staging_record_start_operation_ids.include?(entry.commit_id) }
 
-          entries = self.class.compact_entries(entries)
+          entries = self.class.compact_entries(entries, priority: [:delete, :insert, :update])
           entries = filter_entries(entries)
           entries = self.class.group_entries(entries)
         end

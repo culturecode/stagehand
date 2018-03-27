@@ -6,6 +6,11 @@ module Stagehand
 
       BATCH_SIZE = 1000
       SESSION_BATCH_SIZE = 30
+      ENTRY_SYNC_ORDER = [:delete, :update, :insert].freeze
+      ENTRY_SYNC_ORDER_SQL = <<-SQL.squish.freeze
+        CASE #{ENTRY_SYNC_ORDER.each_with_index.map {|op, index| "WHEN operation = '#{op}' THEN #{index}" }.join(' ')}
+        ELSE 4 END ASC, id DESC
+      SQL
 
       # Immediately attempt to sync the changes from the block if possible
       # The block is wrapped in a transaction to prevent changes to records while being synced
@@ -50,7 +55,7 @@ module Stagehand
 
       def sync_all
         loop do
-          entries = CommitEntry.order(:id => :desc).limit(BATCH_SIZE).to_a
+          entries = CommitEntry.order(ENTRY_SYNC_ORDER_SQL).limit(BATCH_SIZE).to_a
           break unless entries.present?
 
           latest_entries = entries.uniq(&:key)
@@ -87,7 +92,8 @@ module Stagehand
       # Returns commit entries in ID descending order
       def iterate_autosyncable_entries(&block)
         current = CommitEntry.maximum(:id).to_i
-        while entries = autosyncable_entries("id <= #{current}").limit(BATCH_SIZE).order(:id => :desc).to_a.presence do
+
+        while entries = autosyncable_entries("id <= #{current}").limit(BATCH_SIZE).order(ENTRY_SYNC_ORDER_SQL).to_a.presence do
           with_confirmed_autosyncability(entries.uniq(&:key), &block)
           current = entries.last.try(:id).to_i - 1
         end
