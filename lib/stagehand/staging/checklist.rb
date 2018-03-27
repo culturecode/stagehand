@@ -55,7 +55,7 @@ module Stagehand
       end
 
       # Returns a list of entries that only includes a single entry for each record.
-      # The type of entry chosen prioritizes operations as given by priority.
+      # The entries are prioritized by the list of operations as given by `:priority`.
       def self.compact_entries(entries, priority: [:delete, :update, :insert])
         compact_entries = group_entries(entries)
         compact_entries = compact_entries.values_at(*priority).flatten
