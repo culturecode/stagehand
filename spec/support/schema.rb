@@ -35,6 +35,10 @@ RSpec.configure do |config|
           create_table :serialized_column_records, :force => true do |t|
             t.text :tags
           end
+
+          create_table :constrained_records, :force => true do |t|
+            t.integer :unique_number, index: { unique: true }
+          end
         end
       end
     end
@@ -71,5 +75,7 @@ end
 class SerializedColumnRecord < ActiveRecord::Base
   serialize :name
 end
+
+class ConstrainedRecord < ActiveRecord::Base; end
 
 class User < ActiveRecord::Base; end

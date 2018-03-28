@@ -1,6 +1,12 @@
 describe Stagehand::Staging::Synchronizer do
   let(:source_record) { SourceRecord.create }
 
+  def delete_constrained_records_from_production
+    Stagehand::Database
+      .with_production_connection { ConstrainedRecord.all.to_a }
+      .each {|record| Stagehand::Production.delete(record) }
+  end
+
   describe '::sync_record' do
     it 'copies new records to the production database' do
       expect { subject.sync_record(source_record) }.to change { Stagehand::Production.status(source_record) }.to(:not_modified)
@@ -86,6 +92,28 @@ describe Stagehand::Staging::Synchronizer do
       source_record.increment!(:counter)
       source_record.delete
       expect { subject.sync }.to change { Stagehand::Production.status(source_record) }.from(:modified).to(:new)
+    end
+
+    it 'can sync records that have column values that conflict with a deleted record' do
+      delete_constrained_records_from_production
+      deleted = ConstrainedRecord.create!(:unique_number => 1)
+      Stagehand::Production.save(deleted)
+      deleted.delete
+
+      created = ConstrainedRecord.create!(:unique_number => 1)
+
+      expect{ subject.sync }.to change { Stagehand::Production.status(created) }.from(:new).to(:not_modified)
+    end
+
+    it 'can sync records that have column values that conflict with an updated record' do
+      delete_constrained_records_from_production
+      updated = ConstrainedRecord.create!(:unique_number => 1)
+      Stagehand::Production.save(updated)
+      updated.update_attributes!(:unique_number => 2)
+
+      created = ConstrainedRecord.create!(:unique_number => 1)
+
+      expect{ subject.sync }.to change { Stagehand::Production.status(created) }.from(:new).to(:not_modified)
     end
 
     it 'deletes synced entries' do
@@ -207,6 +235,28 @@ describe Stagehand::Staging::Synchronizer do
       source_record.delete
       expect{ subject.sync_all }.to change { Stagehand::Production.status(source_record) }.from(:modified).to(:new)
     end
+
+    it 'can sync records that have column values that conflict with a deleted record' do
+      delete_constrained_records_from_production
+      deleted = ConstrainedRecord.create!(:unique_number => 1)
+      Stagehand::Production.save(deleted)
+      deleted.delete
+
+      created = ConstrainedRecord.create!(:unique_number => 1)
+
+      expect{ subject.sync_all }.to change { Stagehand::Production.status(created) }.from(:new).to(:not_modified)
+    end
+
+    it 'can sync records that have column values that conflict with an updated record' do
+      delete_constrained_records_from_production
+      updated = ConstrainedRecord.create!(:unique_number => 1)
+      Stagehand::Production.save(updated)
+      updated.update_attributes!(:unique_number => 2)
+
+      created = ConstrainedRecord.create!(:unique_number => 1)
+
+      expect{ subject.sync_all }.to change { Stagehand::Production.status(created) }.from(:new).to(:not_modified)
+    end
   end
 
   describe '::sync_now' do
@@ -304,6 +354,37 @@ describe Stagehand::Staging::Synchronizer do
 
         expect(Stagehand::Production.find(source_record)).not_to have_attributes(:name => 'Bob')
       end
+    end
+  end
+
+  describe '::sync_checklist' do
+    it 'can sync records that have column values that conflict with a deleted record' do
+      delete_constrained_records_from_production
+      Stagehand::Staging::Commit.capture do
+        deleted = ConstrainedRecord.create!(:unique_number => 1)
+        Stagehand::Production.save(deleted)
+        deleted.delete
+        ConstrainedRecord.create!(:unique_number => 1)
+      end
+
+      created = ConstrainedRecord.last
+      checklist = Stagehand::Staging::Checklist.new(created)
+
+      expect{ subject.sync_checklist(checklist) }.to change { Stagehand::Production.status(created) }.from(:new).to(:not_modified)
+    end
+
+    it 'can sync records that have column values that conflict with an updated record' do
+      delete_constrained_records_from_production
+      Stagehand::Staging::Commit.capture do
+        updated = ConstrainedRecord.create!(:unique_number => 1)
+        Stagehand::Production.save(updated)
+        updated.update_attributes!(:unique_number => 2)
+        ConstrainedRecord.create!(:unique_number => 1)
+      end
+
+      created = ConstrainedRecord.last
+      checklist = Stagehand::Staging::Checklist.new(created)
+      expect{ subject.sync_checklist(checklist) }.to change { Stagehand::Production.status(created) }.from(:new).to(:not_modified)
     end
   end
 
