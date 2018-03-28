@@ -7,10 +7,7 @@ module Stagehand
       BATCH_SIZE = 1000
       SESSION_BATCH_SIZE = 30
       ENTRY_SYNC_ORDER = [:delete, :update, :insert].freeze
-      ENTRY_SYNC_ORDER_SQL = <<-SQL.squish.freeze
-        CASE #{ENTRY_SYNC_ORDER.each_with_index.map {|op, index| "WHEN operation = '#{op}' THEN #{index}" }.join(' ')}
-        ELSE 4 END ASC, id DESC
-      SQL
+      ENTRY_SYNC_ORDER_SQL = ActiveRecord::Base.send(:sanitize_sql_for_order, ['FIELD(operation, ?), id DESC', ENTRY_SYNC_ORDER]).freeze
 
       # Immediately attempt to sync the changes from the block if possible
       # The block is wrapped in a transaction to prevent changes to records while being synced
