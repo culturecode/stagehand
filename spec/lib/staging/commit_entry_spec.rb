@@ -103,8 +103,12 @@ describe Stagehand::Staging::CommitEntry do
         expect(subject.record).to have_attributes(source_record.attributes)
       end
 
-      it 'responds correctly to destroyed?' do
-        expect(subject.record.destroyed?).to be(true)
+      it 'is no destroyed' do
+        expect(subject.record.destroyed?).to be(false)
+      end
+
+      it 'is a Stagehand::DeletedRecord' do
+        expect(subject.record).to be_a(Stagehand::DeletedRecord)
       end
 
       it 'raises a read_only exception when saving' do

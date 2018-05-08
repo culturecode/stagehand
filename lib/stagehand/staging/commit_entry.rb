@@ -141,18 +141,9 @@ module Stagehand
 
       def build_deleted_record
         return unless production_record
-
-        deleted_record = record_class.new
+        deleted_record = production_record.becomes(record_class)
         deleted_record.readonly!
-        deleted_record.instance_variable_set(:@new_record, false)
-        deleted_record.instance_variable_set(:@destroyed, true)
-
-        # Write raw values so serialized values are cast correctly
-        attribute_set = deleted_record.instance_variable_get(:@attributes)
-        production_record.attributes_before_type_cast.each do |attribute, value|
-          attribute_set.write_from_database(attribute.to_s, value)
-        end
-
+        deleted_record.singleton_class.include(DeletedRecord)
         return deleted_record
       end
 
@@ -164,11 +155,13 @@ module Stagehand
     end
   end
 
-  # DUMMY CLASSES
+  # UTILITY MODULES
 
-  module DummyClass; end
+  module DummyClass; end # A namespace for dummy classes of records with an IndeterminateRecordClass
+  module DeletedRecord; end # Serves as a way of tagging an instance to see if it is_a?(Stagehand::DeletedRecord)
 
   # EXCEPTIONS
+
   class IndeterminateRecordClass < StandardError; end
   class MissingTable < StandardError; end
 end
