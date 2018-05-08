@@ -13,6 +13,18 @@ describe 'ActiveRecordExtensions' do
     end
   end
 
+  describe '#synced_all_commits?' do
+    it 'returns false when there are unsynced commits' do
+      Stagehand::Staging::Commit.capture { source_record.touch }
+      expect(source_record.synced_all_commits?).to be(false)
+    end
+
+    it 'returns true when there are unsynced commit entries without a commit' do
+      source_record.touch
+      expect(source_record.synced_all_commits?).to be(true)
+    end
+  end
+
   describe '::connection_specification_name=' do
     it 'set independent value for the same class per thread' do
       thread1_ready = false
@@ -76,6 +88,15 @@ describe 'ActiveRecordExtensions' do
 
       thread1.join
       thread2.join
+    end
+
+    it 'unsets connection_specification_name for the given class' do
+      config = ActiveRecord::Base.configurations[Stagehand::Configuration.staging_connection_name]
+      ConnectionTestMock.establish_connection(config)
+
+      expect { ConnectionTestMock.remove_connection }
+        .to change { ConnectionTestMock.connection_specification_name }
+        .to(ConnectionTestMock.superclass.connection_specification_name)
     end
   end
 end

@@ -12,6 +12,11 @@
 
 ActiveRecord::Schema.define(version: 0) do
 
+  create_table "constrained_records", force: :cascade, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci", stagehand: true do |t|
+    t.integer "unique_number"
+    t.index ["unique_number"], name: "index_constrained_records_on_unique_number", unique: true
+  end
+
   create_table "habtm_records", force: :cascade, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci", stagehand: true do |t|
   end
 

@@ -16,8 +16,17 @@ ActiveRecord::Base.class_eval do
         :class_name => 'Stagehand::Staging::CommitEntry',
         :foreign_key => :record_id
 
+      has_one :stagehand_unsynced_commit_indicator,
+        lambda { where(:stagehand_commit_entries => {:table_name => subclass.table_name}).where.not(commit_id: nil).readonly },
+        :class_name => 'Stagehand::Staging::CommitEntry',
+        :foreign_key => :record_id
+
       def synced?
         stagehand_unsynced_indicator.blank?
+      end
+
+      def synced_all_commits?
+        stagehand_unsynced_commit_indicator.blank?
       end
     end
   end
@@ -32,17 +41,22 @@ ActiveRecord::Base.class_eval do
   # MULTITHREADED CONNECTION HANDLING
 
   # The original implementation of remove_connection uses @connection_specification_name, which is shared across Threads.
-  # We have overridden writes to that variable so they are stored in Thread.current, but we need to swap it in when a
-  # connection is removed.
+  # We need to pass in the connection that model in the current thread is using if we call remove_connection.
   def self.remove_connection(name = StagehandConnectionMap.get(self))
+    StagehandConnectionMap.set(self, nil)
     super
   end
 
   def self.connection_specification_name=(connection_name)
+    # ActiveRecord sets the connection pool to 'primary' by default, so we want to reuse that connection for staging
+    # in order to avoid using a different connection pool after our first swap back to the staging connection.
+    connection_name == 'primary' if connection_name == Stagehand::Configuration.staging_connection_name
+
+    StagehandConnectionMap.set(self, connection_name)
+
     # We want to keep track of the @connection_specification_name as a fallback shared across threads in case we
     # haven't set the connection on more than one thread.
     super
-    StagehandConnectionMap.set(self, connection_name)
   end
 
   def self.connection_specification_name

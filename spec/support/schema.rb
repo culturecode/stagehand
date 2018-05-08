@@ -35,23 +35,25 @@ RSpec.configure do |config|
           create_table :serialized_column_records, :force => true do |t|
             t.text :tags
           end
+
+          create_table :constrained_records, :force => true do |t|
+            t.integer :unique_number, index: { unique: true }
+          end
         end
       end
     end
 
-    ActiveRecord::Base.establish_connection(Stagehand.configuration.staging_connection_name)
+    Stagehand::Database.with_connection(Stagehand.configuration.staging_connection_name) do
+      # Add stagehand to the staging database
+      Stagehand::Schema.init_stagehand!
 
-    # Add stagehand to the staging database
-    Stagehand::Schema.init_stagehand!
-
-    # Add a table to the staging side that doesn't appear on the production side and doesn't have stagehand
-    ActiveRecord::Schema.define do
-      create_table :users, :force => true, :stagehand => false do |t|
-        t.timestamps :null => false
+      # Add a table to the staging side that doesn't appear on the production side and doesn't have stagehand
+      ActiveRecord::Schema.define do
+        create_table :users, :force => true, :stagehand => false do |t|
+          t.timestamps :null => false
+        end
       end
     end
-
-    ActiveRecord::Base.establish_connection(:test)
   end
 end
 
@@ -73,5 +75,7 @@ end
 class SerializedColumnRecord < ActiveRecord::Base
   serialize :name
 end
+
+class ConstrainedRecord < ActiveRecord::Base; end
 
 class User < ActiveRecord::Base; end

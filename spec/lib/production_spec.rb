@@ -2,6 +2,12 @@ describe Stagehand::Production do
   subject { Stagehand::Production }
   let(:source_record) { SourceRecord.create }
 
+  in_single_connection_mode do
+    it 'uses the same connection object as ActiveRecord::Base' do
+      expect(Stagehand::Production::Record.connection).to be(ActiveRecord::Base.connection)
+    end
+  end
+
   describe '::status' do
     it 'returns :new if the record does not exist in the production database' do
       expect(subject.status(source_record)).to eq(:new)

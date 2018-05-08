@@ -30,13 +30,23 @@ describe Stagehand::Database do
         expect { SourceRecord.create! }.to raise_exception(Stagehand::UnsyncedProductionWrite)
       end
     end
+
+    it "does not affect the connection of a Stagehand::Staging::Model" do
+      class StagingModelDatabaseMock < SourceRecord
+        include Stagehand::Staging::Model
+      end
+
+      old = StagingModelDatabaseMock.connection.current_database
+
+      subject.with_production_connection do
+        expect(StagingModelDatabaseMock.connection.current_database).to eq(old)
+      end
+    end
   end
 
   describe '::staging_connection' do
     without_transactional_fixtures
-
-    before { SourceRecord.establish_connection(Stagehand.configuration.staging_connection_name) }
-    after { SourceRecord.remove_connection }
+    use_then_clear_connection_for_class(SourceRecord, Stagehand.configuration.staging_connection_name)
 
     it 'returns a connection object that uses the staging database' do
       expect { SourceRecord.create }.to change { subject.staging_connection.select_values(SourceRecord.all) }
@@ -52,9 +62,7 @@ describe Stagehand::Database do
   describe '::production_connection' do
     without_transactional_fixtures
     allow_unsynced_production_writes
-
-    before { SourceRecord.establish_connection(Stagehand.configuration.production_connection_name) }
-    after { SourceRecord.remove_connection }
+    use_then_clear_connection_for_class(SourceRecord, Stagehand.configuration.production_connection_name)
 
     it 'returns a connection object that uses the staging database' do
       expect { SourceRecord.create }.to change { subject.production_connection.select_values(SourceRecord.all) }
