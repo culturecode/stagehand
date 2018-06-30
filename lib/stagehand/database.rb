@@ -49,24 +49,16 @@ module Stagehand
       with_connection(Configuration.production_connection_name, &block)
     end
 
-    def with_connection(connection_name)
-      different = current_connection_name != connection_name.to_sym
-
-      if different
-        ConnectionStack.push(connection_name.to_sym)
-        Rails.logger.debug "Connecting to #{current_connection_name}"
-        ActiveRecord::Base.connection_specification_name = current_connection_name
+    def with_connection(connection_name, &block)
+      if current_connection_name != connection_name.to_sym
+        Rails.logger.debug "Connecting to #{connection_name}"
+        output = swap_connection(connection_name, &block)
+        Rails.logger.debug "Restoring connection to #{current_connection_name}"
       else
         Rails.logger.debug "Already connected to #{connection_name}"
+        output = yield connection_name
       end
-
-      yield connection_name
-    ensure
-      if different
-        ConnectionStack.pop
-        Rails.logger.debug "Restoring connection to #{current_connection_name}"
-        ActiveRecord::Base.connection_specification_name = current_connection_name
-      end
+      return output
     end
 
     def transaction
@@ -83,6 +75,19 @@ module Stagehand
     end
 
     private
+
+    def swap_connection(connection_name)
+      cache = ActiveRecord::Base.connection_pool.query_cache_enabled
+      ConnectionStack.push(connection_name.to_sym)
+      ActiveRecord::Base.connection_specification_name = current_connection_name
+      ActiveRecord::Base.connection_pool.enable_query_cache! if cache
+
+      yield connection_name
+    ensure
+      ConnectionStack.pop
+      ActiveRecord::Base.connection_specification_name = current_connection_name
+      ActiveRecord::Base.connection_pool.enable_query_cache! if cache
+    end
 
     def current_connection_name
       ConnectionStack.last
