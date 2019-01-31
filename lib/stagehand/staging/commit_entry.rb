@@ -60,16 +60,10 @@ module Stagehand
         return keys.present? ? where(sql.join(' OR '), *interpolates) : none
       end
 
-      def self.infer_class(table_name, record_id = nil)
+      def self.infer_base_class(table_name)
         classes = ActiveRecord::Base.descendants.select {|klass| klass.table_name == table_name }
         classes.delete(Stagehand::Production::Record)
-        root_class = classes.first || table_name.classify.constantize # Try loading the class if it isn't loaded yet
-
-        if record_id && record = root_class.find_by_id(record_id)
-          klass = record.class
-        end
-
-        return klass || root_class
+        return classes.first || table_name.classify.constantize.base_class # Try loading the class if it isn't loaded yet
       rescue NameError
         raise(IndeterminateRecordClass, "Can't determine class from table name: #{table_name}")
       end
@@ -128,15 +122,24 @@ module Stagehand
       end
 
       def production_record
-        @production_record ||= Stagehand::Production.find(record_id, table_name)
+        @production_record = Stagehand::Production.find(record_id, table_name) unless defined?(@production_record)
+        return @production_record
       end
 
       private
 
       def infer_class
-        inferred_class = self.class.infer_class(table_name, record_id)
-        sti_inferred_class = production_record.read_attribute(inferred_class.inheritance_column) if delete_operation?
-        sti_inferred_class ? sti_inferred_class.constantize : inferred_class
+        klass = self.class.infer_base_class(table_name)
+        klass = infer_sti_class(klass) || infer_production_sti_class(klass) || klass if record_id
+        return klass
+      end
+
+      def infer_sti_class(root_class)
+        root_class.find_by_id(record_id)&.class
+      end
+
+      def infer_production_sti_class(root_class)
+        production_record[root_class.inheritance_column]&.constantize if production_record
       end
 
       def build_deleted_record

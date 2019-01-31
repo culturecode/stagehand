@@ -72,6 +72,12 @@ describe Stagehand::Staging::CommitEntry do
         subject = klass.create(:record_id => 1, :table_name => 'habtm_records', :operation => :insert)
         expect(subject.record_class.name).to eq('Stagehand::DummyClass::HabtmRecord')
       end
+
+      it 'falls back to returning the base class of a delete operation entry whose record has never been synced to production' do
+        record = STISourceRecord.create
+        record.destroy
+        expect(subject.record_class).to eq(record.class.base_class)
+      end
     end
   end
 

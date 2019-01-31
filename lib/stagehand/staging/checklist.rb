@@ -74,7 +74,7 @@ module Stagehand
 
       def self.preload_records(entries)
         entries.group_by(&:table_name).each do |table_name, group_entries|
-          klass = CommitEntry.infer_class(table_name)
+          klass = CommitEntry.infer_base_class(table_name)
           records = klass.where(:id => group_entries.collect(&:record_id))
           records = records.includes(associated_associations(klass))
           records_by_id = records.collect {|r| [r.id, r] }.to_h
