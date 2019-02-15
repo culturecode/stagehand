@@ -483,6 +483,22 @@ If you need to completely remove Stagehand from your app:
 2. Remove the Stagehand includes from your controllers, and the configuration options from your environment files.
 
 
+## Upgrading from 1.0.x to 1.1.x
+
+The behaviour that allowed a model to set its connection in one thread and other threads where that model had set a
+connection would use that same connection has been removed. It was causing unexpected behaviour in non-server use cases
+like the Rails console or Rake tasks. If a second thread was created and changed the connection, the models in the main
+thread would inherit that connection if no connection had specifically been selected for them.
+
+Instead, you must now opt-out of per-thread connection tracking for your model by using the following command:
+
+```ruby
+class MyClass < ActiveRecord::Base
+  self.stagehand_threadsafe_connections = false
+end
+```
+
+
 ## Possible Caveats to double check when development is complete
 - A transaction is opened on the staging and production databases when syncing. This reduces the timing window where the
 sync process could be killed after the production database write, but before the staging database write had completed,
