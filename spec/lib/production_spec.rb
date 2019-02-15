@@ -4,7 +4,7 @@ describe Stagehand::Production do
 
   in_single_connection_mode do
     it 'uses the same connection object as ActiveRecord::Base' do
-      expect(Stagehand::Production::Record.connection).to be(ActiveRecord::Base.connection)
+      expect(Stagehand::Production::Record.connection).to be_equal(ActiveRecord::Base.connection)
     end
   end
 
