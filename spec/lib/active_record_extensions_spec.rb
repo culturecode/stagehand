@@ -48,7 +48,7 @@ describe 'ActiveRecordExtensions' do
       thread2.join
     end
 
-    it 'sets the connection specification name for the class in other threads that have not set it yet' do
+    it 'does not set the connection specification name for the class in other threads that have not set it yet' do
       thread1_ready = false
 
       thread1 = Thread.new do
@@ -58,7 +58,7 @@ describe 'ActiveRecordExtensions' do
 
       thread2 = Thread.new do
         sleep 0.1 until thread1_ready
-        expect(ConnectionTestMock.connection_specification_name).to eq('thread_1_connection')
+        expect(ConnectionTestMock.connection_specification_name).not_to eq('thread_1_connection')
       end
 
       thread1.join

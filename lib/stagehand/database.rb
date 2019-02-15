@@ -1,4 +1,5 @@
 require 'thread'
+require 'stagehand/active_record_extensions'
 
 module Stagehand
   module Database
@@ -105,6 +106,7 @@ module Stagehand
 
     class Probe < ActiveRecord::Base
       self.abstract_class = true
+      self.stagehand_threadsafe_connections = false # We don't want to track connection per-thread for Probes
 
       # We fake the class name so we can create a connection pool with the desired connection name instead of the name of the class
       def self.init_connection(connection_name)

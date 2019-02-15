@@ -40,26 +40,31 @@ ActiveRecord::Base.class_eval do
 
   # MULTITHREADED CONNECTION HANDLING
 
+  class_attribute :stagehand_threadsafe_connections
+  self.stagehand_threadsafe_connections = true
+
   # The original implementation of remove_connection uses @connection_specification_name, which is shared across Threads.
   # We need to pass in the connection that model in the current thread is using if we call remove_connection.
   def self.remove_connection(name = StagehandConnectionMap.get(self))
+    return super unless stagehand_threadsafe_connections
+
     StagehandConnectionMap.set(self, nil)
     super
   end
 
   def self.connection_specification_name=(connection_name)
+    return super unless stagehand_threadsafe_connections
+
     # ActiveRecord sets the connection pool to 'primary' by default, so we want to reuse that connection for staging
     # in order to avoid using a different connection pool after our first swap back to the staging connection.
     connection_name == 'primary' if connection_name == Stagehand::Configuration.staging_connection_name
 
     StagehandConnectionMap.set(self, connection_name)
-
-    # We want to keep track of the @connection_specification_name as a fallback shared across threads in case we
-    # haven't set the connection on more than one thread.
-    super
   end
 
   def self.connection_specification_name
+    return super unless stagehand_threadsafe_connections
+
     StagehandConnectionMap.get(self) || super
   end
 
