@@ -40,7 +40,7 @@ module Stagehand
         stagehand = ':commit_entries' if table_name == Staging::CommitEntry.table_name
 
         table_stream = StringIO.new
-        table_stream = super(table_name, table_stream)
+        super(table_name, table_stream)
         table_stream.rewind
         table_schema = table_stream.read.gsub(/create_table (.+) do/, 'create_table \1' + ", stagehand: #{stagehand} do")
         stream.puts table_schema
