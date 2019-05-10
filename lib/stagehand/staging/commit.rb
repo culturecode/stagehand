@@ -21,7 +21,7 @@ module Stagehand
         begin
           block.call(start_operation)
         rescue => e
-          end_commit(start_operation, except) unless e.is_a?(CommitError)
+          end_commit(start_operation, except) unless e.is_a?(CommitError) || e.is_a?(ActiveRecord::Rollback)
           raise(e)
         else
           return end_commit(start_operation, except)
@@ -71,7 +71,14 @@ module Stagehand
         if except.present? && Array(except).collect(&:to_s).exclude?(start_operation.table_name)
           scope = scope.where('table_name NOT IN (?) OR table_name IS NULL', except)
         end
-        scope.update_all(:commit_id => start_operation.id)
+
+        updated_count = scope.update_all(:commit_id => start_operation.id)
+
+        if updated_count < 2 # Unless we found at least 2 entries (start and end), abort the commit
+          CommitEntry.logger.warn "Commit entries not found for Commit #{start_operation.id}. Was the Commit rolled back in a transaction?"
+          end_operation.delete
+          return
+        end
 
         return new(start_operation.id)
       end
@@ -95,8 +102,8 @@ module Stagehand
         return if @start_id && @end_id
 
         missing = []
-        missing << CommitEntry::START_OPERATION unless @start_id
-        missing << CommitEntry::END_OPERATION unless @end_id
+        missing << CommitEntry::START_OPERATION unless @start_id == start_id
+        missing << CommitEntry::END_OPERATION if @start_id == start_id
 
         raise CommitNotFound, "Couldn't find #{missing.join(', ')} entry for Commit #{start_id}"
       end

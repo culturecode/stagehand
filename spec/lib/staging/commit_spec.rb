@@ -149,6 +149,23 @@ describe Stagehand::Staging::Commit do
       end
     end
 
+    context 'when the commit is part of a transaction' do
+      it 'does not leave an incomplete commit if the transaction is rolled back without an exception' do
+        ActiveRecord::Base.transaction { klass.capture { ActiveRecord::Base.connection.exec_rollback_db_transaction } }
+        expect { klass.all }.not_to raise_exception
+      end
+
+      it 'does not leave an incomplete commit if the transaction is rolled back with an ActiveRecord::Rollback exception' do
+        ActiveRecord::Base.transaction { klass.capture { raise ActiveRecord::Rollback } }
+        expect { klass.all }.not_to raise_exception
+      end
+
+      it 'does not leave an incomplete commit if the transaction is rolled back with an exception' do
+        ActiveRecord::Base.transaction { klass.capture { raise } } rescue nil
+        expect { klass.all }.not_to raise_exception
+      end
+    end
+
     it 'sets the start timestamp' do
       expect(klass.capture { }.entries.first).to have_attributes(:created_at => be_present)
     end
@@ -196,6 +213,20 @@ describe Stagehand::Staging::Commit do
 
     it 'does not return commits that do not contain the given commit_entry' do
       expect(klass.containing(source_record)).not_to include(other_commit)
+    end
+  end
+
+  describe '::new' do
+    it 'raises CommitNotFound that tells us the start operation is not found if the start operation entry is not present' do
+      commit = klass.capture {}
+      commit.entries.start_operations.delete_all
+      expect { klass.new(commit.id) }.to raise_exception(Stagehand::CommitNotFound, /commit_start entry/)
+    end
+
+    it 'raises CommitNotFound that tells us the end operation is not found if the end operation entry is not present' do
+      commit = klass.capture {}
+      commit.entries.end_operations.delete_all
+      expect { klass.new(commit.id) }.to raise_exception(Stagehand::CommitNotFound, /commit_end entry/)
     end
   end
 
