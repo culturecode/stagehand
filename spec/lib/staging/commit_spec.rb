@@ -338,5 +338,31 @@ describe Stagehand::Staging::Commit do
 
       expect(commit).not_to include(source_record)
     end
+
+    it "does not deadlock if Thread 2 deletes entries it created between the start and end entries of Thread 1's commit, after that commit has attempted to finalize" do
+      @t1_started_commit = false
+      @t2_written_entries = false
+      @t1_ended_commit = false
+
+      t1 = Thread.new do
+        klass.capture do
+          @t1_started_commit = true
+          sleep 0.1 until @t2_written_entries
+        end
+        @t1_ended_commit = true
+      end
+
+      t2 = Thread.new do
+        ActiveRecord::Base.transaction do
+          record = SourceRecord.create
+          entries = Stagehand::Staging::Checklist.new(record).affected_entries
+          @t2_written_entries = true
+          sleep 0.1 until @t1_ended_commit
+          Stagehand::Staging::CommitEntry.delete(entries)
+        end
+      end
+
+      expect(t1.join(10) && t2.join(10)).to be_truthy
+    end
   end
 end

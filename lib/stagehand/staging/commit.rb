@@ -72,7 +72,10 @@ module Stagehand
           scope = scope.where('table_name NOT IN (?) OR table_name IS NULL', except)
         end
 
-        updated_count = scope.update_all(:commit_id => start_operation.id)
+        # We perform a read to determine the ids that are meant to be part of our Commit in order to avoid acquiring
+        # write locks on commit entries between the start and end entry that don't belong to our session. Otherwise, we
+        # risk a deadlock if another process manipulates entries between our start and end while we have a range lock.
+        updated_count = CommitEntry.where(id: scope.pluck(:id)).update_all(:commit_id => start_operation.id)
 
         if updated_count < 2 # Unless we found at least 2 entries (start and end), abort the commit
           CommitEntry.logger.warn "Commit entries not found for Commit #{start_operation.id}. Was the Commit rolled back in a transaction?"
