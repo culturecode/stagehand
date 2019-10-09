@@ -28,12 +28,14 @@ ActiveRecord::Schema.define(version: 0) do
     t.string "name"
     t.integer "counter"
     t.string "type"
+    t.bigint "target_assignment_id"
     t.bigint "user_id"
     t.string "attachable_type"
     t.bigint "attachable_id"
     t.datetime "created_at"
     t.datetime "updated_at"
     t.index ["attachable_type", "attachable_id"], name: "index_source_records_on_attachable_type_and_attachable_id"
+    t.index ["target_assignment_id"], name: "index_source_records_on_target_assignment_id"
     t.index ["user_id"], name: "index_source_records_on_user_id"
   end
 

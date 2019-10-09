@@ -17,6 +17,7 @@ RSpec.configure do |config|
             t.string :name
             t.integer :counter
             t.string :type
+            t.references :target_assignment
             t.references :user
             t.references :attachable, :polymorphic => true
             t.timestamps :null => true
@@ -61,6 +62,10 @@ end
 class SourceRecord < ActiveRecord::Base
   belongs_to :user
   belongs_to :attachable, :polymorphic => true
+
+  # Scoped instance-dependent association to test fix for https://github.com/culturecode/stagehand/issues/52
+  belongs_to :target_assignment, ->(record) { where source_record: record }
+
   has_many :target_assignments
   has_many :targets, through: :target_assignments
 end

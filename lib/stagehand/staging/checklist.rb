@@ -89,7 +89,18 @@ module Stagehand
       private
 
       def self.associated_associations(klass)
-        cache("#{klass.name}_associated_associations") { klass.reflect_on_all_associations(:belongs_to).collect(&:name) }
+        cache("#{klass.name}_associated_associations") do
+          reflections = klass.reflect_on_all_associations(:belongs_to)
+
+          reflections.select! do |reflection|
+            reflection.check_preloadable!
+            next true
+          rescue ArgumentError
+            next false
+          end
+
+          reflections.collect(&:name)
+        end
       end
 
       def self.stagehand_class?(klass)
