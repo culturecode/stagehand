@@ -93,10 +93,12 @@ module Stagehand
           reflections = klass.reflect_on_all_associations(:belongs_to)
 
           reflections.select! do |reflection|
-            reflection.check_preloadable!
-            next true
-          rescue ArgumentError
-            next false
+            begin
+              reflection.check_preloadable!
+              next true
+            rescue ArgumentError
+              next false
+            end
           end
 
           reflections.collect(&:name)
