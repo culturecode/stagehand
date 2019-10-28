@@ -312,11 +312,13 @@ interconnected records are synced.
 
 ```ruby
 # Syncing can also be handled in ruby
-Stagehand::Staging::Synchronizer.sync_now do
+Stagehand::Staging::Synchronizer.sync_now(subject_record) do
   # Some automated task that does not require user confirmation
   # but that requires a block of changes to be synced together.
 end
 ```
+
+As with `Stagehand::Staging::Commit.capture`, it is recommended though not required that a commit subject be specified when using `sync_now`, ensuring the changes will be synced when that subject record is synced even if the changes do not actually touch the subject record itself.
 
 
 ## ActiveRecord::Base Extensions
