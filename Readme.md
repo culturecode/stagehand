@@ -167,10 +167,10 @@ end
 
 You can also check to see if a Commit is being captured. This can be useful if there are certain operations you want to do differently while in a commit, e.g. counter cache upkeep
 ```ruby
-Stagehand::Commit.capturing? #=> false
+Stagehand::Staging::Commit.capturing? #=> false
 
 Stagehand::Staging::Commit.capture do
-  delay_counter_updates if Stagehand::Commit.capturing? #=> true
+  delay_counter_updates if Stagehand::Staging::Commit.capturing? #=> true
 end
 ```
 
