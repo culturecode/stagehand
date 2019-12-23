@@ -78,7 +78,12 @@ module Stagehand
 
     def staging_record_attributes(staging_record, table_name = nil)
       table_name, id = Stagehand::Key.generate(staging_record, :table_name => table_name)
-      Stagehand::Staging::CommitEntry.connection.select_one("SELECT * FROM #{table_name} WHERE id = #{id}")
+      hash = Stagehand::Staging::CommitEntry.connection.select_one("SELECT * FROM #{table_name} WHERE id = #{id}")
+      hash&.except(*ignored_columns(table_name))
+    end
+
+    def ignored_columns(table_name)
+      Array.wrap(Configuration.ignored_columns[table_name]).map(&:to_s)
     end
 
     # CLASSES

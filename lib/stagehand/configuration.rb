@@ -9,7 +9,8 @@ module Stagehand
   module Configuration
     extend self
 
-    mattr_accessor :checklist_confirmation_filter, :checklist_association_filter, :checklist_relation_filter
+    mattr_accessor :checklist_confirmation_filter, :checklist_association_filter, :checklist_relation_filter, :ignored_columns
+    self.ignored_columns = HashWithIndifferentAccess.new
 
     def staging_connection_name
       Rails.env.to_sym
@@ -32,6 +33,12 @@ module Stagehand
     # Use case: Front-end devs may not have a second database set up as they are only concerned with the front end
     def single_connection?
       staging_connection_name == production_connection_name
+    end
+
+    # Columns not to copy to the production database
+    # e.g. table_name => [column, column, ...]
+    def self.ignored_columns=(hash)
+      super HashWithIndifferentAccess.new(hash)
     end
   end
 end

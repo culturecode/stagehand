@@ -321,6 +321,21 @@ end
 As with `Stagehand::Staging::Commit.capture`, it is recommended though not required that a commit subject be specified when using `sync_now`, ensuring the changes will be synced when that subject record is synced even if the changes do not actually touch the subject record itself.
 
 
+### Ignoring Columns
+
+It is possible to ignore specific columns when syncing data from the staging to production database. This may be desirable in order to avoid writing to readonly columns such as "virtual" or "generated" columns. Ignored columns can be specified in the configuration as follows:
+
+```ruby
+Stagehand::Configuration.ignored_columns['my_table'] = 'some_column'
+# or
+Stagehand::Configuration.ignored_columns = {
+  my_table: 'my_column',
+  my_other_table: ['my_other_column', 'yet_another_column']
+}
+```
+
+These columns will be ignored when saving staging data to production through normal syncing behaviour.
+
 ## ActiveRecord::Base Extensions
 
 ### Sync Callbacks

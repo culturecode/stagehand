@@ -96,6 +96,12 @@ describe Stagehand::Production do
         source_record.becomes!(STISourceRecord)
         expect(subject.save(source_record)).to be_a(Stagehand::Production::Record)
       end
+
+      it 'does not copy ignored columns' do
+        allow(Stagehand::Configuration).to receive(:ignored_columns).and_return(source_record.class.table_name => 'name')
+        source_record.update_attributes(:name => 'fail')
+        expect(subject.save(source_record)).not_to have_attributes(:name => 'fail')
+      end
     end
 
     describe '#write' do
@@ -109,6 +115,11 @@ describe Stagehand::Production do
 
       it 'retains the id of the source_record when none is given' do
         expect(subject.write(source_record, :name => 'changed')).to have_attributes(:id => source_record.id)
+      end
+
+      it 'is unaffected by ignored columns settings' do
+        allow(Stagehand::Configuration).to receive(:ignored_columns).and_return(source_record.class.table_name => 'name')
+        expect(subject.write(source_record, :name => 'changed')).to have_attributes(:name => 'changed')
       end
     end
   end
