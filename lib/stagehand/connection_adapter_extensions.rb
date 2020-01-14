@@ -1,15 +1,22 @@
 module Stagehand
   module Connection
     def self.with_production_writes(model, &block)
-      model.connection.allow_writes(&block)
+      state = allow_unsynced_production_writes?
+      allow_unsynced_production_writes!(true)
+      return block.call
+    ensure
+      allow_unsynced_production_writes!(state)
+    end
+
+    def self.allow_unsynced_production_writes!(state = true)
+      Thread.current[:stagehand_allow_unsynced_production_writes] = state
+    end
+
+    def self.allow_unsynced_production_writes?
+      !!Thread.current[:stagehand_allow_unsynced_production_writes]
     end
 
     module AdapterExtensions
-      def self.prepended(base)
-        base.set_callback :checkout, :after, :update_readonly_state
-        base.set_callback :checkin, :before, :clear_readonly_state
-      end
-
       def exec_insert(*)
         handle_readonly_writes!
         super
@@ -25,34 +32,14 @@ module Stagehand
         super
       end
 
-      def allow_writes(&block)
-        state = readonly?
-        readonly!(false)
-        return block.call
-      ensure
-        readonly!(state)
-      end
-
-      def readonly!(state = true)
-        @readonly = state
-      end
-
-      def readonly?
-        !!@readonly
-      end
-
       private
 
-      def update_readonly_state
-        readonly! unless Configuration.single_connection? || @config[:database] == Database.staging_database_name
-      end
-
-      def clear_readonly_state
-        readonly!(false)
+      def write_access?
+        Configuration.single_connection? || @config[:database] == Database.staging_database_name || Connection.allow_unsynced_production_writes?
       end
 
       def handle_readonly_writes!
-        if !readonly?
+        if write_access?
           return
         elsif Configuration.allow_unsynced_production_writes?
           Rails.logger.warn "Writing directly to #{@config[:database]} database using readonly connection"
