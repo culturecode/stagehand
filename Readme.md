@@ -388,9 +388,10 @@ config.x.stagehand.ghost_mode = true
 
 ## Database Migrations
 
-Both staging and production databases need to be migrated to allow syncing to occur. The default behaviour of db:migrate
-has been enhanced to migrate both staging and production databases. If the two databases have different schema versions,
-a `Stagehand::SchemaMismatch` exception will be raised when trying to sync.
+Both staging and production databases need to be migrated to allow syncing to occur. If the two databases have different
+schema versions, a `Stagehand::SchemaMismatch` exception will be raised when trying to sync. To simplify management, the
+default behaviour of db:migrate, db:rollback, and db:test:load_structure have been enhanced to migrate both staging and
+production databases.
 
 ### create_table
 
