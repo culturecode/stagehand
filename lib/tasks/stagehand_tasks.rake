@@ -20,7 +20,7 @@ namespace :stagehand do
   def rake_both_databases(task, stagehand_task = task.gsub(':','_'))
     task(stagehand_task => :environment) do
       Stagehand::Database.each do |connection_name|
-        Stagehand::Connection.with_production_writes(ActiveRecord::Base) do
+        Stagehand::Connection.with_production_writes do
           puts "#{connection_name}"
           Rake::Task[task].reenable
           Rake::Task[task].invoke

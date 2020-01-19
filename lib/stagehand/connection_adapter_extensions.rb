@@ -1,6 +1,6 @@
 module Stagehand
   module Connection
-    def self.with_production_writes(model, &block)
+    def self.with_production_writes(&block)
       state = allow_unsynced_production_writes?
       allow_unsynced_production_writes!(true)
       return block.call

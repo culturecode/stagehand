@@ -24,7 +24,7 @@ module Stagehand
     end
 
     def write(staging_record, attributes, table_name = nil)
-      Connection.with_production_writes(Record) do
+      Connection.with_production_writes do
         is_new = matching(staging_record, table_name).update_all(attributes).zero?
 
         # Ensure we always return a record, even when updating instead of creating
@@ -37,7 +37,7 @@ module Stagehand
     end
 
     def delete(staging_record, table_name = nil)
-      Connection.with_production_writes(Record) do
+      Connection.with_production_writes do
         matching(staging_record, table_name).delete_all
       end
     end
