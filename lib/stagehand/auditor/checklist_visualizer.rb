@@ -24,8 +24,9 @@ module Stagehand
 
         # Create Subgraph nodes for commits with connections to other subjects
         entries = edges.flatten.uniq unless show_all_commits
-        entries.group_by {|entry| commit_subject(entry) }.each do |subject, entries|
-          subgraph = create_subgraph(subject, @graph)
+        entries.group_by {|entry| commit_subject(entry) || entry.commit_id }.each do |group, entries|
+          subject = commit_subject(entries.first)
+          subgraph = create_subgraph(subject, @graph, id: group)
           entries.each do |entry|
             nodes[entry] = create_node(entry, subgraph)
           end
@@ -49,8 +50,8 @@ module Stagehand
 
       private
 
-      def create_subgraph(subject, graph)
-        graph.add_graph("cluster_#{subject}", :label => subject, :style => :filled, :color => :lightgrey)
+      def create_subgraph(subject, graph, id: subject)
+        graph.add_graph("cluster_#{id}", :label => subject, :style => :filled, :color => :lightgrey)
       end
 
       def create_edge(node_a, node_b, options = {})
@@ -70,7 +71,7 @@ module Stagehand
       end
 
       def same_subject?(entry_a, entry_b)
-        commit_subject(entry_a) == commit_subject(entry_b)
+        commit_subject(entry_a) == commit_subject(entry_b) && commit_subject(entry_a)
       end
 
       def commit_subject(entry)
@@ -82,7 +83,7 @@ module Stagehand
       end
 
       def pretty_key(entry)
-        "#{entry.table_name.classify} #{entry.record_id}"
+        "#{entry.table_name.classify} #{entry.record_id}" if entry.record_id && entry.table_name
       end
     end
   end
