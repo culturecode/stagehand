@@ -6,7 +6,7 @@ module Stagehand
       def initialize(checklist, show_all_commits: false)
         entries = checklist.affected_entries.select(&:commit_id)
 
-        @graph = GraphViz.new( :G, :type => :graph );
+        @graph = GraphViz.new( :G, :type => :graph )
         @commits = Hash.new {|hash, commit_id| hash[commit_id] = Stagehand::Staging::CommitEntry.find(commit_id) }
         nodes = Hash.new
         edges = []
@@ -31,9 +31,14 @@ module Stagehand
           end
         end
 
+        # Create deduplicate edge data in case multiple entries for the same record were part of a single commit
+        edges = edges.map do |entry_a, entry_b|
+          [[nodes[entry_a], nodes[entry_b]], label: edge_label(entry_a, entry_b)]
+        end
+
         # Create edges
-        edges.each do |entry_a, entry_b|
-          create_edge(nodes[entry_a], nodes[entry_b], :label => edge_label(entry_a, entry_b))
+        edges.uniq.each do |(node_a, node_b), options|
+          create_edge(node_a, node_b, options)
         end
       end
 
