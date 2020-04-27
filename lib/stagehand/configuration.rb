@@ -9,7 +9,8 @@ module Stagehand
   module Configuration
     extend self
 
-    mattr_accessor :checklist_confirmation_filter, :checklist_association_filter, :checklist_relation_filter, :ignored_columns
+    mattr_accessor :checklist_confirmation_filter, :checklist_association_filter, :checklist_relation_filter, :staging_model_tables, :ignored_columns
+    self.staging_model_tables = Set.new
     self.ignored_columns = HashWithIndifferentAccess.new
 
     def staging_connection_name

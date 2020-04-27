@@ -17,6 +17,13 @@ module Stagehand
     end
 
     module AdapterExtensions
+      def quote_table_name(table_name)
+        return super unless Database.connected_to_production?
+        return super unless Configuration.staging_model_tables.include?(table_name)
+
+        super "#{Stagehand::Database.staging_database_name}.#{table_name}"
+      end
+
       def exec_insert(*)
         handle_readonly_writes!
         super

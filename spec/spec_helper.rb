@@ -23,5 +23,7 @@ RSpec.configure do |config|
   config.append_after(:each) do
     DatabaseCleaner.strategy = :deletion
     DatabaseCleaner.clean
+
+    Stagehand::Configuration.staging_model_tables = Set.new
   end
 end
