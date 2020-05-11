@@ -12,6 +12,22 @@ describe Stagehand::Staging::Model do
       expect { klass.include(subject) }.to change { klass.connection.current_database }.to(staging['database'])
     end
 
+    it 'prefixes the table name with the database name when the current connection is production' do
+      klass.include(subject)
+
+      Stagehand::Database.with_production_connection do
+        expect(klass.all.to_sql).to include("FROM `#{klass.connection.current_database}`.`#{klass.table_name}`")
+      end
+    end
+
+    it 'does not prefix the table name with the database name when the current connection is staging' do
+      klass.include(subject)
+
+      Stagehand::Database.with_staging_connection do
+        expect(klass.all.to_sql).not_to include("FROM `#{klass.connection.current_database}`.`#{klass.table_name}`")
+      end
+    end
+
     it 'does not get written if part of a failed transaction' do
       klass.include(subject)
       Stagehand::Database.with_staging_connection do
