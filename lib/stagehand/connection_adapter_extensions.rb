@@ -19,6 +19,7 @@ module Stagehand
     module AdapterExtensions
       def quote_table_name(table_name)
         return super unless Database.connected_to_production?
+        return super if Connection.allow_unsynced_production_writes?
         return super unless Configuration.staging_model_tables.include?(table_name)
 
         super "#{Stagehand::Database.staging_database_name}.#{table_name}"

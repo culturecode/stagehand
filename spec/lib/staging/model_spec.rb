@@ -28,6 +28,16 @@ describe Stagehand::Staging::Model do
       end
     end
 
+    it 'does not prefix the table name with the database name when allow_unsynced_production_writes is true' do
+      klass.include(subject)
+
+      Stagehand::Database.with_production_connection do
+        Stagehand::Connection.with_production_writes do
+          expect(klass.all.to_sql).not_to include("FROM `#{klass.connection.current_database}`.`#{klass.table_name}`")
+        end
+      end
+    end
+
     it 'does not get written if part of a failed transaction' do
       klass.include(subject)
       Stagehand::Database.with_staging_connection do
