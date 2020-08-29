@@ -269,6 +269,12 @@ describe Stagehand::Staging::Synchronizer do
         .to change { Stagehand::Production.status(source_record) }.from(:new).to(:not_modified)
     end
 
+    it 'syncs attributes modified from within the block' do
+      counter = source_record.counter || 0
+      expect { subject.sync_now { source_record.increment!(:counter) } }
+        .to change { Stagehand::Production.find(source_record) }.to have_attributes(counter: counter + 1)
+    end
+
     it 'does not sync records modified from within the block if they are part of an existing commit' do
       Stagehand::Staging::Commit.capture { source_record.increment!(:counter) }
       expect { subject.sync_now { source_record.increment!(:counter) } }.not_to change { Stagehand::Production.status(source_record) }
@@ -284,7 +290,7 @@ describe Stagehand::Staging::Synchronizer do
       expect { subject.sync_now { source_record.increment!(:counter) } }.not_to change { Stagehand::Production.status(other_record) }
     end
 
-    context 'when multiple connections are modifying a record during the block' do
+    context 'when multiple connections are accessing a record during the block' do
       without_transactional_fixtures
 
       let(:thread_1) do
@@ -335,7 +341,16 @@ describe Stagehand::Staging::Synchronizer do
         thread_1.join(1) || fail('Timed out waiting for Thread 1')
         thread_2.join(1) || fail('Timed out waiting for Thread 2')
 
-        expect(Stagehand::Production.find(source_record)).not_to have_attributes(:name => 'Bob')
+        # The expectation is omitted because success is simply the absence of a timeout failure
+      end
+
+      it 'syncs changes to attributes made from outside the main thread' do
+        @thread_1_wake_before_write = true
+        @thread_1_wake_after_write = true
+
+        thread_1.join(1) || fail('Timed out waiting for Thread 1')
+
+        expect(Stagehand::Production.find(source_record)).to have_attributes(:counter => 1)
       end
 
       it 'does not sync outside writes made after writes in the block' do

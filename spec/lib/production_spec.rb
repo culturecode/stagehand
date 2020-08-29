@@ -73,6 +73,12 @@ describe Stagehand::Production do
         expect(subject.save(source_record).attributes).to eq(source_record.attributes)
       end
 
+      it 'makes an exact copy of JSON attributes' do
+        source_record.update_attributes(:json => { should_not: "be stored as a JSON string" })
+        source_record.reload # reload ensures timestamps are only as accurate as the database can store
+        expect(subject.save(source_record).attributes).to eq(source_record.attributes)
+      end
+
       it 'writes the new record to the same table in the production database' do
         expect(subject.save(source_record).class.table_name).to eq(source_record.class.table_name)
       end

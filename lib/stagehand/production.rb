@@ -67,29 +67,40 @@ module Stagehand
 
     private
 
-    def prepare_to_modify(table_name)
-      raise "Can't prepare to modify production records without knowning the table_name" unless table_name.present?
-      Record.table_name = table_name
-    end
-
     def production_record_attributes(staging_record, table_name = nil)
       Record.connection.select_one(matching(staging_record, table_name))
     end
 
     def staging_record_attributes(staging_record, table_name = nil)
       table_name, id = Stagehand::Key.generate(staging_record, :table_name => table_name)
-      hash = Stagehand::Staging::CommitEntry.connection.select_one("SELECT * FROM #{table_name} WHERE id = #{id}")
-      hash&.except(*ignored_columns(table_name))
+      prepare_to_read(table_name)
+      staging_record = StagingRecordReader.find_by_id(id)
+      return if staging_record.blank?
+      staging_record.attributes.except(*ignored_columns(table_name))
     end
 
     def ignored_columns(table_name)
       Array.wrap(Configuration.ignored_columns[table_name]).map(&:to_s)
     end
 
+    def prepare_to_read(table_name)
+      raise "Can't prepare to read staging records without knowning the table_name" unless table_name.present?
+      StagingRecordReader.table_name = table_name
+    end
+
+    def prepare_to_modify(table_name)
+      raise "Can't prepare to modify production records without knowning the table_name" unless table_name.present?
+      Record.table_name = table_name
+    end
+
     # CLASSES
 
     class Record < Stagehand::Database::ProductionProbe
       self.record_timestamps = false
+      self.inheritance_column = nil
+    end
+
+    class StagingRecordReader < Stagehand::Database::StagingProbe
       self.inheritance_column = nil
     end
   end

@@ -17,6 +17,7 @@ RSpec.configure do |config|
             t.string :name
             t.integer :counter
             t.string :type
+            t.json :json # JSON column to test copying serialized data
             t.references :target_assignment
             t.references :user
             t.references :attachable, :polymorphic => true

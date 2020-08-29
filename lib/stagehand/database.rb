@@ -128,6 +128,14 @@ module Stagehand
         super(Configuration.staging_connection_name)
       end
 
+      def self.connection
+        if Stagehand::Database.connected_to_staging?
+          ActiveRecord::Base.connection # Reuse existing connection so we stay within the current transaction
+        else
+          super
+        end
+      end
+
       init_connection
     end
 

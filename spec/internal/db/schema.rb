@@ -28,6 +28,7 @@ ActiveRecord::Schema.define(version: 0) do
     t.string "name"
     t.integer "counter"
     t.string "type"
+    t.json "json"
     t.bigint "target_assignment_id"
     t.bigint "user_id"
     t.string "attachable_type"
