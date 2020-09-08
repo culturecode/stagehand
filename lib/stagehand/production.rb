@@ -85,12 +85,20 @@ module Stagehand
 
     def prepare_to_read(table_name)
       raise "Can't prepare to read staging records without knowning the table_name" unless table_name.present?
+
+      return if StagingRecordReader.table_name == table_name
+
       StagingRecordReader.table_name = table_name
+      StagingRecordReader.reset_column_information
     end
 
     def prepare_to_modify(table_name)
       raise "Can't prepare to modify production records without knowning the table_name" unless table_name.present?
+
+      return if Record.table_name == table_name
+
       Record.table_name = table_name
+      Record.reset_column_information
     end
 
     # CLASSES
