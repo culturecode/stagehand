@@ -24,16 +24,17 @@ module Stagehand
     end
 
     def write(staging_record, attributes, table_name = nil)
-      Connection.with_production_writes do
-        is_new = matching(staging_record, table_name).update_all(attributes).zero?
+      table_name, id = Stagehand::Key.generate(staging_record, :table_name => table_name)
 
-        # Ensure we always return a record, even when updating instead of creating
-        Record.new.tap do |record|
-          record.assign_attributes(attributes)
-          record.id = Stagehand::Key.generate(staging_record, :table_name => table_name).last unless record.id
-          record.save if is_new
+      production_record = Connection.with_production_writes do
+        if update(matching(staging_record, table_name), attributes).nonzero?
+          Record.find(id)
+        else
+          Record.find(insert(table_name, attributes))
         end
       end
+
+      return production_record
     end
 
     def delete(staging_record, table_name = nil)
@@ -73,23 +74,41 @@ module Stagehand
 
     def staging_record_attributes(staging_record, table_name = nil)
       table_name, id = Stagehand::Key.generate(staging_record, :table_name => table_name)
-      prepare_to_read(table_name)
-      staging_record = StagingRecordReader.find_by_id(id)
-      return if staging_record.blank?
-      staging_record.attributes.except(*ignored_columns(table_name))
+      hash = select(table_name, id)
+      hash.except(*ignored_columns(table_name)) if hash
     end
 
     def ignored_columns(table_name)
       Array.wrap(Configuration.ignored_columns[table_name]).map(&:to_s)
     end
 
-    def prepare_to_read(table_name)
-      raise "Can't prepare to read staging records without knowning the table_name" unless table_name.present?
+    def select(table_name, id)
+      table = Arel::Table.new(table_name)
+      statement = Arel::SelectManager.new
+      statement.from table
+      statement.project Arel.star
+      statement.where table[:id].eq(id)
 
-      return if StagingRecordReader.table_name == table_name
+      Stagehand::Database::StagingProbe.connection.select_one(statement)
+    end
 
-      StagingRecordReader.table_name = table_name
-      StagingRecordReader.reset_column_information
+    def update(scope, attributes)
+      table = Arel::Table.new(scope.table_name)
+      statement = Arel::UpdateManager.new
+      statement.table table
+      statement.set attributes.map {|attribute, value| [table[attribute], value] }
+      statement.wheres = scope.arel.constraints
+
+      Record.connection.update(statement)
+    end
+
+    def insert(table_name, attributes)
+      table = Arel::Table.new(table_name)
+      statement = Arel::InsertManager.new
+      statement.into table
+      statement.insert attributes.map {|attribute, value| [table[attribute], value] }
+
+      Record.connection.insert(statement)
     end
 
     def prepare_to_modify(table_name)
@@ -105,10 +124,6 @@ module Stagehand
 
     class Record < Stagehand::Database::ProductionProbe
       self.record_timestamps = false
-      self.inheritance_column = nil
-    end
-
-    class StagingRecordReader < Stagehand::Database::StagingProbe
       self.inheritance_column = nil
     end
   end
