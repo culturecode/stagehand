@@ -27,7 +27,9 @@ module Stagehand
       table_name, id = Stagehand::Key.generate(staging_record, :table_name => table_name)
 
       production_record = Connection.with_production_writes do
-        if update(matching(staging_record, table_name), attributes).nonzero?
+        prepare_to_modify(table_name)
+
+        if update(table_name, id, attributes).nonzero?
           Record.find(id)
         else
           Record.find(insert(table_name, attributes))
@@ -92,12 +94,12 @@ module Stagehand
       Stagehand::Database::StagingProbe.connection.select_one(statement)
     end
 
-    def update(scope, attributes)
-      table = Arel::Table.new(scope.table_name)
+    def update(table_name, id, attributes)
+      table = Arel::Table.new(table_name)
       statement = Arel::UpdateManager.new
       statement.table table
       statement.set attributes.map {|attribute, value| [table[attribute], value] }
-      statement.wheres = scope.arel.constraints
+      statement.where table[:id].eq(id)
 
       Record.connection.update(statement)
     end

@@ -119,6 +119,12 @@ describe Stagehand::Production do
         expect(subject.write(source_record, :name => 'changed')).to have_attributes(:name => 'changed')
       end
 
+      it 'writes updated data to the production record when the record is already present in the production database' do
+        skip 'we are trying to replicate a bug with prepared statements but we are unable to do so'
+        subject.write(source_record, :name => 'name')
+        expect(subject.write(source_record, :name => 'new_name')).to have_attributes(:name => 'new_name')
+      end
+
       it 'retains the id of the source_record when none is given' do
         expect(subject.write(source_record, :name => 'changed')).to have_attributes(:id => source_record.id)
       end
