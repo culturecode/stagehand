@@ -312,9 +312,11 @@ describe Stagehand::Staging::Checklist do
       record_1 = SourceRecord.create
       record_2 = SourceRecord.create
 
-      Stagehand::Staging::Commit.capture(record_1) { record_2.increment!(:counter) }
-      Stagehand::Staging::Commit.capture(record_2) do |start_operation|
-        expect(klass.related_entries(record_1)).not_to include(start_operation)
+      Stagehand::Staging::Commit.capture(record_1) { record_1.increment!(:counter) }
+      Stagehand::Staging::Commit.capture(record_1) do |start_operation|
+        record_2.increment!(:counter)
+        expect(klass.related_entries(record_1))
+          .not_to include(have_attributes :table_name => record_2.class.table_name, :record_id => record_2.id)
       end
     end
   end

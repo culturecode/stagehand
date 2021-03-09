@@ -3,6 +3,12 @@ describe Stagehand::Staging::CommitEntry do
   let(:source_record) { SourceRecord.create }
   subject { source_record; Stagehand::Staging::CommitEntry.last }
 
+  describe '::create' do
+    it 'sets the capturing flag to false' do
+      expect(klass.insert_operations.create.reload).to have_attributes(:capturing => false)
+    end
+  end
+
   describe '::matching' do
     it 'returns a list of entries that match the given source_record' do
       expect(klass.matching(source_record)).to contain_exactly(subject)

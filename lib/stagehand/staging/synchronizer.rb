@@ -5,7 +5,6 @@ module Stagehand
       mattr_accessor :schemas_match
 
       BATCH_SIZE = 1000
-      SESSION_BATCH_SIZE = 30
       ENTRY_SYNC_ORDER = [:delete, :update, :insert].freeze
       ENTRY_SYNC_ORDER_SQL = Arel.sql(ActiveRecord::Base.send(:sanitize_sql_for_order, [Arel.sql('FIELD(operation, ?), id DESC'), ENTRY_SYNC_ORDER])).freeze
 
@@ -36,15 +35,13 @@ module Stagehand
       def sync(limit = nil)
         synced_count = 0
         deleted_count = 0
-        in_progress = nil
 
         Rails.logger.info "Syncing"
 
         iterate_autosyncable_entries do |entry|
           sync_entry(entry, :callbacks => :sync)
           synced_count += 1
-          in_progress ||= CommitEntry.in_progress.pluck(:id)
-          deleted_count += CommitEntry.matching(entry).no_newer_than(entry).where.not(:id => in_progress).delete_all
+          deleted_count += CommitEntry.matching(entry).no_newer_than(entry).delete_all
           break if synced_count == limit
         end
 
@@ -128,7 +125,7 @@ module Stagehand
       end
 
       def autosyncable_entries(scope = nil)
-        entries = CommitEntry.content_operations.not_in_progress.where(scope)
+        entries = CommitEntry.content_operations.where(scope)
         entries = entries.with_uncontained_keys unless Configuration.ghost_mode?
         return entries
       end

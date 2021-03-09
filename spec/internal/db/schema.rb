@@ -45,11 +45,11 @@ ActiveRecord::Schema.define(version: 0) do
     t.string "table_name"
     t.string "operation", null: false
     t.integer "commit_id"
-    t.string "session"
+    t.boolean "capturing", default: false, null: false
     t.datetime "created_at"
     t.index ["commit_id"], name: "index_stagehand_commit_entries_on_commit_id"
-    t.index ["operation", "commit_id"], name: "index_stagehand_commit_entries_on_operation_and_commit_id"
-    t.index ["record_id", "table_name"], name: "index_stagehand_commit_entries_on_record_id_and_table_name"
+    t.index ["operation", "capturing", "commit_id"], name: "index_stagehand_commit_entries_for_loading"
+    t.index ["record_id", "table_name", "capturing"], name: "index_stagehand_commit_entries_for_matching"
   end
 
   create_table "target_assignments", options: "ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci", force: :cascade, stagehand: true do |t|

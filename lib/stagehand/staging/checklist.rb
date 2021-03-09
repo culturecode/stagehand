@@ -18,10 +18,10 @@ module Stagehand
 
         entries_to_spider = Array.wrap(entries)
         while entries_to_spider.present?
-          contained_matching = CommitEntry.contained.matching(entries_to_spider)
-          contained_matching = contained_matching.where(id: contained_matching.select(&relation_filter)) if relation_filter
+          committed_matching = CommitEntry.committed.matching(entries_to_spider)
+          committed_matching = committed_matching.where(id: committed_matching.select(&relation_filter)) if relation_filter
 
-          matching_commit_entries = CommitEntry.where(:commit_id => contained_matching.select(:commit_id))
+          matching_commit_entries = CommitEntry.where(:commit_id => committed_matching.select(:commit_id))
 
           # Spider using content operations. Don't spider control operations to avoid extending the list of results unnecessarily
           content_operations, control_operations = matching_commit_entries.partition(&:content_operation?)
@@ -33,7 +33,7 @@ module Stagehand
         end
 
         # Also include uncontained commit entries that matched
-        related_entries.concat(CommitEntry.uncontained.not_in_progress.matching(entries + related_entries))
+        related_entries.concat(CommitEntry.uncontained.matching(entries + related_entries))
         related_entries.uniq!
 
         return related_entries
