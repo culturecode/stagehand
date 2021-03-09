@@ -24,17 +24,13 @@ module Stagehand
       scope :update_operations,     lambda { where(:operation => UPDATE_OPERATION) }
       scope :delete_operations,     lambda { where(:operation => DELETE_OPERATION) }
       scope :with_record,           lambda { where.not(:record_id => nil) }
+      scope :committed,             lambda { where(:capturing => false) }
       scope :uncontained,           lambda { where(:commit_id => nil) }
       scope :contained,             lambda { where.not(:commit_id => nil) }
       scope :no_newer_than,         lambda {|entry| where("id <= ?", entry) }
-      scope :in_progress,           lambda { joins_active_commits }
-      scope :not_in_progress,       lambda { joins_active_commits("LEFT OUTER").where("active_commits.commit_id IS NULL") }
       scope :with_uncontained_keys, lambda { uncontained.joins_contained("LEFT OUTER").where("contained.record_id IS NULL") }
 
-      def self.joins_active_commits(type = "INNER")
-        joins("#{type} JOIN (#{ unscoped.select('session, MAX(id) AS commit_id').uncontained.start_operations.group('session').to_sql }) AS active_commits
-               ON active_commits.session = #{table_name}.session AND active_commits.commit_id <= #{table_name}.id")
-      end
+      after_create :init_commit_id, if: :start_operation? # Perform this as a callback so it is wrapped in a transaction and nobody gets to see the start entry without a commit_id
 
       def self.joins_contained(type = "INNER")
         joins("#{type} JOIN (#{ unscoped.contained.select('record_id, table_name').distinct.to_sql}) AS contained
@@ -130,6 +126,10 @@ module Stagehand
       end
 
       private
+
+      def init_commit_id
+        update_column(:commit_id, id)
+      end
 
       def infer_class
         klass = self.class.infer_base_class(table_name)

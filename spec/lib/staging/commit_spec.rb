@@ -114,6 +114,20 @@ describe Stagehand::Staging::Commit do
       expect(commit.subject).to be_nil
     end
 
+    it 'sets the capturing flag of commit entries created during the capture to true' do
+      commit = klass.capture do |commit|
+        source_record
+        expect(Stagehand::Staging::CommitEntry.where('id >= ?', commit.id)).to all(have_attributes :capturing => true)
+      end
+    end
+
+    it 'sets the capturing flag of commit entries created during the capture to false at the end of the commit' do
+      commit = klass.capture do |commit|
+        source_record
+      end
+      expect(commit.entries).to all(have_attributes :capturing => false)
+    end
+
     it 'does not swallow Exceptions from the given block' do
       exception = Exception.new
       expect { klass.capture { raise(exception) } }.to raise_exception(exception)
@@ -159,6 +173,17 @@ describe Stagehand::Staging::Commit do
       expect(commit).not_to include(source_record)
     end
 
+    it 'clears the capturing flag of entries from tables in the :except option' do
+      commit = klass.capture(:except => :source_records) { ConstrainedRecord.create; source_record }
+      expect(Stagehand::Staging::CommitEntry.matching(source_record)).to all(have_attributes :capturing => false)
+    end
+
+    it 'does not cause subsequent uncontained commits to become contained if interrupted' do
+      expect { begin klass.capture(:except => :source_records) { raise(Interrupt) }; rescue Interrupt; end }
+        .not_to change { source_record.increment!(:counter); Stagehand::Staging::CommitEntry.last.commit_id }
+        .from nil
+    end
+
     it 'contain entries from tables not in the :except option' do
       other = ConstrainedRecord.new
       commit = klass.capture(:except => :source_records) { other.save!; source_record }
@@ -168,15 +193,6 @@ describe Stagehand::Staging::Commit do
     it 'contains entries from tables in the :except option if the table is the same as the subject' do
       commit = klass.capture(source_record, :except => :source_records) { source_record.increment!(:counter) }
       expect(commit).to include(source_record)
-    end
-
-    context 'if the session trigger has not been created' do
-      before(:context) { Stagehand::Schema.send :drop_trigger, :stagehand_commit_entries, :insert }
-      after(:context) { Stagehand::Schema.send :create_session_trigger }
-
-      it 'raises an exception if the commit session is not set' do
-        expect { klass.capture { some_work } }.to raise_exception(Stagehand::BlankCommitEntrySession)
-      end
     end
 
     context 'when the commit is part of a transaction' do
