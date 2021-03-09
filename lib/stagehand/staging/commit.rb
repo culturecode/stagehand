@@ -16,10 +16,12 @@ module Stagehand
       def self.capture(subject_record = nil, except: [], &block)
         @capturing = true
         start_operation = start_commit(subject_record)
-        init_session!(start_operation)
 
         begin
           block.call(start_operation)
+        rescue Interrupt => e # Prevent Ctrl + c in the console from causing the session commit id to be set for subsequent uncontained commit entries
+          set_session_commit_id(nil) # Stop recording entries to this commit
+          raise(e)
         rescue => e
           end_commit(start_operation, except) unless e.is_a?(CommitError) || e.is_a?(ActiveRecord::Rollback)
           raise(e)
@@ -58,6 +60,7 @@ module Stagehand
         end
 
         start_operation.subject = subject_record
+        set_session_commit_id(start_operation.commit_id)
 
         return start_operation
       end
@@ -65,19 +68,17 @@ module Stagehand
       # Sets the commit_id on all the entries between the start and end op.
       # Returns the commit object for those entries
       def self.end_commit(start_operation, except)
-        end_operation = CommitEntry.end_operations.create(:session => start_operation.session)
+        scope = CommitEntry.where(:commit_id => start_operation.id)
 
-        scope = CommitEntry.where(:id => start_operation.id..end_operation.id, :session => start_operation.session)
+        # Remove any commit entries that are supposed to be excluded from the commit
         if except.present? && Array(except).collect(&:to_s).exclude?(start_operation.table_name)
-          scope = scope.where('table_name NOT IN (?) OR table_name IS NULL', except)
+          scope.content_operations.where(:table_name => except).update_all(:commit_id => nil)
         end
 
-        # We perform a read to determine the ids that are meant to be part of our Commit in order to avoid acquiring
-        # write locks on commit entries between the start and end entry that don't belong to our session. Otherwise, we
-        # risk a deadlock if another process manipulates entries between our start and end while we have a range lock.
-        updated_count = CommitEntry.where(id: scope.pluck(:id)).update_all(:commit_id => start_operation.id)
+        end_operation = scope.end_operations.create
+        set_session_commit_id(nil) # Stop recording entries to this commit
 
-        if updated_count < 2 # Unless we found at least 2 entries (start and end), abort the commit
+        if scope.control_operations.count < 2 # Unless we found at least 2 entries (start and end), abort the commit
           CommitEntry.logger.warn "Commit entries not found for Commit #{start_operation.id}. Was the Commit rolled back in a transaction?"
           end_operation.delete
           return
@@ -86,10 +87,11 @@ module Stagehand
         return new(start_operation.id)
       end
 
-      # Reload to ensure session set by the database is read by ActiveRecord
-      def self.init_session!(entry)
-        entry.reload
-        raise BlankCommitEntrySession unless entry.session.present?
+      # Ensure all entries created on this connection from now on match the given commit_id
+      def self.set_session_commit_id(commit_id)
+        CommitEntry.connection.execute <<~SQL
+          SET @stagehand_commit_id = #{commit_id || 'NULL'};
+        SQL
       end
 
       public
@@ -152,6 +154,5 @@ module Stagehand
   # EXCEPTIONS
   class CommitError < StandardError; end
   class CommitNotFound < CommitError; end
-  class BlankCommitEntrySession < CommitError; end
   class NonStagehandSubject < CommitError; end
 end

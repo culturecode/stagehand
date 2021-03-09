@@ -20,8 +20,7 @@ Key features:
 
 ## Compatibility
 
-Stagehand currently supports MySQL, but could easily be adapted to work on multiple databases by modifying the database
-triggers and session identification code.
+Stagehand currently supports MySQL, but does not use any exotic commands and should work on other databases.
 
 ## Setup
 1. Add **Stagehand** to your Gemfile:
@@ -215,7 +214,7 @@ the record at the end of the through association was not modified during the com
 commit.
 
 | **Commit**               | **Uncontained**    |
-|:-------------------------|:------------------:|     
+|:-------------------------|:------------------:|
 |                          | Create - Vehicle 1 |
 | Update - User 1          |                    |
 | Create - ThroughRecord 1 |                    |
@@ -375,7 +374,7 @@ Ghost Mode, auto synchronization will simulate immediate user confirmation of al
 production database.
 
 |                 | **Visitor** | **Admin** | **Auto Sync to production**             |
-|:----------------|:-----------:|:---------:|:---------------------------------------:|                 
+|:----------------|:-----------:|:---------:|:---------------------------------------:|
 |**Regular Mode** | Production  | Staging   | Changes that don't require confirmation |
 |**Ghost Mode**   | Staging     | Staging   | All changes                             |
 
@@ -516,6 +515,24 @@ class MyClass < ActiveRecord::Base
 end
 ```
 
+## Upgrading from 1.1.x to 1.2.x
+
+The mechanism that tracked which commit entries were part of before the commit was complete has been refactored. Instead
+of tagging each commit entry with a `session` value derived from `connection_id()`, Stagehand now sets a session variable
+for the duration of the commit. This ensures that commit entries that are contained in a commit are never recorded without
+a `commit_id`, thereby avoiding any issues where early program termination could leave commit entries that had not been
+tagged with the expected commit.
+
+To upgrade, first run the Auditor from 1.1.x and deal with any incomplete commits. Then follow these steps in order to
+update the table triggers:
+
+1. Update the Stagehand table triggers
+   ```ruby
+   tables = ActiveRecord::Base.connection.tables.select {|table_name| Stagehand::Schema.has_stagehand?(table_name) }
+   Stagehand::Schema.add_stagehand!(only: tables)
+   ```
+2. Drop the `session` column from the `stagehand_commit_entries` table
+3. Drop the `stagehand_insert_trigger_stagehand_commit_entries` trigger from the `stagehand_commit_entries` table
 
 ## Possible Caveats to double check when development is complete
 - A transaction is opened on the staging and production databases when syncing. This reduces the timing window where the
@@ -537,8 +554,6 @@ by inserting them back into the table with the same id, there could be bugs. The
 delete entries over all others, so the re-insertion entry will be masked by any unsynced delete entry. When the entries
 are synced, the re-insertion entry will be erased because the delete entry is assumed to represent the current state of
 that record.
-
-- If a crash leaves a commit unfinished, subsequent commit entries which use the same session will not be autosynced.
 
 - CommitEntry#record loads the record associated with the commit entry. However, only the table name and the record id
 are saved in the entry, so the actual record class is inferred from the table_name. If multiple classes share the same

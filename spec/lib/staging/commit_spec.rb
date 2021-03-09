@@ -135,18 +135,15 @@ describe Stagehand::Staging::Commit do
       expect(commit).not_to include(source_record)
     end
 
+    it 'does not cause subsequent uncontained commits to become contained if interrupted' do
+      expect { begin klass.capture(:except => :source_records) { raise(Interrupt) }; rescue Interrupt; end }
+        .not_to change { source_record.increment!(:counter); Stagehand::Staging::CommitEntry.last.commit_id }
+        .from nil
+    end
+
     it 'contains entries from tables in the :except option if the table is the same as the subject' do
       commit = klass.capture(source_record, :except => :source_records) { source_record.increment!(:counter) }
       expect(commit).to include(source_record)
-    end
-
-    context 'if the session trigger has not been created' do
-      before(:context) { Stagehand::Schema.send :drop_trigger, :stagehand_commit_entries, :insert }
-      after(:context) { Stagehand::Schema.send :create_session_trigger }
-
-      it 'raises an exception if the commit session is not set' do
-        expect { klass.capture { } }.to raise_exception(Stagehand::BlankCommitEntrySession)
-      end
     end
 
     context 'when the commit is part of a transaction' do
