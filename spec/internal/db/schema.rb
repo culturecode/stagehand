@@ -45,7 +45,6 @@ ActiveRecord::Schema.define(version: 0) do
     t.string "table_name"
     t.string "operation", null: false
     t.integer "commit_id"
-    t.string "session"
     t.datetime "created_at"
     t.index ["commit_id"], name: "index_stagehand_commit_entries_on_commit_id"
     t.index ["operation", "commit_id"], name: "index_stagehand_commit_entries_on_operation_and_commit_id"
