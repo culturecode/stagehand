@@ -78,7 +78,6 @@ describe Stagehand::Staging::Checklist do
       expect(klass.related_entries(record_1)).to include(*commit_3.entries)
     end
 
-
     it 'does not return duplicates if when passed an uncontained entry for a record that also appears in a commit' do
       source_record.increment!(:counter)
       commit_entry = Stagehand::Staging::CommitEntry.last
@@ -306,6 +305,16 @@ describe Stagehand::Staging::Checklist do
       subject = Stagehand::Staging::Checklist.new(source_record, :relation_filter => relation_filter)
 
       expect(subject.affected_entries).to include(*subject.subject_entries)
+    end
+
+    it "does not include entries from commits in progress" do
+      record_1 = SourceRecord.create
+      record_2 = SourceRecord.create
+
+      Stagehand::Staging::Commit.capture(record_1) { record_2.increment!(:counter) }
+      Stagehand::Staging::Commit.capture(record_2) do |start_operation|
+        expect(klass.related_entries(record_1)).not_to include(start_operation)
+      end
     end
   end
 

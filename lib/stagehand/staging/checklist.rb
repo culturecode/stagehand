@@ -33,7 +33,7 @@ module Stagehand
         end
 
         # Also include uncontained commit entries that matched
-        related_entries.concat(CommitEntry.uncontained.matching(entries + related_entries))
+        related_entries.concat(CommitEntry.uncontained.not_in_progress.matching(entries + related_entries))
         related_entries.uniq!
 
         return related_entries
