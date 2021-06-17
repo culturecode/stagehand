@@ -7,7 +7,11 @@ module Stagehand
       BATCH_SIZE = 1000
       SESSION_BATCH_SIZE = 30
       ENTRY_SYNC_ORDER = [:delete, :update, :insert].freeze
-      ENTRY_SYNC_ORDER_SQL = ActiveRecord::Base.send(:sanitize_sql_for_order, ['FIELD(operation, ?), id DESC', ENTRY_SYNC_ORDER]).freeze
+      ENTRY_SYNC_ORDER_SQL =  begin
+                                ActiveRecord::Base.send(:sanitize_sql_for_order, ['FIELD(operation, ?), id DESC', ENTRY_SYNC_ORDER]).freeze
+                              rescue ActiveRecord::NoDatabaseError => e
+                                Rails.logger.debug("#{e.class.name}, #{e.to_s} - continuing anyway, as we expect DB creation")
+                              end
 
       # Immediately attempt to sync the changes from the block if possible
       # The block is wrapped in a transaction to prevent changes to records while being synced

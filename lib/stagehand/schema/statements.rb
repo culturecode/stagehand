@@ -51,5 +51,10 @@ module Stagehand
   end
 end
 
-ActiveRecord::Base.connection.class.include Stagehand::Schema::Statements
+begin
+  ActiveRecord::Base.connection.class.include Stagehand::Schema::Statements
+rescue ActiveRecord::NoDatabaseError => e
+  Rails.logger.debug("#{e.class.name}, #{e.to_s} - continuing anyway, as we expect DB creation")
+end
+
 ActiveRecord::SchemaDumper.prepend Stagehand::Schema::DumperExtensions
