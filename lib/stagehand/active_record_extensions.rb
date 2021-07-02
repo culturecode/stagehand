@@ -71,16 +71,16 @@ ActiveRecord::Base.class_eval do
   # Keep track of the current connection name per-model, per-thread so multithreaded webservers don't overwrite it
   module StagehandConnectionMap
     def self.set(klass, connection_name)
-      currentMap[klass.name] = connection_name
+      current_map[klass.name] = connection_name
     end
 
     def self.get(klass)
-      currentMap[klass.name]
+      current_map[klass.name]
     end
 
-    def self.currentMap
+    def self.current_map
       map = Thread.current.thread_variable_get('StagehandConnectionMap')
-      map = Thread.current.thread_variable_set('StagehandConnectionMap', {}) unless map
+      map = Thread.current.thread_variable_set('StagehandConnectionMap', Concurrent::Hash.new) unless map
       return map
     end
   end
