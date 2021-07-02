@@ -9,11 +9,11 @@ module Stagehand
     end
 
     def self.allow_unsynced_production_writes!(state = true)
-      Thread.current[:stagehand_allow_unsynced_production_writes] = state
+      Thread.current.thread_variable_set(:stagehand_allow_unsynced_production_writes, state)
     end
 
     def self.allow_unsynced_production_writes?
-      !!Thread.current[:stagehand_allow_unsynced_production_writes]
+      !!Thread.current.thread_variable_get(:stagehand_allow_unsynced_production_writes)
     end
 
     module AdapterExtensions
