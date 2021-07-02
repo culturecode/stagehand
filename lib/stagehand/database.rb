@@ -78,14 +78,14 @@ module Stagehand
     private
 
     def swap_connection(connection_name)
+      pushed = ConnectionStack.push(connection_name.to_sym)
       cache = ActiveRecord::Base.connection_pool.query_cache_enabled
-      ConnectionStack.push(connection_name.to_sym)
       ActiveRecord::Base.connection_specification_name = current_connection_name
       ActiveRecord::Base.connection_pool.enable_query_cache! if cache
 
       yield connection_name
     ensure
-      ConnectionStack.pop
+      ConnectionStack.pop if pushed
       ActiveRecord::Base.connection_specification_name = current_connection_name
       ActiveRecord::Base.connection_pool.enable_query_cache! if cache
     end
