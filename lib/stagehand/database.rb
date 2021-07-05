@@ -78,14 +78,14 @@ module Stagehand
     private
 
     def swap_connection(connection_name)
+      pushed = ConnectionStack.push(connection_name.to_sym)
       cache = ActiveRecord::Base.connection_pool.query_cache_enabled
-      ConnectionStack.push(connection_name.to_sym)
       ActiveRecord::Base.connection_specification_name = current_connection_name
       ActiveRecord::Base.connection_pool.enable_query_cache! if cache
 
       yield connection_name
     ensure
-      ConnectionStack.pop
+      ConnectionStack.pop if pushed
       ActiveRecord::Base.connection_specification_name = current_connection_name
       ActiveRecord::Base.connection_pool.enable_query_cache! if cache
     end
@@ -151,8 +151,6 @@ module Stagehand
 
     # Threadsafe tracking of the connection stack
     module ConnectionStack
-      @@connection_name_stack = Hash.new { |h,k| h[k] = [ Rails.env.to_sym ] }
-
       def self.push(connection_name)
         current_stack.push connection_name
       end
@@ -166,7 +164,14 @@ module Stagehand
       end
 
       def self.current_stack
-        @@connection_name_stack[Thread.current.object_id]
+        if stack = Thread.current.thread_variable_get('sparkle_connection_name_stack')
+          stack
+        else
+          stack = Concurrent::Array.new
+          stack << Rails.env.to_sym
+          Thread.current.thread_variable_set('sparkle_connection_name_stack', stack)
+          stack
+        end
       end
     end
   end
