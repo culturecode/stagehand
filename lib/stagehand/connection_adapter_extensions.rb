@@ -18,12 +18,19 @@ module Stagehand
 
     module AdapterExtensions
       def quote_table_name(table_name)
-        return super if Configuration.single_connection?
-        return super unless Database.connected_to_production?
-        return super if Connection.allow_unsynced_production_writes?
-        return super unless Configuration.staging_model_tables.include?(table_name)
+        if prefix_table_name_with_database?(table_name)
+          super("#{Stagehand::Database.staging_database_name}.#{table_name}")
+        else
+          super
+        end
+      end
 
-        super "#{Stagehand::Database.staging_database_name}.#{table_name}"
+      def prefix_table_name_with_database?(table_name)
+        return false if Configuration.single_connection?
+        return false unless Database.connected_to_production?
+        return false if Connection.allow_unsynced_production_writes?
+        return false unless Configuration.staging_model_tables.include?(table_name)
+        true
       end
 
       def exec_insert(*)
