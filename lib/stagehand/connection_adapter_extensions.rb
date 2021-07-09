@@ -72,4 +72,8 @@ module Stagehand
   class UnsyncedProductionWrite < StandardError; end
 end
 
-ActiveRecord::Base.connection.class.prepend(Stagehand::Connection::AdapterExtensions)
+begin
+  ActiveRecord::Base.connection.class.prepend(Stagehand::Connection::AdapterExtensions)
+rescue ActiveRecord::NoDatabaseError => e
+  Rails.logger.debug("#{e.class.name}, #{e.to_s} - continuing anyway, as we expect DB creation")
+end
