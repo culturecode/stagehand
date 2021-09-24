@@ -28,6 +28,8 @@ module Stagehand
     end
 
     def add_stagehand!(options = {})
+      return if Database.connected_to_production? && !Stagehand::Configuration.single_connection?
+
       ActiveRecord::Schema.define do
         Stagehand::Schema.send :each_table, options do |table_name|
           Stagehand::Schema.send :create_operation_trigger, table_name, 'insert', 'NEW'
