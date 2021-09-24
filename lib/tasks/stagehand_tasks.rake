@@ -34,6 +34,8 @@ namespace :stagehand do
   end
 
   rake_both_databases('db:migrate')
+  rake_both_databases('db:migrate:up')
+  rake_both_databases('db:migrate:down')
   rake_both_databases('db:rollback')
   rake_both_databases('db:test:load_structure')
 end
