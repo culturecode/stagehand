@@ -42,6 +42,7 @@ module Stagehand
     def remove_stagehand!(options = {})
       ActiveRecord::Schema.define do
         Stagehand::Schema.send :each_table, options do |table_name|
+          next unless Stagehand::Schema.send :has_stagehand_triggers?, table_name
           Stagehand::Schema.send :drop_trigger, table_name, 'insert'
           Stagehand::Schema.send :drop_trigger, table_name, 'update'
           Stagehand::Schema.send :drop_trigger, table_name, 'delete'
@@ -59,10 +60,6 @@ module Stagehand
       else
         ActiveRecord::Base.connection.table_exists?(Stagehand::Staging::CommitEntry.table_name)
       end
-    end
-
-    def has_stagehand_triggers?(table_name)
-      get_triggers(table_name).present?
     end
 
     private
@@ -110,6 +107,10 @@ module Stagehand
 
     def trigger_exists?(table_name, trigger_event)
       ActiveRecord::Base.connection.select_one("SHOW TRIGGERS where `trigger` = '#{trigger_name(table_name, trigger_event)}'").present?
+    end
+
+    def has_stagehand_triggers?(table_name)
+      get_triggers(table_name).present?
     end
 
     def trigger_name(table_name, trigger_event)
