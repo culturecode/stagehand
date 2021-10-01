@@ -57,7 +57,7 @@ module Stagehand
       elsif table_name
         trigger_exists?(table_name, 'insert')
       else
-        ActiveRecord::Base.Connection.table_exists?(Stagehand::Staging::CommitEntry.table_name)
+        ActiveRecord::Base.connection.table_exists?(Stagehand::Staging::CommitEntry.table_name)
       end
     end
 
