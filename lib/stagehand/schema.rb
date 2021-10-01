@@ -55,10 +55,14 @@ module Stagehand
       if UNTRACKED_TABLES.include?(table_name.to_s)
         return false
       elsif table_name
-        trigger_exists?(table_name, 'insert')
+        has_stagehand_triggers?(table_name)
       else
         ActiveRecord::Base.connection.table_exists?(Stagehand::Staging::CommitEntry.table_name)
       end
+    end
+
+    def has_stagehand_triggers?(table_name)
+      get_triggers(table_name).present?
     end
 
     private
@@ -110,6 +114,15 @@ module Stagehand
 
     def trigger_name(table_name, trigger_event)
       "stagehand_#{trigger_event}_trigger_#{table_name}".downcase
+    end
+
+    def get_triggers(table_name = nil)
+      statement = <<~SQL
+        SHOW TRIGGERS WHERE `Trigger` LIKE 'stagehand_%'
+      SQL
+      statement << " AND `Table` LIKE #{ActiveRecord::Base.connection.quote(table_name)}" if table_name.present?
+
+      return ActiveRecord::Base.connection.select_all(statement)
     end
   end
 end
