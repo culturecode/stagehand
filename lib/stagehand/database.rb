@@ -72,7 +72,10 @@ module Stagehand
         end
         raise ActiveRecord::Rollback unless success
       end
+
       return output
+    ensure
+      Rails.logger.warn "Stagehand::Database transaction was rolled back" unless success
     end
 
     private
