@@ -5,6 +5,24 @@ module Stagehand
   module Database
     extend self
 
+    def transaction
+      raise "Calling Stagehand::Database.transaction is not valid unless connected to staging" unless connected_to_staging?
+
+      success = false
+      output = nil
+      ActiveRecord::Base.transaction do
+        Production::Record.transaction do
+          output = yield
+          success = true
+        end
+        raise ActiveRecord::Rollback unless success
+      end
+
+      return output
+    ensure
+      Rails.logger.warn "Stagehand::Database transaction was rolled back" unless success
+    end
+
     def each(&block)
       with_production_connection(&block) unless Configuration.single_connection?
       with_staging_connection(&block)
@@ -60,22 +78,6 @@ module Stagehand
         output = yield connection_name
       end
       return output
-    end
-
-    def transaction
-      success = false
-      output = nil
-      ActiveRecord::Base.transaction do
-        Production::Record.transaction do
-          output = yield
-          success = true
-        end
-        raise ActiveRecord::Rollback unless success
-      end
-
-      return output
-    ensure
-      Rails.logger.warn "Stagehand::Database transaction was rolled back" unless success
     end
 
     private
