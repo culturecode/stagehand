@@ -133,7 +133,7 @@ module Stagehand
         raise SchemaMismatch unless schemas_match?
 
         run_sync_callbacks(entry, callbacks) do
-          Rails.logger.info "Synchronizing #{entry.table_name} #{entry.record_id}" if entry.content_operation?
+          Rails.logger.info "Synchronizing #{entry.table_name} #{entry.record_id} (#{entry.operation})" if entry.content_operation?
           if Configuration.single_connection?
             next # Avoid deadlocking if the databases are the same
           elsif entry.delete_operation?
