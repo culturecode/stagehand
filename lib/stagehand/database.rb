@@ -6,15 +6,22 @@ module Stagehand
     extend self
 
     def transaction
-      raise "Calling Stagehand::Database.transaction is not valid unless connected to staging" unless connected_to_staging?
+      raise InvalidConnectionError, "Calling Stagehand::Database.transaction is not valid unless connected to staging" unless connected_to_staging?
 
       success = false
+      attempts = 0
       output = nil
       ActiveRecord::Base.transaction do
         Production::Record.transaction do
+          attempts += 1
+
+          raise NoRetryError, "Retrying is not allowed in Stagehand::Database.transaction" if attempts > 1
+
           output = yield
+
           success = true
         end
+
         raise ActiveRecord::Rollback unless success
       end
 
@@ -179,5 +186,8 @@ module Stagehand
         end
       end
     end
+
+    class InvalidConnectionError < StandardError; end
+    class NoRetryError < StandardError; end
   end
 end

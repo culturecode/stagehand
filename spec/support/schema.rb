@@ -59,6 +59,48 @@ RSpec.configure do |config|
   end
 end
 
+module TransactionRetry
+  extend ActiveSupport::Concern
+
+  class_methods do
+    def transaction(*args, &block)
+      return super unless transaction_retry_enabled?
+
+      attempts = 0
+
+      super(*args) do
+        yield
+      rescue => e
+        attempts += 1
+
+        if attempts < 3
+          retry
+        else
+          raise e
+        end
+      end
+    end
+
+    def transaction_retry_enabled?
+      !!@transaction_retry_enabled
+    end
+
+    def transaction_retry_enabled=(bool)
+      @transaction_retry_enabled = bool
+    end
+
+    def with_transaction_retry_enabled(&block)
+      previous_value = transaction_retry_enabled?
+
+      self.transaction_retry_enabled = true
+      yield
+    ensure
+      self.transaction_retry_enabled = previous_value
+    end
+  end
+end
+ActiveRecord::Base.send(:include, TransactionRetry)
+
 # Create the model
 class SourceRecord < ActiveRecord::Base
   belongs_to :user

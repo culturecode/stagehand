@@ -99,5 +99,12 @@ describe Stagehand::Database do
       expect { subject.transaction { Stagehand::Production.save(record); raise ActiveRecord::Rollback } rescue nil }
         .not_to change { Stagehand::Production.status(record) }
     end
+
+    it 'does not allow the transaction to be retried' do
+      record = SourceRecord.create
+
+      expect { ActiveRecord::Base.with_transaction_retry_enabled { subject.transaction { Stagehand::Production.save(record); raise ActiveRecord::Rollback } } }
+        .to raise_exception(Stagehand::Database::NoRetryError)
+    end
   end
 end
