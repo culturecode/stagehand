@@ -133,14 +133,18 @@ module Stagehand
         raise SchemaMismatch unless schemas_match?
 
         run_sync_callbacks(entry, callbacks) do
-          Rails.logger.info "Synchronizing #{entry.table_name} #{entry.record_id} (#{entry.operation})" if entry.content_operation?
-          if Configuration.single_connection?
-            next # Avoid deadlocking if the databases are the same
-          elsif entry.delete_operation?
+          next unless entry.content_operation? # Only sync records from content operations because those are the only rows that have changes
+          next if Configuration.single_connection? # Avoid deadlocking if the databases are the same. There is nothing to sync because there is only a single database
+
+          Rails.logger.info "Synchronizing #{entry.table_name} #{entry.record_id} (#{entry.operation})"
+
+          if entry.delete_operation?
             Production.delete(entry)
           elsif entry.save_operation?
             Production.save(entry)
           end
+
+          Rails.logger.info "Synchronized #{entry.table_name} #{entry.record_id} (#{entry.operation})"
         end
       end
 
