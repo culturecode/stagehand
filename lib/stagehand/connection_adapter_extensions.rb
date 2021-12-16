@@ -33,18 +33,18 @@ module Stagehand
         true
       end
 
-      def exec_insert(*)
-        handle_readonly_writes!
+      def exec_insert(sql, *)
+        handle_readonly_writes!(sql)
         super
       end
 
-      def exec_update(*)
-        handle_readonly_writes!
+      def exec_update(sql, *)
+        handle_readonly_writes!(sql)
         super
       end
 
-      def exec_delete(*)
-        handle_readonly_writes!
+      def exec_delete(sql, *)
+        handle_readonly_writes!(sql)
         super
       end
 
@@ -54,13 +54,13 @@ module Stagehand
         Configuration.single_connection? || @config[:database] == Database.staging_database_name || Connection.allow_unsynced_production_writes?
       end
 
-      def handle_readonly_writes!
+      def handle_readonly_writes!(sql)
         if write_access?
           return
         elsif Configuration.allow_unsynced_production_writes?
           Rails.logger.warn "Writing directly to #{@config[:database]} database using readonly connection"
         else
-          raise(UnsyncedProductionWrite, "Attempted to write directly to #{@config[:database]} database using readonly connection")
+          raise(UnsyncedProductionWrite, "Attempted to write directly to #{@config[:database]} database using readonly connection: #{sql}")
         end
       end
     end
