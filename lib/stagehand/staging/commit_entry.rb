@@ -20,6 +20,8 @@ module Stagehand
       scope :control_operations,    lambda { where(:operation => CONTROL_OPERATIONS) }
       scope :content_operations,    lambda { where(:operation => CONTENT_OPERATIONS) }
       scope :save_operations,       lambda { where(:operation => SAVE_OPERATIONS) }
+      scope :insert_operations,     lambda { where(:operation => INSERT_OPERATION) }
+      scope :update_operations,     lambda { where(:operation => UPDATE_OPERATION) }
       scope :delete_operations,     lambda { where(:operation => DELETE_OPERATION) }
       scope :with_record,           lambda { where.not(:record_id => nil) }
       scope :uncontained,           lambda { where(:commit_id => nil) }

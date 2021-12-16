@@ -17,7 +17,7 @@ module Stagehand
       def rename_table(old_table_name, new_table_name, *)
         return super unless Schema.has_stagehand?(old_table_name)
 
-        Schema.remove_stagehand!(:only => old_table_name)
+        Schema.remove_stagehand!(:only => old_table_name, :remove_entries => false)
         super
         Schema.add_stagehand!(:only => new_table_name)
         Staging::CommitEntry.where(:table_name => old_table_name).update_all(:table_name => new_table_name)
@@ -26,9 +26,8 @@ module Stagehand
       def drop_table(table_name, *)
         return super unless Schema.has_stagehand?(table_name) && table_exists?(Staging::CommitEntry.table_name)
 
+        Schema.remove_stagehand!(:only => table_name, :remove_entries => true)
         super
-        Staging::CommitEntry.where(:table_name => table_name).delete_all
-        Staging::Commit.empty.each(&:destroy)
       end
     end
 
