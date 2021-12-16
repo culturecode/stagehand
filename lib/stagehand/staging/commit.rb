@@ -131,12 +131,16 @@ module Stagehand
         id == other.id
       end
 
-      def entries
-        CommitEntry.where(:id => @start_id..@end_id).where(:commit_id => id)
+      def subject
+        start_entry.record
       end
 
-      def subject
-        entries.sort_by(&:id).first.record
+      def start_entry
+        CommitEntry.find(@start_id)
+      end
+
+      def end_entry
+        entries.end_operations.first
       end
 
       def empty?
@@ -145,6 +149,10 @@ module Stagehand
 
       def destroy
         entries.delete_all
+      end
+
+      def entries
+        CommitEntry.where(:id => @start_id..@end_id).where(:commit_id => id)
       end
     end
   end

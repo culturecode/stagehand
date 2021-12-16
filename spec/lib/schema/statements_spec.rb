@@ -1,3 +1,5 @@
+require 'spec_helper'
+
 describe Stagehand::Schema::Statements do
   describe '#rename_table' do
     without_transactional_fixtures
@@ -33,7 +35,7 @@ describe Stagehand::Schema::Statements do
       ActiveRecord::Schema.define { create_table('widgets') }
     end
 
-    let(:entry) { Stagehand::Staging::CommitEntry.save_operations.create!(:table_name => 'widgets', :record_id => 1) }
+    let(:entry) { Stagehand::Staging::CommitEntry.insert_operations.create!(:table_name => 'widgets', :record_id => 1) }
 
     it 'automatically removes entries with the given table name' do
       expect { ActiveRecord::Schema.define { drop_table('widgets') } }
@@ -41,11 +43,32 @@ describe Stagehand::Schema::Statements do
         .to(false)
     end
 
-    it 'deletes empty commits' do
-      commit = Stagehand::Staging::Commit.capture { }
+    it 'deletes empty commits where the table was the subject' do
+      commit = Stagehand::Staging::Commit.capture {|start_entry| start_entry.update_column(:table_name, 'widgets') }
+
       expect { ActiveRecord::Schema.define { drop_table('widgets') } }
         .to change { Stagehand::Staging::Commit.all.include?(commit) }
         .to(false)
+    end
+
+    it 'does not affect empty commits where the table was not the subject' do
+      commit = Stagehand::Staging::Commit.capture { }
+      commit.start_entry.update_column(:table_name, 'Xwidgets')
+
+      expect { ActiveRecord::Schema.define { drop_table('widgets') } }
+        .not_to change { Stagehand::Staging::Commit.all.include?(commit) }
+        .from(true)
+    end
+
+    it 'does not delete commits where the table was the subject that are not empty' do
+      commit = Stagehand::Staging::Commit.capture do |start_entry|
+        start_entry.update_column(:table_name, 'widgets')
+        SourceRecord.create
+      end
+
+      expect { ActiveRecord::Schema.define { drop_table('widgets') } }
+        .not_to change { Stagehand::Staging::Commit.all.include?(commit) }
+        .from(true)
     end
   end
 end

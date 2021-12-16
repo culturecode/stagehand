@@ -6,7 +6,7 @@ module Stagehand
 
     UNTRACKED_TABLES = ['ar_internal_metadata', 'schema_migrations', Stagehand::Staging::CommitEntry.table_name]
 
-    def init_stagehand!(options = {})
+    def init_stagehand!(**table_options)
       ActiveRecord::Schema.define do
         create_table :stagehand_commit_entries do |t|
           t.integer :record_id
@@ -24,14 +24,14 @@ module Stagehand
         Stagehand::Schema.send :create_session_trigger
       end
 
-      add_stagehand!(options)
+      add_stagehand!(table_options)
     end
 
-    def add_stagehand!(options = {})
+    def add_stagehand!(**table_options)
       return if Database.connected_to_production? && !Stagehand::Configuration.single_connection?
 
       ActiveRecord::Schema.define do
-        Stagehand::Schema.send :each_table, options do |table_name|
+        Stagehand::Schema.send :each_table, table_options do |table_name|
           Stagehand::Schema.send :create_operation_trigger, table_name, 'insert', 'NEW'
           Stagehand::Schema.send :create_operation_trigger, table_name, 'update', 'NEW'
           Stagehand::Schema.send :create_operation_trigger, table_name, 'delete', 'OLD'
@@ -39,16 +39,17 @@ module Stagehand
       end
     end
 
-    def remove_stagehand!(options = {})
+    def remove_stagehand!(remove_entries: true, **table_options)
       ActiveRecord::Schema.define do
-        Stagehand::Schema.send :each_table, options do |table_name|
+        Stagehand::Schema.send :each_table, table_options do |table_name|
           next unless Stagehand::Schema.send :has_stagehand_triggers?, table_name
           Stagehand::Schema.send :drop_trigger, table_name, 'insert'
           Stagehand::Schema.send :drop_trigger, table_name, 'update'
           Stagehand::Schema.send :drop_trigger, table_name, 'delete'
+          Stagehand::Schema.send :expunge, table_name if remove_entries
         end
 
-        drop_table :stagehand_commit_entries unless options[:only].present?
+        drop_table :stagehand_commit_entries unless table_options[:only].present?
       end
     end
 
@@ -64,11 +65,11 @@ module Stagehand
 
     private
 
-    def each_table(options = {})
+    def each_table(only: nil, except: nil)
       table_names = ActiveRecord::Base.connection.tables
       table_names -= UNTRACKED_TABLES
-      table_names -= Array(options[:except]).collect(&:to_s)
-      table_names &= Array(options[:only]).collect(&:to_s) if options[:only].present?
+      table_names -= Array(except).collect(&:to_s)
+      table_names &= Array(only).collect(&:to_s) if only.present?
 
       table_names.each do |table_name|
         yield table_name
@@ -124,6 +125,24 @@ module Stagehand
       statement << " AND `Table` LIKE #{ActiveRecord::Base.connection.quote(table_name)}" if table_name.present?
 
       return ActiveRecord::Base.connection.select_all(statement)
+    end
+
+    def expunge(table_name)
+      commit_ids = [] # Keep track of commits that we need to clean up if they're now empty
+
+      # Remove records from the table as the subject of any commits
+      Stagehand::Staging::CommitEntry.start_operations.where(:table_name => table_name).in_batches do |batch|
+        commit_ids.concat batch.contained.distinct.pluck(:commit_id)
+        batch.update_all(:record_id => nil, :table_name => nil)
+      end
+
+      # Remove commit entries for records from the table
+      Stagehand::Staging::CommitEntry.content_operations.where(:table_name => table_name).in_batches do |batch|
+        commit_ids.concat batch.contained.distinct.pluck(:commit_id)
+        batch.delete_all
+      end
+
+      Stagehand::Staging::Commit.find(commit_ids).select(&:empty?).each(&:destroy)
     end
   end
 end
