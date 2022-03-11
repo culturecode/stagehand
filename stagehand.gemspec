@@ -20,8 +20,7 @@ Gem::Specification.new do |s|
   s.add_dependency 'mysql2'
   s.add_dependency 'ruby-graphviz'
 
-  s.add_development_dependency 'mysql2', '~> 0.4.0' # Avoid issue in combustion until new gem is released
-  s.add_development_dependency 'combustion', '~> 0.9.0'
+  s.add_development_dependency 'combustion', '~> 1.3.0'
   s.add_development_dependency 'rspec-rails', '~> 3.7'
   s.add_development_dependency 'database_cleaner'
 end
