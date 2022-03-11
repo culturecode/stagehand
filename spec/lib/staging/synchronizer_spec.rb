@@ -7,6 +7,27 @@ describe Stagehand::Staging::Synchronizer do
       .each {|record| Stagehand::Production.delete(record) }
   end
 
+  describe '::auto_sync' do
+    before do
+      allow(described_class).to receive(:loop).and_yield.and_yield # Only perform 2 loops for any example
+    end
+
+    it 'loops continuously' do
+      expect(described_class).to receive(:sync).exactly(:twice)
+      described_class.auto_sync
+    end
+
+    it 'breaks the loop if sync raises an exception' do
+      expect(described_class).to receive(:sync).exactly(:once).and_raise(StandardError)
+      expect { described_class.auto_sync }.to raise_exception(StandardError)
+    end
+
+    it 'does not break the loop if sync raises a NoRetryError' do
+      expect(described_class).to receive(:sync).exactly(:twice).and_raise(Stagehand::Database::NoRetryError)
+      described_class.auto_sync
+    end
+  end
+
   describe '::sync_record' do
     it 'copies new records to the production database' do
       expect { subject.sync_record(source_record) }.to change { Stagehand::Production.status(source_record) }.to(:not_modified)

@@ -26,6 +26,8 @@ module Stagehand
           Rails.logger.info "Autosyncing"
           sync(BATCH_SIZE)
           sleep(polling_delay) if polling_delay
+        rescue Database::NoRetryError => e
+          Rails.logger.info "Autosyncing encountered a NoRetryError"
         end
       end
 
