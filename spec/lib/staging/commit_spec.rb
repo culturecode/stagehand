@@ -119,6 +119,16 @@ describe Stagehand::Staging::Commit do
         .to change { Stagehand::Staging::CommitEntry.end_operations.count }.by(1)
     end
 
+    it 'ends the commit when the block contains a return statement' do
+      def do_it
+        klass.capture do
+          return
+        end
+      end
+
+      expect { do_it }.to change { Stagehand::Staging::CommitEntry.end_operations.count }.by(1)
+    end
+
     it 'does not end the commit when the block raises a Stagehand::CommitError exception' do
       expect { klass.capture { raise Stagehand::CommitError } rescue nil }
         .not_to change { Stagehand::Staging::CommitEntry.end_operations.count }
@@ -126,7 +136,7 @@ describe Stagehand::Staging::Commit do
 
     it 'does not create duplicate end entries if an exception is raised while ending the commit' do
       allow(klass).to receive(:new).and_raise('an error')
-      expect { klass.capture { } rescue nil }
+      expect { klass.capture { some_work } rescue nil }
         .to change { Stagehand::Staging::CommitEntry.end_operations.count }.by(1)
     end
 

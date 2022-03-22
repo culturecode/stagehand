@@ -21,11 +21,13 @@ module Stagehand
         begin
           block.call(start_operation)
         rescue => e
-          end_commit(start_operation, except) unless e.is_a?(CommitError) || e.is_a?(ActiveRecord::Rollback)
           raise(e)
-        else
-          return end_commit(start_operation, except)
+        ensure
+          commit = end_commit(start_operation, except) unless e.is_a?(CommitError) || e.is_a?(ActiveRecord::Rollback)
+
+          return commit unless e
         end
+
       ensure
         @capturing = false
       end
