@@ -165,6 +165,15 @@ Stagehand::Staging::Commit.capture(subject_record, except: :components) do
 end
 ```
 
+If a commit contains no captured entries it will be discarded when the capture ends and nothing will be returned. To
+keep the commit even if it is empty `:allow_empty` option can be passed.
+
+```ruby
+Stagehand::Staging::Commit.capture(allow_empty: true) do
+  # commit will be retained even if it contains no entries when capture ends
+end
+```
+
 You can also check to see if a Commit is being captured. This can be useful if there are certain operations you want to do differently while in a commit, e.g. counter cache upkeep
 ```ruby
 Stagehand::Staging::Commit.capturing? #=> false
@@ -215,7 +224,7 @@ the record at the end of the through association was not modified during the com
 commit.
 
 | **Commit**               | **Uncontained**    |
-|:-------------------------|:------------------:|     
+|:-------------------------|:------------------:|
 |                          | Create - Vehicle 1 |
 | Update - User 1          |                    |
 | Create - ThroughRecord 1 |                    |
@@ -375,7 +384,7 @@ Ghost Mode, auto synchronization will simulate immediate user confirmation of al
 production database.
 
 |                 | **Visitor** | **Admin** | **Auto Sync to production**             |
-|:----------------|:-----------:|:---------:|:---------------------------------------:|                 
+|:----------------|:-----------:|:---------:|:---------------------------------------:|
 |**Regular Mode** | Production  | Staging   | Changes that don't require confirmation |
 |**Ghost Mode**   | Staging     | Staging   | All changes                             |
 

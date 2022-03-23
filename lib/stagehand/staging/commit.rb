@@ -13,7 +13,7 @@ module Stagehand
         !!@capturing
       end
 
-      def self.capture(subject_record = nil, except: [], &block)
+      def self.capture(subject_record = nil, except: [], allow_empty: false, &block)
         @capturing = true
         start_operation = start_commit(subject_record)
         init_session!(start_operation)
@@ -23,7 +23,7 @@ module Stagehand
         rescue => e
           raise(e)
         ensure
-          commit = end_commit(start_operation, except) unless e.is_a?(CommitError) || e.is_a?(ActiveRecord::Rollback)
+          commit = end_commit(start_operation, except, allow_empty) unless e.is_a?(CommitError) || e.is_a?(ActiveRecord::Rollback)
 
           return commit unless e
         end
@@ -66,7 +66,7 @@ module Stagehand
 
       # Sets the commit_id on all the entries between the start and end op.
       # Returns the commit object for those entries
-      def self.end_commit(start_operation, except)
+      def self.end_commit(start_operation, except, allow_empty)
         end_operation = CommitEntry.end_operations.create(:session => start_operation.session)
 
         scope = CommitEntry.where(:id => start_operation.id..end_operation.id, :session => start_operation.session)
@@ -77,15 +77,19 @@ module Stagehand
         # We perform a read to determine the ids that are meant to be part of our Commit in order to avoid acquiring
         # write locks on commit entries between the start and end entry that don't belong to our session. Otherwise, we
         # risk a deadlock if another process manipulates entries between our start and end while we have a range lock.
-        updated_count = CommitEntry.where(id: scope.pluck(:id)).update_all(:commit_id => start_operation.id)
+        entries = CommitEntry.where(id: scope.pluck(:id))
 
+        updated_count = entries.update_all(:commit_id => start_operation.id)
         if updated_count < 2 # Unless we found at least 2 entries (start and end), abort the commit
           CommitEntry.logger.warn "Commit entries not found for Commit #{start_operation.id}. Was the Commit rolled back in a transaction?"
           end_operation.delete
-          return
+          return nil
+        elsif updated_count == 2 && !allow_empty # Destroy empty commit unless explicitly allowed
+          entries.delete_all
+          return nil
+        else
+          return new(start_operation.id)
         end
-
-        return new(start_operation.id)
       end
 
       # Reload to ensure session set by the database is read by ActiveRecord
