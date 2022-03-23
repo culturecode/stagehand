@@ -147,10 +147,6 @@ describe Stagehand::Staging::Commit do
       expect(klass.capture { }).to be_nil
     end
 
-    it 'returns a commit if it contains no records but `allow_empty: true` is given' do
-      expect(klass.capture(allow_empty: true) { }).to be_a(Stagehand::Staging::Commit)
-    end
-
     it 'does not create duplicate end entries if an exception is raised while ending the commit' do
       allow(klass).to receive(:new).and_raise('an error')
       expect { klass.capture { some_work } rescue nil }

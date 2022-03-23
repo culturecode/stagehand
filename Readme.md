@@ -149,6 +149,7 @@ end
 Any database changes that take place within the block will logged as part of a Commit. Commits are used when determining
 what additional records to sync when syncing a specific record. For instance, if creating a record updates another
 record in the process, the commit will ensure that manual syncing copies both the new record and the updated record.
+If a commit contains no captured entries it will be discarded when the capture ends and nothing will be returned.
 
 Note, in these examples, the subject of the commit is being set. Doing so allows commits to be associated with each
 other, even if they do not modify the same records, e.g. if a commit only updated nested attributes, setting the commit
@@ -162,15 +163,6 @@ Note that commit entries for changes to these tables are still created, just not
 ```ruby
 Stagehand::Staging::Commit.capture(subject_record, except: :components) do
   # updates to the components table will not be included in this commit
-end
-```
-
-If a commit contains no captured entries it will be discarded when the capture ends and nothing will be returned. To
-keep the commit even if it is empty `:allow_empty` option can be passed.
-
-```ruby
-Stagehand::Staging::Commit.capture(allow_empty: true) do
-  # commit will be retained even if it contains no entries when capture ends
 end
 ```
 

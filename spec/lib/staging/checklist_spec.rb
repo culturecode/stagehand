@@ -117,7 +117,8 @@ describe Stagehand::Staging::Checklist do
     end
 
     it 'does not return nil entries if passed an entry without a record' do
-      commit = Stagehand::Staging::Commit.capture(allow_empty: true) {}
+      commit = Stagehand::Staging::Commit.capture { record_1 }
+      record_1.destroy
       expect(klass.associated_records(commit.entries)).not_to include(nil)
     end
 

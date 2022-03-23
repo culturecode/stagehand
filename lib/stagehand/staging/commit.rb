@@ -13,7 +13,7 @@ module Stagehand
         !!@capturing
       end
 
-      def self.capture(subject_record = nil, except: [], allow_empty: false, &block)
+      def self.capture(subject_record = nil, except: [], &block)
         @capturing = true
         start_operation = start_commit(subject_record)
         init_session!(start_operation)
@@ -23,7 +23,7 @@ module Stagehand
         rescue => e
           raise(e)
         ensure
-          commit = end_commit(start_operation, except, allow_empty) unless e.is_a?(CommitError) || e.is_a?(ActiveRecord::Rollback)
+          commit = end_commit(start_operation, except) unless e.is_a?(CommitError) || e.is_a?(ActiveRecord::Rollback)
 
           return commit unless e
         end
@@ -66,7 +66,7 @@ module Stagehand
 
       # Sets the commit_id on all the entries between the start and end op.
       # Returns the commit object for those entries
-      def self.end_commit(start_operation, except, allow_empty)
+      def self.end_commit(start_operation, except)
         end_operation = CommitEntry.end_operations.create(:session => start_operation.session)
 
         scope = CommitEntry.where(:id => start_operation.id..end_operation.id, :session => start_operation.session)
@@ -84,7 +84,7 @@ module Stagehand
           CommitEntry.logger.warn "Commit entries not found for Commit #{start_operation.id}. Was the Commit rolled back in a transaction?"
           end_operation.delete
           return nil
-        elsif updated_count == 2 && !allow_empty # Destroy empty commit unless explicitly allowed
+        elsif updated_count == 2 # Destroy empty commit
           entries.delete_all
           return nil
         else
