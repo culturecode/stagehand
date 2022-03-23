@@ -149,6 +149,7 @@ end
 Any database changes that take place within the block will logged as part of a Commit. Commits are used when determining
 what additional records to sync when syncing a specific record. For instance, if creating a record updates another
 record in the process, the commit will ensure that manual syncing copies both the new record and the updated record.
+If a commit contains no captured entries it will be discarded when the capture ends and nothing will be returned.
 
 Note, in these examples, the subject of the commit is being set. Doing so allows commits to be associated with each
 other, even if they do not modify the same records, e.g. if a commit only updated nested attributes, setting the commit
@@ -215,7 +216,7 @@ the record at the end of the through association was not modified during the com
 commit.
 
 | **Commit**               | **Uncontained**    |
-|:-------------------------|:------------------:|     
+|:-------------------------|:------------------:|
 |                          | Create - Vehicle 1 |
 | Update - User 1          |                    |
 | Create - ThroughRecord 1 |                    |
@@ -375,7 +376,7 @@ Ghost Mode, auto synchronization will simulate immediate user confirmation of al
 production database.
 
 |                 | **Visitor** | **Admin** | **Auto Sync to production**             |
-|:----------------|:-----------:|:---------:|:---------------------------------------:|                 
+|:----------------|:-----------:|:---------:|:---------------------------------------:|
 |**Regular Mode** | Production  | Staging   | Changes that don't require confirmation |
 |**Ghost Mode**   | Staging     | Staging   | All changes                             |
 

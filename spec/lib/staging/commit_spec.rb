@@ -2,17 +2,21 @@ describe Stagehand::Staging::Commit do
   let(:klass) { Stagehand::Staging::Commit }
   let(:source_record) { SourceRecord.create }
 
+  def some_work
+    SourceRecord.create
+  end
+
   describe ':all' do
     it 'returns all commits' do
-      commit_1 = klass.capture { }
-      commit_2 = klass.capture { }
+      commit_1 = klass.capture { some_work }
+      commit_2 = klass.capture { some_work }
       expect(klass.all).to contain_exactly(commit_1, commit_2)
     end
 
     it 'does not return incomplete commits' do
-      commit_1 = klass.capture { }
-      commit_2 = klass.capture { }
-      commit_3 = klass.capture { }
+      commit_1 = klass.capture { some_work }
+      commit_2 = klass.capture { some_work }
+      commit_3 = klass.capture { some_work }
       commit_2.entries.end_operations.delete_all
       commit_3.entries.start_operations.delete_all
 
@@ -40,14 +44,14 @@ describe Stagehand::Staging::Commit do
 
     it 'does not include records modified outside of the block' do
       source_record
-      commit = klass.capture {  }
+      commit = klass.capture { some_work }
       expect(commit).not_to include(source_record)
     end
 
     it 'does not affect the commit_id of entries for records modified outside of the block' do
       source_record
       entry = Stagehand::Staging::CommitEntry.last
-      expect { klass.capture {  } }.not_to change { entry.reload.attributes }
+      expect { klass.capture { some_work } }.not_to change { entry.reload.attributes }
     end
 
     it 'commits records that were updated' do
@@ -69,30 +73,30 @@ describe Stagehand::Staging::Commit do
     end
 
     it 'accepts a "subject" record to indicate which record kicked off the changes in the commit' do
-      commit = klass.capture(source_record) { }
+      commit = klass.capture(source_record) { some_work }
       expect(commit.subject).to eq(source_record)
     end
 
     it 'does not record the subject if it does not have an id' do
       source_record.id = nil
-      commit = klass.capture(source_record) { }
+      commit = klass.capture(source_record) { some_work }
       expect(commit.subject).to be_nil
     end
 
     it 'includes the subject record' do
-      commit = klass.capture(source_record) { }
+      commit = klass.capture(source_record) { some_work }
       expect(commit).to include(source_record)
     end
 
     it 'does not include the subject record if it does not have an id' do
       source_record.id = nil
-      commit = klass.capture(source_record) { }
+      commit = klass.capture(source_record) { some_work }
       expect(commit).not_to include(source_record)
     end
 
     it 'raises an exception if the subject record does not have stagehand' do
       allow(source_record).to receive(:has_stagehand?).and_return(false)
-      expect { klass.capture(source_record) { } }.to raise_exception(Stagehand::NonStagehandSubject)
+      expect { klass.capture(source_record) { some_work } }.to raise_exception(Stagehand::NonStagehandSubject)
     end
 
     it 'allows the subject to be set during the block' do
@@ -115,8 +119,19 @@ describe Stagehand::Staging::Commit do
     end
 
     it 'ends the commit when the block raises an exception' do
-      expect { klass.capture { raise } rescue nil }
+      expect { klass.capture { some_work; raise } rescue nil }
         .to change { Stagehand::Staging::CommitEntry.end_operations.count }.by(1)
+    end
+
+    it 'ends the commit when the block contains a return statement' do
+      def do_it
+        klass.capture do
+          some_work
+          return
+        end
+      end
+
+      expect { do_it }.to change { Stagehand::Staging::CommitEntry.end_operations.count }.by(1)
     end
 
     it 'does not end the commit when the block raises a Stagehand::CommitError exception' do
@@ -124,15 +139,29 @@ describe Stagehand::Staging::Commit do
         .not_to change { Stagehand::Staging::CommitEntry.end_operations.count }
     end
 
+    it 'does not create a commit if it contains no records' do
+      expect { klass.capture { } }.not_to change { Stagehand::Staging::Commit.all.to_a }
+    end
+
+    it 'returns nil create a commit if it contains no records' do
+      expect(klass.capture { }).to be_nil
+    end
+
     it 'does not create duplicate end entries if an exception is raised while ending the commit' do
       allow(klass).to receive(:new).and_raise('an error')
-      expect { klass.capture { } rescue nil }
+      expect { klass.capture { some_work } rescue nil }
         .to change { Stagehand::Staging::CommitEntry.end_operations.count }.by(1)
     end
 
     it 'does not contain entries from tables in the :except option' do
-      commit = klass.capture(:except => :source_records) { source_record }
+      commit = klass.capture(:except => :source_records) { ConstrainedRecord.create; source_record }
       expect(commit).not_to include(source_record)
+    end
+
+    it 'contain entries from tables not in the :except option' do
+      other = ConstrainedRecord.new
+      commit = klass.capture(:except => :source_records) { other.save!; source_record }
+      expect(commit).to include(other)
     end
 
     it 'contains entries from tables in the :except option if the table is the same as the subject' do
@@ -145,7 +174,7 @@ describe Stagehand::Staging::Commit do
       after(:context) { Stagehand::Schema.send :create_session_trigger }
 
       it 'raises an exception if the commit session is not set' do
-        expect { klass.capture { } }.to raise_exception(Stagehand::BlankCommitEntrySession)
+        expect { klass.capture { some_work } }.to raise_exception(Stagehand::BlankCommitEntrySession)
       end
     end
 
@@ -167,24 +196,24 @@ describe Stagehand::Staging::Commit do
     end
 
     it 'sets the start timestamp' do
-      expect(klass.capture { }.entries.first).to have_attributes(:created_at => be_present)
+      expect(klass.capture { some_work }.entries.first).to have_attributes(:created_at => be_present)
     end
 
     it 'sets the end timestamp' do
-      expect(klass.capture { }.entries.last).to have_attributes(:created_at => be_present)
+      expect(klass.capture { some_work }.entries.last).to have_attributes(:created_at => be_present)
     end
   end
 
   describe '::find' do
     it 'returns the commit with the same the given id' do
-      commit_1 = klass.capture { }
-      commit_2 = klass.capture { }
+      commit_1 = klass.capture { some_work }
+      commit_2 = klass.capture { some_work }
       expect(klass.find(commit_2.id)).to eq(commit_2)
     end
 
     it 'accepts multiple ids and returns an array' do
-      commit_1 = klass.capture { }
-      commit_2 = klass.capture { }
+      commit_1 = klass.capture { some_work }
+      commit_2 = klass.capture { some_work }
       expect(klass.find([commit_1.id, commit_2.id])).to contain_exactly(commit_1, commit_2)
     end
 
@@ -193,7 +222,7 @@ describe Stagehand::Staging::Commit do
     end
 
     it 'ignores nil commit ids in arrays' do
-      commit_1 = klass.capture { }
+      commit_1 = klass.capture { some_work }
       expect(klass.find([commit_1.id, nil])).to contain_exactly(commit_1)
     end
   end
@@ -218,20 +247,20 @@ describe Stagehand::Staging::Commit do
 
   describe '::new' do
     it 'raises CommitNotFound that tells us the start operation is not found if the start operation entry is not present' do
-      commit = klass.capture {}
+      commit = klass.capture { some_work }
       commit.entries.start_operations.delete_all
       expect { klass.new(commit.id) }.to raise_exception(Stagehand::CommitNotFound, /commit_start entry/)
     end
 
     it 'raises CommitNotFound that tells us the end operation is not found if the end operation entry is not present' do
-      commit = klass.capture {}
+      commit = klass.capture { some_work }
       commit.entries.end_operations.delete_all
       expect { klass.new(commit.id) }.to raise_exception(Stagehand::CommitNotFound, /commit_end entry/)
     end
   end
 
   describe '#commit_id' do
-    subject { klass.capture {} }
+    subject { klass.capture { some_work } }
 
     it 'matches the id of the start operation' do
       subject
@@ -279,7 +308,7 @@ describe Stagehand::Staging::Commit do
 
   describe '#subject' do
     it 'returns the record of the start entry' do
-      expect(klass.capture(source_record) { }.subject).to eq(source_record)
+      expect(klass.capture(source_record) { some_work }.subject).to eq(source_record)
     end
   end
 
@@ -297,8 +326,8 @@ describe Stagehand::Staging::Commit do
   end
 
   describe 'equality' do
-    subject { klass.capture { } }
-    let(:other) { klass.capture { } }
+    subject { klass.capture { some_work } }
+    let(:other) { klass.capture { some_work } }
 
     it 'is not equal to another commit' do
       expect(subject).not_to eq(other)
@@ -330,6 +359,8 @@ describe Stagehand::Staging::Commit do
 
     it 'rollback removes entries if the transaction is contained in the capture block' do
       commit = klass.capture do
+        some_work
+
         ActiveRecord::Base.transaction do
           source_record.increment!(:counter)
           raise ActiveRecord::Rollback

@@ -44,7 +44,8 @@ describe Stagehand::Schema::Statements do
     end
 
     it 'deletes empty commits where the table was the subject' do
-      commit = Stagehand::Staging::Commit.capture {|start_entry| start_entry.update_column(:table_name, 'widgets') }
+      commit = Stagehand::Staging::Commit.capture {|start_entry| start_entry.update_column(:table_name, 'widgets'); SourceRecord.create }
+      commit.entries.content_operations.delete_all
 
       expect { ActiveRecord::Schema.define { drop_table('widgets') } }
         .to change { Stagehand::Staging::Commit.all.include?(commit) }
@@ -52,8 +53,9 @@ describe Stagehand::Schema::Statements do
     end
 
     it 'does not affect empty commits where the table was not the subject' do
-      commit = Stagehand::Staging::Commit.capture { }
+      commit = Stagehand::Staging::Commit.capture { SourceRecord.create }
       commit.start_entry.update_column(:table_name, 'Xwidgets')
+      commit.entries.content_operations.delete_all
 
       expect { ActiveRecord::Schema.define { drop_table('widgets') } }
         .not_to change { Stagehand::Staging::Commit.all.include?(commit) }
