@@ -20,7 +20,7 @@ module Stagehand
 
         begin
           block.call(start_operation)
-        rescue => e
+        rescue Exception => e # Rescue Exception because we don't want to swallow them by returning from the ensure block
           raise(e)
         ensure
           commit = end_commit(start_operation, except) unless e.is_a?(CommitError) || e.is_a?(ActiveRecord::Rollback)

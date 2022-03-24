@@ -114,8 +114,9 @@ describe Stagehand::Staging::Commit do
       expect(commit.subject).to be_nil
     end
 
-    it 'does not swallow exceptions from the given block' do
-      expect { klass.capture { raise('test') } }.to raise_exception('test')
+    it 'does not swallow Exceptions from the given block' do
+      exception = Exception.new
+      expect { klass.capture { raise(exception) } }.to raise_exception(exception)
     end
 
     it 'ends the commit when the block raises an exception' do
