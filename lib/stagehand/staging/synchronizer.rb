@@ -16,7 +16,9 @@ module Stagehand
 
         Rails.logger.info "Syncing Now"
         Database.transaction do
-          checklist = Checklist.new(Commit.capture(subject_record, &block).entries)
+          commit = Commit.capture(subject_record, &block)
+          next unless commit # If the commit was empty don't continue
+          checklist = Checklist.new(commit.entries)
           sync_checklist(checklist) unless checklist.requires_confirmation?
         end
       end

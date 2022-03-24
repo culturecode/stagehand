@@ -311,6 +311,16 @@ describe Stagehand::Staging::Synchronizer do
       expect { subject.sync_now { source_record.increment!(:counter) } }.not_to change { Stagehand::Production.status(other_record) }
     end
 
+    it 'does not sync anything if nothing was captured during the block' do
+      other_record = SourceRecord.create
+      expect { subject.sync_now { } }.not_to change { Stagehand::Production.status(other_record) }
+    end
+
+    it 'does not sync a capture with a subject with uncontained changes if nothing was captured during the block' do
+      other_record = SourceRecord.create
+      expect { subject.sync_now(other_record) { } }.not_to change { Stagehand::Production.status(other_record) }
+    end
+
     context 'when multiple connections are accessing a record during the block' do
       without_transactional_fixtures
 
