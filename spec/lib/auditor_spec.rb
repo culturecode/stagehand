@@ -1,54 +1,19 @@
 describe Stagehand::Auditor do
   describe '::incomplete_commits' do
-    let(:ce) { Stagehand::Staging::CommitEntry }
-    let(:start_operation) { ce.start_operations.create }
-
     it "returns a hash with commit ids as keys, and arrays of incomplete commit's entries as values"
 
-    it 'includes commits without end operations when a later start entry exists on the same session' do
-      start_operation
-      ce.start_operations.create
+    it 'includes commits without end operations' do
+      commit = Stagehand::Staging::Commit.capture { SourceRecord.create }
+      commit.entries.last.delete
 
-      expect(subject.incomplete_commits.keys).to contain_exactly(start_operation.id)
+      expect(subject.incomplete_commits.keys).to contain_exactly(commit.id)
     end
 
-    it 'includes commits with uncontained start operations when a later start entry exists on the same session' do
-      start_operation
-      ce.end_operations.create
-      ce.start_operations.create
+    it 'includes commits without start operations' do
+      commit = Stagehand::Staging::Commit.capture { SourceRecord.create }
+      commit.entries.first.delete
 
-
-      expect(subject.incomplete_commits.keys).to contain_exactly(start_operation.id)
-    end
-
-    it 'includes commits with uncontained end operations when a later entry exists on the same session' do
-      start_operation
-      ce.end_operations.create
-      ce.delete_operations.create
-
-      expect(subject.incomplete_commits.keys).to contain_exactly(start_operation.id)
-    end
-
-    it 'does not include commits without end operations if no later start entry exists on the same session' do
-      start_operation
-      ce.delete_operations.create
-
-      expect(subject.incomplete_commits.keys).not_to include(start_operation.id)
-    end
-
-    it 'does not include commits with uncontained end operations if no later entry exists on the same session' do
-      start_operation
-      ce.end_operations.create
-
-      expect(subject.incomplete_commits.keys).not_to include(start_operation.id)
-    end
-
-    it 'does not include commits with uncontained start operations when a later start entry exists on another session' do
-      start_operation
-      ce.delete_operations.create
-      ce.start_operations.create.update_attribute(:session, "not #{start_operation.session}")
-
-      expect(subject.incomplete_commits.keys).not_to include(start_operation.id)
+      expect(subject.incomplete_commits.keys).to contain_exactly(commit.id)
     end
   end
 
