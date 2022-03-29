@@ -86,8 +86,8 @@ module Stagehand
 
       create_trigger(table_name, trigger_event, :after, <<-SQL)
         BEGIN
-          INSERT INTO stagehand_commit_entries (record_id, table_name, operation, commit_id, capturing)
-          VALUES (#{record}.id, '#{table_name}', '#{trigger_event}', @stagehand_commit_id, IF(@stagehand_commit_id, true, false));
+          INSERT INTO stagehand_commit_entries (record_id, table_name, operation, commit_id, capturing, created_at)
+          VALUES (#{record}.id, '#{table_name}', '#{trigger_event}', @stagehand_commit_id, IF(@stagehand_commit_id, true, false), CURRENT_TIMESTAMP());
         END;
       SQL
     end
