@@ -44,7 +44,7 @@ module Stagehand
           sync_entry(entry, :callbacks => :sync)
           synced_count += 1
           in_progress ||= CommitEntry.in_progress.pluck(:id)
-          deleted_count += CommitEntry.matching(entry).no_newer_than(entry).where.not(:id => in_progress).delete_all
+          deleted_count += delete_without_range_locks(CommitEntry.matching(entry).no_newer_than(entry).where.not(:id => in_progress))
           break if synced_count == limit
         end
 
@@ -63,7 +63,7 @@ module Stagehand
           latest_entries.each {|entry| sync_entry(entry, :callbacks => :sync) }
           Rails.logger.info "Synced #{latest_entries.count} entries"
 
-          deleted_count = CommitEntry.matching(latest_entries).delete_all
+          deleted_count = delete_without_range_locks(CommitEntry.matching(latest_entries))
           Rails.logger.info "Removed #{deleted_count - latest_entries.count} stale entries"
         end
       end
@@ -83,7 +83,7 @@ module Stagehand
             end
           end
 
-          CommitEntry.delete(checklist.affected_entries)
+          delete_without_range_locks(checklist.affected_entries)
         end
       end
 
@@ -165,6 +165,17 @@ module Stagehand
         entry.record.run_callbacks(callbacks.shift) do
           run_sync_callbacks(entry, callbacks, &block)
         end
+      end
+
+      # Deletes records without acquiring range locks which have a higher likelihood of causing a deadlock.
+      # See https://dev.mysql.com/doc/refman/5.6/en/innodb-locks-set.html for info on locks set by SQL statements.
+      def delete_without_range_locks(commit_entries)
+        ids = commit_entries.pluck(:id)
+        ids.in_groups_of(1000, false) do |batch|
+          CommitEntry.delete(batch)
+        end
+
+        return ids.length
       end
     end
   end
