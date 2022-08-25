@@ -107,7 +107,11 @@ module Stagehand
     end
 
     def database_name(connection_name)
-      Rails.configuration.database_configuration[connection_name.to_s]['database']
+      database_configuration.dig(connection_name.to_s, 'database')
+    end
+
+    def database_configuration
+      @database_configuration ||= Rails.configuration.database_configuration
     end
 
     def versions_scope
