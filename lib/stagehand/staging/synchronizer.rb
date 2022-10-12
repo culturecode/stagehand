@@ -9,17 +9,23 @@ module Stagehand
       ENTRY_SYNC_ORDER = [:delete, :update, :insert].freeze
       ENTRY_SYNC_ORDER_SQL = Arel.sql(ActiveRecord::Base.send(:sanitize_sql_for_order, [Arel.sql('FIELD(operation, ?), id DESC'), ENTRY_SYNC_ORDER])).freeze
 
+      # Immediately sync the changes from the block, preconfirming all changes
+      # The block is wrapped in a transaction to prevent changes to records while being synced
+      def sync_now!(*args, **opts, &block)
+        sync_now(*args, **opts, preconfirmed: true, &block)
+      end
+
       # Immediately attempt to sync the changes from the block if possible
       # The block is wrapped in a transaction to prevent changes to records while being synced
-      def sync_now(subject_record = nil, &block)
+      def sync_now(subject_record = nil, preconfirmed: false, &block)
         raise SyncBlockRequired unless block_given?
 
-        Rails.logger.info "Syncing Now"
+        Rails.logger.info "Syncing Now (preconfirmed: #{preconfirmed})"
         Database.transaction do
           commit = Commit.capture(subject_record, &block)
           next unless commit # If the commit was empty don't continue
           checklist = Checklist.new(commit.entries)
-          sync_checklist(checklist) unless checklist.requires_confirmation?
+          sync_checklist(checklist) if preconfirmed || !checklist.requires_confirmation?
         end
       end
 

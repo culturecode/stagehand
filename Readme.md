@@ -319,6 +319,18 @@ Stagehand::Staging::Synchronizer.sync_now(subject_record) do
 end
 ```
 
+If immediate syncing is desired, regardless of the existence of interconnected changes that require user confirmation,
+`sync_now!` provides a confirmationless syncing of everything that was touched in the block, as well as everything from
+all interconnected commits.
+
+```ruby
+# Syncing can also be handled in ruby
+Stagehand::Staging::Synchronizer.sync_now!(subject_record) do
+  # Some automated task that does not require user confirmation
+  # but that requires a block of changes to be synced together.
+end
+```
+
 As with `Stagehand::Staging::Commit.capture`, it is recommended though not required that a commit subject be specified when using `sync_now`, ensuring the changes will be synced when that subject record is synced even if the changes do not actually touch the subject record itself.
 
 

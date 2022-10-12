@@ -280,45 +280,41 @@ describe Stagehand::Staging::Synchronizer do
     end
   end
 
-  describe '::sync_now' do
+  shared_examples_for 'a sync-now method' do |sync_method|
     it 'requires a block' do
-      expect { subject.sync_now }.to raise_exception(Stagehand::SyncBlockRequired)
+      expect { subject.public_send(sync_method) }.to raise_exception(Stagehand::SyncBlockRequired)
+    end
+
+    it 'it syncs changes to a record that has been modified, but only outside of a commit' do
+      source_record.increment!(:counter)
+      expect { subject.public_send(sync_method) { source_record.increment!(:counter) } }
+        .to change { Stagehand::Production.status(source_record) }.from(:new).to(:not_modified)
     end
 
     it 'immediately syncs records modified from within the block if they are not part of an existing commit' do
-      expect { subject.sync_now { source_record.increment!(:counter) } }
+      expect { subject.public_send(sync_method) { source_record.increment!(:counter) } }
         .to change { Stagehand::Production.status(source_record) }.from(:new).to(:not_modified)
     end
 
     it 'syncs attributes modified from within the block' do
       counter = source_record.counter || 0
-      expect { subject.sync_now { source_record.increment!(:counter) } }
+      expect { subject.public_send(sync_method) { source_record.increment!(:counter) } }
         .to change { Stagehand::Production.find(source_record) }.to have_attributes(counter: counter + 1)
-    end
-
-    it 'does not sync records modified from within the block if they are part of an existing commit' do
-      Stagehand::Staging::Commit.capture { source_record.increment!(:counter) }
-      expect { subject.sync_now { source_record.increment!(:counter) } }.not_to change { Stagehand::Production.status(source_record) }
-    end
-
-    it 'does not sync records modified from within the block if they are the subject of an existing commit' do
-      Stagehand::Staging::Commit.capture(source_record) { source_record.increment!(:counter) }
-      expect { subject.sync_now { source_record.increment!(:counter) } }.not_to change { Stagehand::Production.status(source_record) }
     end
 
     it 'does not sync changes to records not modified in the block' do
       other_record = SourceRecord.create
-      expect { subject.sync_now { source_record.increment!(:counter) } }.not_to change { Stagehand::Production.status(other_record) }
+      expect { subject.public_send(sync_method) { source_record.increment!(:counter) } }.not_to change { Stagehand::Production.status(other_record) }
     end
 
     it 'does not sync anything if nothing was captured during the block' do
       other_record = SourceRecord.create
-      expect { subject.sync_now { } }.not_to change { Stagehand::Production.status(other_record) }
+      expect { subject.public_send(sync_method) { } }.not_to change { Stagehand::Production.status(other_record) }
     end
 
     it 'does not sync a capture with a subject with uncontained changes if nothing was captured during the block' do
       other_record = SourceRecord.create
-      expect { subject.sync_now(other_record) { } }.not_to change { Stagehand::Production.status(other_record) }
+      expect { subject.public_send(sync_method, other_record) { } }.not_to change { Stagehand::Production.status(other_record) }
     end
 
     context 'when multiple connections are accessing a record during the block' do
@@ -326,7 +322,7 @@ describe Stagehand::Staging::Synchronizer do
 
       let(:thread_1) do
         Thread.new do
-          subject.sync_now do
+          subject.public_send(sync_method) do
             @thread_1_syncing = true
             sleep 0.1 until @thread_1_wake_before_write
             SourceRecord.find(source_record.id).update_columns(:counter => 1)
@@ -400,6 +396,38 @@ describe Stagehand::Staging::Synchronizer do
 
         expect(Stagehand::Production.find(source_record)).not_to have_attributes(:name => 'Bob')
       end
+    end
+  end
+
+  describe '::sync_now' do
+    it_behaves_like 'a sync-now method', :sync_now
+
+    it 'does not sync records modified from within the block if unsynced changes to those records exist in a separate commit' do
+      Stagehand::Staging::Commit.capture { source_record.increment!(:counter) }
+      expect { subject.sync_now { source_record.increment!(:counter) } }
+        .not_to change { Stagehand::Production.status(source_record) }.from(:new)
+    end
+
+    it 'does not sync records modified from within the block if they are the subject of an existing commit' do
+      Stagehand::Staging::Commit.capture(source_record) { source_record.increment!(:counter) }
+      expect { subject.sync_now { source_record.increment!(:counter) } }
+        .not_to change { Stagehand::Production.status(source_record) }
+    end
+  end
+
+  describe '::sync_now!' do
+    it_behaves_like 'a sync-now method', :sync_now!
+
+    it 'syncs records modified from within the block if unsynced changes to those records exist in a separate commit' do
+      Stagehand::Staging::Commit.capture { source_record.increment!(:counter) }
+      expect { subject.sync_now! { source_record.increment!(:counter) } }
+        .to change { Stagehand::Production.status(source_record) }.from(:new).to(:not_modified)
+    end
+
+    it 'syncs records modified from within the block if they are the subject of an existing commit' do
+      Stagehand::Staging::Commit.capture(source_record) { source_record.increment!(:counter) }
+      expect { subject.sync_now! { source_record.increment!(:counter) } }
+        .to change { Stagehand::Production.status(source_record) }.from(:new).to(:not_modified)
     end
   end
 
