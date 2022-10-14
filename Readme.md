@@ -331,8 +331,9 @@ Stagehand::Staging::Synchronizer.sync_now!(subject_record) do
 end
 ```
 
-As with `Stagehand::Staging::Commit.capture`, it is recommended though not required that a commit subject be specified when using `sync_now`, ensuring the changes will be synced when that subject record is synced even if the changes do not actually touch the subject record itself.
-
+As with `Stagehand::Staging::Commit.capture`, it is recommended though not required that a commit subject be specified when using `sync_now`
+and `sync_now!`, ensuring the changes will be synced when that subject record is synced even if the changes do not actually touch the subject record itself.
+While a `sync_now` block will not require confirmation due to its own entries, a commit with a subject that matches the subject of the `sync_now` block will not be precomfirmed automatically.
 
 ### Ignoring Columns
 
