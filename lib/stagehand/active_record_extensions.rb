@@ -85,3 +85,26 @@ ActiveRecord::Base.class_eval do
     end
   end
 end
+
+module StagehandAssociationReflection
+  # SOURCE: https://github.com/rails/rails/blob/a4581b53aae93a8dd3205abae0630398cbce9204/activerecord/lib/active_record/reflection.rb#L429
+  def initialize(*)
+    super
+    @association_scope_cache = StagehandAssociationScopeCache.new
+  end
+
+  # Ensure the association query statements are cached separately for the staging and production connections or else
+  # queries for Staging Models may cache the database name for the wrong connection.
+  class StagehandAssociationScopeCache < Delegator
+    def initialize
+      @staging_cache = Concurrent::Map.new
+      @production_cache = Concurrent::Map.new
+    end
+
+    def __getobj__
+      Stagehand::Database.connected_to_production? ? @production_cache : @staging_cache
+    end
+  end
+end
+
+ActiveRecord::Reflection::AssociationReflection.prepend(StagehandAssociationReflection)

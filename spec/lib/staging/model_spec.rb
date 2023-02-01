@@ -53,6 +53,50 @@ describe Stagehand::Staging::Model do
       end
     end
 
+    it 'can load a staging model while on the production connection after loading that model on the staging connection' do
+      record = SourceRecord.create
+      Stagehand::Database.with_staging_connection do
+        record.reload
+      end
+
+      Stagehand::Database.with_production_connection do
+        expect(record.reload).to be_present
+      end
+    end
+
+    it 'can load a staging model while on the staging connection after loading that model on the production connection' do
+      record = SourceRecord.create
+      Stagehand::Database.with_production_connection do
+        record.reload
+      end
+
+      Stagehand::Database.with_staging_connection do
+        expect(record.reload).to be_present
+      end
+    end
+
+    it 'can load an association of a staging model while on the production connection after calling that association on the staging connection' do
+      record = TargetAssignment.create!(:source_record => klass.new)
+      Stagehand::Database.with_staging_connection do
+        record.association(:source_record).reload
+      end
+
+      Stagehand::Database.with_production_connection do
+        expect(record.association(:source_record).reload).to be_present
+      end
+    end
+
+    it 'can load an association of a staging model while on the staging connection after calling that association on the production connection' do
+      record = TargetAssignment.create!(:source_record => klass.new)
+      Stagehand::Database.with_production_connection do
+        record.association(:source_record).reload
+      end
+
+      Stagehand::Database.with_staging_connection do
+        expect(record.association(:source_record).reload).to be_present
+      end
+    end
+
     describe '::quoted_table_name' do
       it 'prefixes the table name when connected to production after being called while on the staging connection' do
         prefix = "`#{klass.connection.current_database}`"
