@@ -174,6 +174,53 @@ describe Stagehand::Staging::Synchronizer do
       expect(start_operation.class.where(id: start_operation)).to exist
     end
 
+    it 'syncs deletion of records with foreign key constraints' do
+      constrained_record = nil
+
+      described_class.sync_now do
+        constrained_record = ConstrainedRecord.create!(:source_record => source_record)
+      end
+
+      constrained_record.destroy
+      source_record.destroy
+
+      expect { described_class.sync }.to change { Stagehand::Production.status(constrained_record) }.to(:new)
+    end
+
+    it 'does not sync the same record multiple times when multiple commit entries exist for it' do
+      source_record.increment!(:counter)
+      source_record.increment!(:counter)
+
+      expect(Stagehand::Production).to receive(:save).once
+      described_class.sync
+    end
+
+    it 'deletes all other commit entries for a record that has been deleted even if those entries are not processed' do
+      source_record.increment!(:counter)
+      source_record.increment!(:counter)
+      source_record.destroy
+
+      expect { described_class.sync(1) }.to change { Stagehand::Staging::CommitEntry.matching(source_record).count }.to 0
+    end
+
+    it 'deletes all other create and update commit entries for a record that has been updated even if those entries are not processed' do
+      source_record.increment!(:counter)
+      source_record.increment!(:counter)
+      expect { described_class.sync(1) }.to change { Stagehand::Staging::CommitEntry.matching(source_record).count }.to 0
+    end
+
+    it 'does not delete a delete commit entry for a record that is created while the record is being synced' do
+      source_record.increment!(:counter)
+      expected_scope = Stagehand::Staging::CommitEntry.matching(source_record)
+
+      allow(Stagehand::Staging::CommitEntry).to receive(:matching).and_wrap_original do |original_method, *args, &block|
+        source_record.destroy
+        original_method.call(*args, &block)
+      end
+
+      expect { described_class.sync(1) }.to change { expected_scope.delete_operations.count }.to 1
+    end
+
     it 'stops syncing once the limit has been reached' do
       record_1 = SourceRecord.create
       record_2 = SourceRecord.create

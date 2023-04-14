@@ -7,7 +7,7 @@ module Stagehand
       BATCH_SIZE = 1000
       SESSION_BATCH_SIZE = 30
       ENTRY_SYNC_ORDER = [:delete, :update, :insert].freeze
-      ENTRY_SYNC_ORDER_SQL = Arel.sql(ActiveRecord::Base.send(:sanitize_sql_for_order, [Arel.sql('FIELD(operation, ?), id DESC'), ENTRY_SYNC_ORDER])).freeze
+      ENTRY_SYNC_ORDER_SQL = Arel.sql(ActiveRecord::Base.send(:sanitize_sql_for_order, [Arel.sql('FIELD(operation, ?), id ASC'), ENTRY_SYNC_ORDER])).freeze
 
       # Immediately sync the changes from the block, preconfirming all changes
       # The block is wrapped in a transaction to prevent changes to records while being synced
@@ -49,8 +49,12 @@ module Stagehand
         iterate_autosyncable_entries do |entry|
           sync_entry(entry, :callbacks => :sync)
           synced_count += 1
+
           in_progress ||= CommitEntry.in_progress.pluck(:id)
-          deleted_count += delete_without_range_locks(CommitEntry.matching(entry).no_newer_than(entry).where.not(:id => in_progress))
+          scope = CommitEntry.matching(entry).where.not(:id => in_progress)
+          scope = scope.save_operations unless entry.delete_operation?
+          deleted_count += delete_without_range_locks(scope)
+
           break if synced_count == limit
         end
 

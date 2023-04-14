@@ -14,6 +14,8 @@ ActiveRecord::Schema.define(version: 0) do
 
   create_table "constrained_records", options: "ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci", force: :cascade, stagehand: true do |t|
     t.integer "unique_number"
+    t.bigint "source_record_id"
+    t.index ["source_record_id"], name: "index_constrained_records_on_source_record_id"
     t.index ["unique_number"], name: "index_constrained_records_on_unique_number", unique: true
   end
 
@@ -67,4 +69,5 @@ ActiveRecord::Schema.define(version: 0) do
     t.datetime "updated_at", null: false
   end
 
+  add_foreign_key "constrained_records", "source_records"
 end
