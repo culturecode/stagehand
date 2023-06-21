@@ -574,6 +574,11 @@ describe Stagehand::Staging::Synchronizer do
       expect(record.reload.name).to include('[after]')
     end
 
+    it 'does not run callbacks if the :callbacks option is false' do
+      subject.sync_record(record, callbacks: false)
+      expect(record.reload.name).not_to include('[after]')
+    end
+
     it 'runs :before_sync_as_subject callback if the record is the subject of the checklist' do
       subject.sync_checklist(Stagehand::Staging::Checklist.new(record))
       expect(record.reload.name).to include('[before_as_subject]')

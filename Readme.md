@@ -366,6 +366,14 @@ callbacks as you would `before_save` and `after_save` callbacks to run code rela
   after_sync_as_affected :my_method # Runs after syncing a checklist record that is not subject of that checklist
 ```
 
+Callbacks can be skipped when manually syncing, by passing `:callbacks => false` to any of the sync methods.
+
+```ruby
+Stagehand::Staging::Synchronizer.sync_record(record, :callbacks => false)
+Stagehand::Staging::Synchronizer.sync_now(:callbacks => false) { }
+# etc...
+```
+
 NOTE: The only difference from typical ActiveRecord callbacks is that the callbacks are not run on the record instance
 being synced, but instead are run on a new instance reloaded from the database.
 

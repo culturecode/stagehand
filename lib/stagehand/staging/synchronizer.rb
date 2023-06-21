@@ -17,7 +17,7 @@ module Stagehand
 
       # Immediately attempt to sync the changes from the block if possible
       # The block is wrapped in a transaction to prevent changes to records while being synced
-      def sync_now(subject_record = nil, preconfirmed: false, &block)
+      def sync_now(subject_record = nil, preconfirmed: false, **opts, &block)
         raise SyncBlockRequired unless block_given?
 
         Rails.logger.info "Syncing Now (preconfirmed: #{preconfirmed})"
@@ -25,21 +25,21 @@ module Stagehand
           commit = Commit.capture(subject_record, &block)
           next unless commit # If the commit was empty don't continue
           checklist = Checklist.new(commit.entries)
-          sync_checklist(checklist) if preconfirmed || !checklist.requires_confirmation?
+          sync_checklist(checklist, **opts) if preconfirmed || !checklist.requires_confirmation?
         end
       end
 
-      def auto_sync(polling_delay = 5.seconds)
+      def auto_sync(polling_delay = 5.seconds, **opts)
         loop do
           Rails.logger.info "Autosyncing"
-          sync(BATCH_SIZE)
+          sync(BATCH_SIZE, **opts)
           sleep(polling_delay) if polling_delay
         rescue Database::NoRetryError => e
           Rails.logger.info "Autosyncing encountered a NoRetryError"
         end
       end
 
-      def sync(limit = nil)
+      def sync(limit = nil, **opts)
         synced_count = 0
         deleted_count = 0
         in_progress = nil
@@ -47,7 +47,7 @@ module Stagehand
         Rails.logger.info "Syncing"
 
         iterate_autosyncable_entries do |entry|
-          sync_entry(entry, :callbacks => :sync)
+          sync_entry(entry, :callbacks => :sync, **opts)
           synced_count += 1
 
           in_progress ||= CommitEntry.in_progress.pluck(:id)
@@ -64,13 +64,13 @@ module Stagehand
         return synced_count
       end
 
-      def sync_all
+      def sync_all(**opts)
         loop do
           entries = CommitEntry.order(ENTRY_SYNC_ORDER_SQL).limit(BATCH_SIZE).to_a
           break unless entries.present?
 
           latest_entries = entries.uniq(&:key)
-          latest_entries.each {|entry| sync_entry(entry, :callbacks => :sync) }
+          latest_entries.each {|entry| sync_entry(entry, :callbacks => :sync, **opts) }
           Rails.logger.info "Synced #{latest_entries.count} entries"
 
           deleted_count = delete_without_range_locks(CommitEntry.matching(latest_entries))
@@ -79,17 +79,17 @@ module Stagehand
       end
 
       # Copies all the affected records from the staging database to the production database
-      def sync_record(record)
-        sync_checklist(Checklist.new(record))
+      def sync_record(record, **opts)
+        sync_checklist(Checklist.new(record), **opts)
       end
 
-      def sync_checklist(checklist)
+      def sync_checklist(checklist, **opts)
         Database.transaction do
           checklist.syncing_entries.each do |entry|
             if checklist.subject_entries.include?(entry)
-              sync_entry(entry, :callbacks => [:sync, :sync_as_subject])
+              sync_entry(entry, :callbacks => [:sync, :sync_as_subject], **opts)
             else
-              sync_entry(entry, :callbacks => [:sync, :sync_as_affected])
+              sync_entry(entry, :callbacks => [:sync, :sync_as_affected], **opts)
             end
           end
 
@@ -143,7 +143,7 @@ module Stagehand
         return entries
       end
 
-      def sync_entry(entry, callbacks: [])
+      def sync_entry(entry, callbacks: false)
         raise SchemaMismatch unless schemas_match?
 
         run_sync_callbacks(entry, callbacks) do
@@ -169,7 +169,7 @@ module Stagehand
       end
 
       def run_sync_callbacks(entry, callbacks, &block)
-        callbacks = Array.wrap(callbacks).dup
+        callbacks = Array.wrap(callbacks.presence).dup
         return block.call unless callbacks.present? && entry.record
 
         entry.record.run_callbacks(callbacks.shift) do
