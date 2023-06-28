@@ -162,7 +162,7 @@ module Stagehand
       end
 
       def subject_entries
-        cache(:subject_entries) { CommitEntry.matching(@subject) }
+        cache(:subject_entries) { CommitEntry.not_in_progress.matching(@subject) }
       end
 
       private

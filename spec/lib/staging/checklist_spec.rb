@@ -314,7 +314,16 @@ describe Stagehand::Staging::Checklist do
 
       Stagehand::Staging::Commit.capture(record_1) { record_2.increment!(:counter) }
       Stagehand::Staging::Commit.capture(record_2) do |start_operation|
-        expect(klass.related_entries(record_1)).not_to include(start_operation)
+        expect(Stagehand::Staging::Checklist.new(record_1).affected_entries).not_to include(start_operation)
+      end
+    end
+
+    it "does not include entries from commits in progress whose subject is part of this checklist" do
+      record_1 = SourceRecord.create
+
+      Stagehand::Staging::Commit.capture(record_1) { record_1.increment!(:counter) }
+      Stagehand::Staging::Commit.capture(record_1) do |start_operation|
+        expect(Stagehand::Staging::Checklist.new(record_1).affected_entries).not_to include(start_operation)
       end
     end
   end
