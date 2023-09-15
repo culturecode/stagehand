@@ -20,6 +20,7 @@ module Stagehand
 
         begin
           block.call(start_operation)
+          start_operation.subject = subject_record if start_operation.record.nil? && subject_record.persisted?
         rescue Exception => e # Rescue Exception because we don't want to swallow them by returning from the ensure block
           raise(e)
         ensure
