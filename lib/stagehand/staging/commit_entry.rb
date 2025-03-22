@@ -37,7 +37,7 @@ module Stagehand
       end
 
       def self.joins_contained(type = "INNER")
-        joins("#{type} JOIN (#{ unscoped.contained.select('record_id, table_name').distinct.to_sql}) AS contained
+        joins("#{type} JOIN (#{ unscoped.contained.select('record_id, table_name').to_sql}) AS contained
                ON contained.record_id = #{table_name}.record_id AND contained.table_name = #{table_name}.table_name")
       end
 
