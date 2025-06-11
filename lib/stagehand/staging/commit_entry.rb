@@ -142,7 +142,11 @@ module Stagehand
       end
 
       def infer_production_sti_class(root_class)
-        production_record[root_class.inheritance_column]&.constantize if production_record
+        return unless production_record
+        record_type = production_record[root_class.inheritance_column]
+        record_type&.constantize
+      rescue NameError
+        raise(IndeterminateRecordClass, "Can't determine class from table name: #{record_type}")
       end
 
       def build_deleted_record
