@@ -20,7 +20,7 @@ module Stagehand
       tables = options[:tables] || Database.staging_connection.tables.select {|table_name| Schema::has_stagehand?(table_name) }
       Array(tables).each do |table_name|
         print "\nChecking #{table_name} "
-        mismatched = {}
+        mismatched = Hash.new {|k,v| k[v] = {} }
         limit = 1000
 
         min_id = [
@@ -45,11 +45,11 @@ module Stagehand
 
           production_differences.each do |row|
             id = row[id_column]
-            mismatched[id] = {:production => row}
+            mismatched[id][:production] = row
           end
           staging_differences.each do |row|
             id = row[id_column]
-            mismatched[id] ||= {:staging => row}
+            mismatched[id][:staging] = row
           end
 
           if production_differences.present? || staging_differences.present?
