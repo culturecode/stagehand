@@ -532,17 +532,17 @@ update the table triggers:
    tables = ActiveRecord::Base.connection.tables.select {|table_name| Stagehand::Schema.has_stagehand?(table_name) }
    Stagehand::Schema.add_stagehand!(only: tables)
    ```
-2. Add a `capturing` boolean column to the `stagehand_commit_entries` table
+2. Add a `committed` boolean column to the `stagehand_commit_entries` table
    ```ruby
-   add_column :stagehand_commit_entries, :capturing, :boolean, :null => false, :default => false
+   add_column :stagehand_commit_entries, :committed, :boolean, :null => false, :default => false
    ```
 3. Drop the `session` column from the `stagehand_commit_entries` table
 4. Drop the `stagehand_insert_trigger_stagehand_commit_entries` trigger from the `stagehand_commit_entries` table
 5. Replace the `index_stagehand_commit_entries_on_record_id_and_table_name` and `index_stagehand_commit_entries_on_operation_and_commit_id` indices
    in the `stagehand_commit_entries` table with the following:
    ```ruby
-   add_index :stagehand_commit_entries, [:record_id, :table_name, :capturing], :name => 'index_stagehand_commit_entries_for_matching'
-   add_index :stagehand_commit_entries, [:operation, :capturing, :commit_id], :name => 'index_stagehand_commit_entries_for_loading'
+   add_index :stagehand_commit_entries, [:record_id, :table_name, :committed], :name => 'index_stagehand_commit_entries_for_matching'
+   add_index :stagehand_commit_entries, [:operation, :committed, :commit_id], :name => 'index_stagehand_commit_entries_for_loading'
    ```
 
 

@@ -4,8 +4,8 @@ describe Stagehand::Staging::CommitEntry do
   subject { source_record; Stagehand::Staging::CommitEntry.last }
 
   describe '::create' do
-    it 'sets the capturing flag to false' do
-      expect(klass.insert_operations.create.reload).to have_attributes(:capturing => false)
+    it 'sets the committed flag to false' do
+      expect(klass.insert_operations.create.reload).to have_attributes(:committed => false)
     end
   end
 

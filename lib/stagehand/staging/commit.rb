@@ -48,7 +48,7 @@ module Stagehand
       private
 
       def self.start_commit(subject_record)
-        start_operation = CommitEntry.start_operations.new(:capturing => true)
+        start_operation = CommitEntry.start_operations.new
 
         # Make it easy to set the subject for the duration of the commit block
         def start_operation.subject=(record)
@@ -71,7 +71,7 @@ module Stagehand
 
         # Remove any commit entries that are supposed to be excluded from the commit
         if except.present? && Array(except).collect(&:to_s).exclude?(start_operation.table_name)
-          scope.content_operations.where(:table_name => except).update_all(:commit_id => nil, :capturing => false)
+          scope.content_operations.where(:table_name => except).update_all(:commit_id => nil)
         end
 
         end_operation = scope.end_operations.create
@@ -84,7 +84,7 @@ module Stagehand
           scope.delete_all
           return nil
         else
-          CommitEntry.where(id: entries.map(&:id)).update_all(:capturing => false) # Allow these entries to be considered when spidering and determining auto syncing.
+          CommitEntry.where(id: entries.map(&:id)).update_all(:committed => true) # Allow these entries to be considered when spidering and determining auto syncing.
           return new(start_operation.id)
         end
       end

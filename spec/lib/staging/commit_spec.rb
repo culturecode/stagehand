@@ -114,18 +114,18 @@ describe Stagehand::Staging::Commit do
       expect(commit.subject).to be_nil
     end
 
-    it 'sets the capturing flag of commit entries created during the capture to true' do
+    it 'sets the committed flag of commit entries created during the capture to false' do
       commit = klass.capture do |commit|
         source_record
-        expect(Stagehand::Staging::CommitEntry.where('id >= ?', commit.id)).to all(have_attributes :capturing => true)
+        expect(Stagehand::Staging::CommitEntry.where('id >= ?', commit.id)).to all(have_attributes :committed => false)
       end
     end
 
-    it 'sets the capturing flag of commit entries created during the capture to false at the end of the commit' do
+    it 'sets the committed flag of commit entries created during the capture to true at the end of the commit' do
       commit = klass.capture do |commit|
         source_record
       end
-      expect(commit.entries).to all(have_attributes :capturing => false)
+      expect(commit.entries).to all(have_attributes :committed => true)
     end
 
     it 'does not swallow Exceptions from the given block' do
@@ -173,9 +173,9 @@ describe Stagehand::Staging::Commit do
       expect(commit).not_to include(source_record)
     end
 
-    it 'clears the capturing flag of entries from tables in the :except option' do
+    it 'does not set the committed flag of entries from tables in the :except option' do
       commit = klass.capture(:except => :source_records) { ConstrainedRecord.create; source_record }
-      expect(Stagehand::Staging::CommitEntry.matching(source_record)).to all(have_attributes :capturing => false)
+      expect(Stagehand::Staging::CommitEntry.matching(source_record)).to all(have_attributes :committed => false)
     end
 
     it 'does not cause subsequent uncontained commits to become contained if interrupted' do

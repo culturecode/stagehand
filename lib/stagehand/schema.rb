@@ -13,13 +13,13 @@ module Stagehand
           t.string :table_name
           t.string :operation, :null => false
           t.integer :commit_id
-          t.boolean :capturing, :null => false, :default => false
+          t.boolean :committed, :null => false, :default => false
           t.datetime :created_at
         end
 
         add_index :stagehand_commit_entries, :commit_id # Used for looking up all entries within a commit
-        add_index :stagehand_commit_entries, [:record_id, :table_name, :capturing], :name => 'index_stagehand_commit_entries_for_matching' # Used for 'matching' scope
-        add_index :stagehand_commit_entries, [:operation, :capturing, :commit_id], :name => 'index_stagehand_commit_entries_for_loading' # Used for looking up start entries
+        add_index :stagehand_commit_entries, [:record_id, :table_name, :committed], :name => 'index_stagehand_commit_entries_for_matching' # Used for 'matching' scope
+        add_index :stagehand_commit_entries, [:operation, :committed, :commit_id], :name => 'index_stagehand_commit_entries_for_loading' # Used for looking up start entries
       end
 
       Stagehand::Staging::CommitEntry.reset_column_information
@@ -86,8 +86,8 @@ module Stagehand
 
       create_trigger(table_name, trigger_event, :after, <<-SQL)
         BEGIN
-          INSERT INTO stagehand_commit_entries (record_id, table_name, operation, commit_id, capturing, created_at)
-          VALUES (#{record}.id, '#{table_name}', '#{trigger_event}', @stagehand_commit_id, IF(@stagehand_commit_id, true, false), CURRENT_TIMESTAMP());
+          INSERT INTO stagehand_commit_entries (record_id, table_name, operation, commit_id, created_at)
+          VALUES (#{record}.id, '#{table_name}', '#{trigger_event}', @stagehand_commit_id, CURRENT_TIMESTAMP());
         END;
       SQL
     end
