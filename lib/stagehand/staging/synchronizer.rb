@@ -41,7 +41,8 @@ module Stagehand
         iterate_autosyncable_entries do |entry|
           sync_entry(entry, :callbacks => :sync)
           synced_count += 1
-          deleted_count += CommitEntry.matching(entry).no_newer_than(entry).delete_all
+
+          deleted_count += CommitEntry.matching(entry).no_newer_than(entry).uncontained.delete_all
           break if synced_count == limit
         end
 
@@ -126,7 +127,11 @@ module Stagehand
 
       def autosyncable_entries(scope = nil)
         entries = CommitEntry.content_operations.where(scope)
-        entries = entries.with_uncontained_keys unless Configuration.ghost_mode?
+        if Configuration.ghost_mode?
+          entries = entries.not_in_progress
+        else
+          entries = entries.with_uncontained_keys
+        end
         return entries
       end
 

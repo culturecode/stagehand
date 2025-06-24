@@ -24,7 +24,10 @@ module Stagehand
       scope :update_operations,     lambda { where(:operation => UPDATE_OPERATION) }
       scope :delete_operations,     lambda { where(:operation => DELETE_OPERATION) }
       scope :with_record,           lambda { where.not(:record_id => nil) }
+      scope :in_progress,           lambda { contained.uncommitted }
+      scope :not_in_progress,       lambda { uncontained.or(committed) }
       scope :committed,             lambda { where(:committed => true) }
+      scope :uncommitted,           lambda { where.not(:committed => true) }
       scope :uncontained,           lambda { where(:commit_id => nil) }
       scope :contained,             lambda { where.not(:commit_id => nil) }
       scope :no_newer_than,         lambda {|entry| where("id <= ?", entry) }
