@@ -40,7 +40,9 @@ RSpec.configure do |config|
 
           create_table :constrained_records, :force => true do |t|
             t.integer :unique_number, index: { unique: true }
+            t.references :source_record
           end
+          add_foreign_key :constrained_records, :source_records
         end
       end
     end
@@ -124,6 +126,8 @@ class SerializedColumnRecord < ActiveRecord::Base
   serialize :name
 end
 
-class ConstrainedRecord < ActiveRecord::Base; end
+class ConstrainedRecord < ActiveRecord::Base;
+  belongs_to :source_record
+end
 
 class User < ActiveRecord::Base; end

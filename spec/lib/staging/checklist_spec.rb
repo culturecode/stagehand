@@ -319,6 +319,26 @@ describe Stagehand::Staging::Checklist do
           .not_to include(have_attributes :table_name => record_2.class.table_name, :record_id => record_2.id)
       end
     end
+
+    # FIXME: What's the difference?
+    it "does not include entries from commits in progress" do
+      record_1 = SourceRecord.create
+      record_2 = SourceRecord.create
+
+      Stagehand::Staging::Commit.capture(record_1) { record_2.increment!(:counter) }
+      Stagehand::Staging::Commit.capture(record_2) do |start_operation|
+        expect(Stagehand::Staging::Checklist.new(record_1).affected_entries).not_to include(start_operation)
+      end
+    end
+
+    it "does not include entries from commits in progress whose subject is part of this checklist" do
+      record_1 = SourceRecord.create
+
+      Stagehand::Staging::Commit.capture(record_1) { record_1.increment!(:counter) }
+      Stagehand::Staging::Commit.capture(record_1) do |start_operation|
+        expect(Stagehand::Staging::Checklist.new(record_1).affected_entries).not_to include(start_operation)
+      end
+    end
   end
 
   describe '#confirm_create' do

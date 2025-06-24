@@ -33,6 +33,7 @@ namespace :stagehand do
     Rake::Task[task].enhance(["stagehand:#{stagehand_task}"])
   end
 
+  rake_both_databases('db:create')
   rake_both_databases('db:migrate')
   rake_both_databases('db:migrate:up')
   rake_both_databases('db:migrate:down')

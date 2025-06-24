@@ -36,7 +36,7 @@ module Stagehand
       after_create :init_commit_id, if: :start_operation? # Perform this as a callback so it is wrapped in a transaction and nobody gets to see the start entry without a commit_id
 
       def self.joins_contained(type = "INNER")
-        joins("#{type} JOIN (#{ unscoped.contained.select('record_id, table_name').distinct.to_sql}) AS contained
+        joins("#{type} JOIN (#{ unscoped.contained.select('record_id, table_name').to_sql}) AS contained
                ON contained.record_id = #{table_name}.record_id AND contained.table_name = #{table_name}.table_name")
       end
 
@@ -145,7 +145,11 @@ module Stagehand
       end
 
       def infer_production_sti_class(root_class)
-        production_record[root_class.inheritance_column]&.constantize if production_record
+        return unless production_record
+        record_type = production_record[root_class.inheritance_column]
+        record_type&.constantize
+      rescue NameError
+        raise(IndeterminateRecordClass, "Can't determine class from table name: #{record_type}")
       end
 
       def build_deleted_record

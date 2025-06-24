@@ -84,6 +84,23 @@ describe Stagehand::Staging::CommitEntry do
         record.destroy
         expect(subject.record_class).to eq(record.class.base_class)
       end
+
+      it 'raises an exception when trying to update to an invalid sti type' do
+        record = STISourceRecord.create
+        Stagehand::Production.save(record)
+        record.update_column(:type, "Invalid::Subtype")
+
+        expect { subject.record_class }.to raise_exception(ActiveRecord::SubclassNotFound)
+      end
+
+      it 'creates a dummy class if the subtype is invalid for a delete operation entry whose record has been synced to production' do
+        record = STISourceRecord.create
+        Stagehand::Production.save(record)
+        Stagehand::Production.write(record, :type => 'Invalid::Subtype')
+        record.destroy
+
+        expect(subject.record_class).to eq(Stagehand::DummyClass::SourceRecord)
+      end
     end
   end
 

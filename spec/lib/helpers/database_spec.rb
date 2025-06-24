@@ -107,4 +107,16 @@ describe Stagehand::Database do
         .to raise_exception(Stagehand::Database::NoRetryError)
     end
   end
+
+  describe '::staging_database_name' do
+    it 'is performant' do
+      expect { 1000.times { subject.staging_database_name } }.to take_less_than(0.01).seconds
+    end
+  end
+
+  describe '::production_database_name' do
+    it 'is performant' do
+      expect { 1000.times { subject.production_database_name } }.to take_less_than(0.01).seconds
+    end
+  end
 end

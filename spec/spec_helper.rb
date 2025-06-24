@@ -23,6 +23,7 @@ RSpec.configure do |config|
   config.append_after(:each) do
     DatabaseCleaner.strategy = :deletion
     DatabaseCleaner.clean
+    Stagehand::Staging::CommitEntry.delete_all if Stagehand::Database.connected_to_staging? # Delete any entries that were created due to database cleaning
 
     Stagehand::Configuration.staging_model_tables = Set.new
   end
