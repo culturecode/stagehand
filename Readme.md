@@ -545,27 +545,41 @@ for the duration of the commit. This ensures that commit entries that are contai
 a `commit_id`, thereby avoiding any issues where early program termination could leave commit entries that had not been
 tagged with the expected commit.
 
-To upgrade, first run the Auditor from 1.1.x and deal with any incomplete commits. Then follow these steps in order to
-update the table triggers:
+To upgrade, first run the Auditor from 1.1.x and deal with any incomplete commits. Then run the following migration:
 
-1. Update the Stagehand table triggers
-   ```ruby
-   tables = ActiveRecord::Base.connection.tables.select {|table_name| Stagehand::Schema.has_stagehand?(table_name) }
-   Stagehand::Schema.add_stagehand!(only: tables)
-   ```
-2. Add a `committed` boolean column to the `stagehand_commit_entries` table
-   ```ruby
-   add_column :stagehand_commit_entries, :committed, :boolean, :null => false, :default => false
-   ```
-3. Drop the `session` column from the `stagehand_commit_entries` table
-4. Drop the `stagehand_insert_trigger_stagehand_commit_entries` trigger from the `stagehand_commit_entries` table
-5. Replace the `index_stagehand_commit_entries_on_record_id_and_table_name` and `index_stagehand_commit_entries_on_operation_and_commit_id` indices
-   in the `stagehand_commit_entries` table with the following:
-   ```ruby
-   add_index :stagehand_commit_entries, [:record_id, :table_name, :committed], :name => 'index_stagehand_commit_entries_for_matching'
-   add_index :stagehand_commit_entries, [:operation, :committed, :commit_id], :name => 'index_stagehand_commit_entries_for_loading'
-   ```
+```ruby
+  class UpgradeToStagehand_1_2_0 < ActiveRecord::Migration[5.2]
+    def up
+      return unless Stagehand::Database.connected_to_staging?
 
+      # Update the Stagehand table triggers
+      tables = ActiveRecord::Base.connection.tables.select {|table_name| Stagehand::Schema.has_stagehand?(table_name) }
+      Stagehand::Schema.add_stagehand!(only: tables, force: true)
+
+      # Add a `committed` boolean column to the `stagehand_commit_entries` table
+      add_column :stagehand_commit_entries, :committed, :boolean, null: false, default: false
+
+      # Drop the `session` column from the `stagehand_commit_entries` table
+      remove_column :stagehand_commit_entries, :session
+
+      # Replace the old indices in the `stagehand_commit_entries` table with updated ones that include `committed`
+      remove_index :stagehand_commit_entries, name: 'index_stagehand_commit_entries_on_record_id_and_table_name'
+      remove_index :stagehand_commit_entries, name: 'index_stagehand_commit_entries_on_operation_and_commit_id'
+
+      add_index :stagehand_commit_entries, [:record_id, :table_name, :committed], name: 'index_stagehand_commit_entries_for_matching'
+      add_index :stagehand_commit_entries, [:operation, :committed, :commit_id], name: 'index_stagehand_commit_entries_for_loading'
+
+      # Drop the `stagehand_insert_trigger_stagehand_commit_entries` trigger from the `stagehand_commit_entries` table
+      execute(<<~SQL)
+        DROP TRIGGER stagehand_insert_trigger_stagehand_commit_entries
+      SQL
+
+      # Mark all entries in completed commits as committed.
+      completed_commit_ids = Stagehand::Staging::CommitEntry.end_operations.pluck(:commit_id)
+      Stagehand::Staging::CommitEntry.where(commit_id: completed_commit_ids).update_all(committed: true)
+    end
+  end
+  ```
 
 ## Possible Caveats to double check when development is complete
 - A transaction is opened on the staging and production databases when syncing. This reduces the timing window where the
