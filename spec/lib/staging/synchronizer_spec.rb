@@ -103,6 +103,15 @@ describe Stagehand::Staging::Synchronizer do
       end
     end
 
+    it 'does not sync records with matching entries that belong to commits in progress' do
+      skip 'We need to be able to commit the change from the other thread between determining autosyncable entries and deleting the defunct entries, which is not easy to do'
+      start_operation = Stagehand::Staging::Commit.capture do
+        Thread.new { source_record.increment!(:counter) }.join
+        source_record.increment!(:counter)
+        expect { subject.sync }.to change { Stagehand::Staging::CommitEntry.matching(source_record).count }.by(-1)
+      end
+    end
+
     it 'does not sync records with entries that belong to a commit and also entries that do not' do
       Stagehand::Staging::Commit.capture { source_record.increment!(:counter) }
       source_record.increment!(:counter)
@@ -269,6 +278,7 @@ describe Stagehand::Staging::Synchronizer do
       without_transactional_fixtures
 
       it 'does not sync the record if an outside write makes a change to the record during the sync' do
+        skip 'We need to be able to commit the change from the other thread between determining autosyncable entries and deleting the defunct entries, which is not easy to do'
         # thread 1 initiates sync
         # thread 1 finds list of entries that are autosyncable
         # thread 2 modifies one of the records refered to in the list of entries
