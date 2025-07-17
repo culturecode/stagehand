@@ -13,28 +13,29 @@ module Stagehand
           t.string :table_name
           t.string :operation, :null => false
           t.integer :commit_id
-          t.string :session
+          t.boolean :committed, :null => false, :default => false
           t.datetime :created_at
         end
 
         add_index :stagehand_commit_entries, :commit_id # Used for looking up all entries within a commit
-        add_index :stagehand_commit_entries, [:record_id, :table_name] # Used for 'matching' scope
-        add_index :stagehand_commit_entries, [:operation, :commit_id] # Used for looking up start entries, and 'not_in_progress' scope
-
-        Stagehand::Schema.send :create_session_trigger
+        add_index :stagehand_commit_entries, [:record_id, :table_name, :committed], :name => 'index_stagehand_commit_entries_for_matching' # Used for 'matching' scope
+        add_index :stagehand_commit_entries, [:operation, :committed, :commit_id], :name => 'index_stagehand_commit_entries_for_loading' # Used for looking up start entries
       end
+
+      Stagehand::Staging::CommitEntry.reset_column_information
 
       add_stagehand!(table_options)
     end
 
-    def add_stagehand!(**table_options)
+
+    def add_stagehand!(force: false, **table_options)
       return if Database.connected_to_production? && !Stagehand::Configuration.single_connection?
 
       ActiveRecord::Schema.define do
         Stagehand::Schema.send :each_table, table_options do |table_name|
-          Stagehand::Schema.send :create_operation_trigger, table_name, 'insert', 'NEW'
-          Stagehand::Schema.send :create_operation_trigger, table_name, 'update', 'NEW'
-          Stagehand::Schema.send :create_operation_trigger, table_name, 'delete', 'OLD'
+          Stagehand::Schema.send :create_operation_trigger, table_name, 'insert', 'NEW', force: force
+          Stagehand::Schema.send :create_operation_trigger, table_name, 'update', 'NEW', force: force
+          Stagehand::Schema.send :create_operation_trigger, table_name, 'delete', 'OLD', force: force
         end
       end
     end
@@ -76,21 +77,17 @@ module Stagehand
       end
     end
 
-    # Create trigger to initialize session using a function
-    def create_session_trigger
-      drop_trigger(:stagehand_commit_entries, :insert)
-      create_trigger(:stagehand_commit_entries, :insert, :before, <<-SQL)
-        SET NEW.session = CONNECTION_ID();
-      SQL
-    end
-
-    def create_operation_trigger(table_name, trigger_event, record)
-      return if trigger_exists?(table_name, trigger_event)
+    def create_operation_trigger(table_name, trigger_event, record, force: false)
+      if force
+        drop_trigger(table_name, trigger_event)
+      elsif trigger_exists?(table_name, trigger_event)
+        return
+      end
 
       create_trigger(table_name, trigger_event, :after, <<-SQL)
         BEGIN
-          INSERT INTO stagehand_commit_entries (record_id, table_name, operation)
-          VALUES (#{record}.id, '#{table_name}', '#{trigger_event}');
+          INSERT INTO stagehand_commit_entries (record_id, table_name, operation, commit_id, created_at)
+          VALUES (#{record}.id, '#{table_name}', '#{trigger_event}', @stagehand_commit_id, CURRENT_TIMESTAMP());
         END;
       SQL
     end

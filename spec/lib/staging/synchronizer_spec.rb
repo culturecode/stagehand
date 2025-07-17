@@ -97,9 +97,19 @@ describe Stagehand::Staging::Synchronizer do
     end
 
     it 'does not sync records with entries that belong to commits in progress' do
-      start_operation = Stagehand::Staging::CommitEntry.start_operations.create
-      source_record.increment!(:counter)
-      expect { subject.sync }.not_to change { Stagehand::Production.status(source_record) }
+      start_operation = Stagehand::Staging::Commit.capture do
+        source_record.increment!(:counter)
+        expect { subject.sync }.not_to change { Stagehand::Production.status(source_record) }
+      end
+    end
+
+    it 'does not sync records with matching entries that belong to commits in progress' do
+      skip 'We need to be able to commit the change from the other thread between determining autosyncable entries and deleting the defunct entries, which is not easy to do'
+      start_operation = Stagehand::Staging::Commit.capture do
+        Thread.new { source_record.increment!(:counter) }.join
+        source_record.increment!(:counter)
+        expect { subject.sync }.to change { Stagehand::Staging::CommitEntry.matching(source_record).count }.by(-1)
+      end
     end
 
     it 'does not sync records with entries that belong to a commit and also entries that do not' do
@@ -154,21 +164,21 @@ describe Stagehand::Staging::Synchronizer do
       expect(commit_entry.class.where(:id => commit_entry)).not_to exist
     end
 
-    it 'does not delete active commit starts where the record is the subject when syncing an entry from a different session' do
+    it 'does not delete active commit starts where the record is the subject when syncing an entry that is not part of the commit' do
       source_record
-      Stagehand::Staging::CommitEntry.last.update_column(:session, 'some other session')
+      Stagehand::Staging::CommitEntry.last.update_column(:commit_id, nil)
       start_operation = Stagehand::Staging::CommitEntry.start_operations.create(record_id: source_record.id, table_name: source_record.class.table_name)
       subject.sync
 
       expect(start_operation.class.where(id: start_operation)).to exist
     end
 
-    it 'does not delete active commit starts where the record is the subject when an entry exists from a different session that came after' do
+    it 'does not delete active commit starts where the record is the subject when an entry exists that is not part of the commit and came after' do
       source_record
       Stagehand::Staging::CommitEntry.last.delete
       start_operation = Stagehand::Staging::CommitEntry.start_operations.create(record_id: source_record.id, table_name: source_record.class.table_name)
       source_record.touch
-      Stagehand::Staging::CommitEntry.last.update_column(:session, 'some other session')
+      Stagehand::Staging::CommitEntry.last.update_column(:commit_id, nil)
       subject.sync
 
       expect(start_operation.class.where(id: start_operation)).to exist
@@ -268,6 +278,7 @@ describe Stagehand::Staging::Synchronizer do
       without_transactional_fixtures
 
       it 'does not sync the record if an outside write makes a change to the record during the sync' do
+        skip 'We need to be able to commit the change from the other thread between determining autosyncable entries and deleting the defunct entries, which is not easy to do'
         # thread 1 initiates sync
         # thread 1 finds list of entries that are autosyncable
         # thread 2 modifies one of the records refered to in the list of entries

@@ -14,8 +14,6 @@ ActiveRecord::Schema.define(version: 0) do
 
   create_table "constrained_records", options: "ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci", force: :cascade, stagehand: true do |t|
     t.integer "unique_number"
-    t.bigint "source_record_id"
-    t.index ["source_record_id"], name: "index_constrained_records_on_source_record_id"
     t.index ["unique_number"], name: "index_constrained_records_on_unique_number", unique: true
   end
 
@@ -47,11 +45,11 @@ ActiveRecord::Schema.define(version: 0) do
     t.string "table_name"
     t.string "operation", null: false
     t.integer "commit_id"
-    t.string "session"
+    t.boolean "committed", default: false, null: false
     t.datetime "created_at"
     t.index ["commit_id"], name: "index_stagehand_commit_entries_on_commit_id"
-    t.index ["operation", "commit_id"], name: "index_stagehand_commit_entries_on_operation_and_commit_id"
-    t.index ["record_id", "table_name"], name: "index_stagehand_commit_entries_on_record_id_and_table_name"
+    t.index ["operation", "committed", "commit_id"], name: "index_stagehand_commit_entries_for_loading"
+    t.index ["record_id", "table_name", "committed"], name: "index_stagehand_commit_entries_for_matching"
   end
 
   create_table "target_assignments", options: "ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci", force: :cascade, stagehand: true do |t|
@@ -69,5 +67,4 @@ ActiveRecord::Schema.define(version: 0) do
     t.datetime "updated_at", null: false
   end
 
-  add_foreign_key "constrained_records", "source_records"
 end

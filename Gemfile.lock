@@ -1,9 +1,9 @@
 PATH
   remote: .
   specs:
-    culturecode_stagehand (1.1.11)
+    culturecode_stagehand (1.2.0)
       mysql2
-      rails (>= 4.2)
+      rails (>= 4.2, < 6)
       ruby-graphviz
 
 GEM
@@ -135,7 +135,7 @@ GEM
       method_source
       rake (>= 0.8.7)
       thor (>= 0.19.0, < 2.0)
-    rake (12.3.2)
+    rake (13.0.6)
     rexml (3.4.1)
     rspec-core (3.8.0)
       rspec-support (~> 3.8.0)
@@ -185,4 +185,4 @@ DEPENDENCIES
   rspec-rails (~> 3.7)
 
 BUNDLED WITH
-   2.3.6
+   2.4.22

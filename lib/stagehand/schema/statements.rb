@@ -7,7 +7,6 @@ module Stagehand
         options = options.symbolize_keys
 
         return if Database.connected_to_production? && !Stagehand::Configuration.single_connection?
-        return Schema.send(:create_session_trigger) if options[:stagehand] == :commit_entries
         return if options[:stagehand] == false
         return if UNTRACKED_TABLES.include?(table_name)
 
